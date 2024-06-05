@@ -20,14 +20,18 @@ export default defineConfig(async () => ({
     host: mobile ? "0.0.0.0" : false,
     hmr: mobile
       ? {
-          protocol: "ws",
-          host: await internalIpV4(),
-          port: 1421,
-        }
+        protocol: "ws",
+        host: await internalIpV4(),
+        port: 1421,
+      }
       : undefined,
     watch: {
       // 3. tell vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],
     },
   },
+
+  test: {
+    globalSetup: './vitest.setup.ts'
+  }
 }));
