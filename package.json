@@ -12,7 +12,6 @@
     "tauri": "tauri",
     "test": "vitest",
     "drizzle": "drizzle-kit",
-    "drizzle:generate": "drizzle-kit generate --config=./db/drizzle.config.ts",
     "drizzle:push": "drizzle-kit push --config=./db/drizzle.config.ts"
   },
   "license": "MIT",
