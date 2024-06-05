@@ -10,12 +10,16 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "tauri": "tauri",
-    "test": "vitest"
+    "test": "vitest",
+    "drizzle:generate": "drizzle-kit generate --config=./db/drizzle.config.ts",
+    "drizzle:push": "drizzle-kit push --config=./db/drizzle.config.ts"
   },
   "license": "MIT",
   "dependencies": {
     "@tauri-apps/api": ">=2.0.0-beta.0",
     "@tauri-apps/plugin-shell": ">=2.0.0-beta.0",
+    "drizzle-orm": "^0.31.1",
+    "pg": "^8.12.0",
     "electric-sql": "^0.11.3"
   },
   "devDependencies": {
