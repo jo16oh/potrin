@@ -11,16 +11,18 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "tauri": "tauri",
     "test": "vitest",
+    "drizzle": "drizzle-kit",
     "drizzle:generate": "drizzle-kit generate --config=./db/drizzle.config.ts",
     "drizzle:push": "drizzle-kit push --config=./db/drizzle.config.ts"
   },
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "5.15.0",
     "@tauri-apps/api": ">=2.0.0-beta.0",
     "@tauri-apps/plugin-shell": ">=2.0.0-beta.0",
     "drizzle-orm": "^0.31.1",
-    "pg": "^8.12.0",
-    "electric-sql": "^0.11.3"
+    "electric-sql": "^0.11.3",
+    "pg": "^8.12.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.1",
@@ -30,6 +32,7 @@
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.22.1",
     "internal-ip": "^7.0.0",
+    "prisma": "^5.15.0",
     "svelte": "5.0.0-next.149",
     "svelte-check": "^3.6.0",
     "tslib": "^2.4.1",
