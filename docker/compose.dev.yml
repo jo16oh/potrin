@@ -1,5 +1,5 @@
 name: potrin_dev
-version: '3.1'
+version: "3.1"
 
 volumes:
   pg_data:
