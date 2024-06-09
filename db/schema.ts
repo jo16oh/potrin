@@ -12,7 +12,7 @@ export const card = pgTable(
   {
     id: uuid("id").primaryKey(),
     thread: uuid("thread"),
-    prev_card: uuid("prev_card"),
+    fractional_index: text("fractional_index"),
     content: text("content"),
     created_at: timestamp("created_at"),
     updated_at: timestamp("updated_at"),
@@ -20,7 +20,9 @@ export const card = pgTable(
   (cards) => {
     return {
       thread_idx: index("thread_idx").on(cards.thread),
-      prev_card_idx: index("prev_card_idx").on(cards.prev_card),
+      cards_fractional_index_idx: index("cards_fractional_index_idx").on(
+        cards.fractional_index,
+      ),
     };
   },
 );
@@ -30,7 +32,7 @@ export const thread = pgTable(
   {
     id: uuid("id").primaryKey(),
     parent_thread: uuid("parent_thread"),
-    prev_thread: uuid("prev_thread"),
+    fractional_index: text("fractional_index"),
     title: text("title"),
     created_at: timestamp("created_at"),
     updated_at: timestamp("updated_at"),
@@ -39,7 +41,9 @@ export const thread = pgTable(
   (threads) => {
     return {
       parent_thread_idx: index("parent_thread_idx").on(threads.parent_thread),
-      prev_thread_idx: index("prev_thread_idx").on(threads.prev_thread),
+      threads_fractional_index_idx: index("threads_fractional_index_idx").on(
+        threads.fractional_index,
+      ),
     };
   },
 );
