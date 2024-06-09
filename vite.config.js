@@ -30,4 +30,8 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+
+  test: {
+    globalSetup: "./vitest.setup.ts",
+  },
 }));
