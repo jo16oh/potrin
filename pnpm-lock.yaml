@@ -25,7 +25,7 @@ importers:
         version: 0.31.1(better-sqlite3@8.7.0)(pg@8.12.0)
       electric-sql:
         specifier: ^0.11.3
-        version: 0.11.3(@tauri-apps/plugin-sql@2.0.0-beta.5)(pg@8.12.0)(prisma@5.15.0)(zod@3.21.1)
+        version: 0.11.3(@tauri-apps/plugin-sql@2.0.0-beta.5)(pg@8.12.0)(prisma@5.15.0)(zod@3.23.8)
       neverthrow:
         specifier: ^6.2.2
         version: 6.2.2
@@ -35,6 +35,9 @@ importers:
       velona:
         specifier: ^0.8.0
         version: 0.8.0
+      zod:
+        specifier: ^3.23.8
+        version: 3.23.8
     devDependencies:
       '@eslint/js':
         specifier: ^9.4.0
@@ -3092,6 +3095,9 @@ packages:
   zod@3.21.1:
     resolution: {integrity: sha512-+dTu2m6gmCbO9Ahm4ZBDapx2O6ZY9QSPXst2WXjcznPMwf2YNpn3RevLx4KkZp1OPW/ouFcoBtBzFz/LeY69oA==}
 
+  zod@3.23.8:
+    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
+
 snapshots:
 
   '@ampproject/remapping@2.3.0':
@@ -4250,7 +4256,7 @@ snapshots:
       better-sqlite3: 8.7.0
       pg: 8.12.0
 
-  electric-sql@0.11.3(@tauri-apps/plugin-sql@2.0.0-beta.5)(pg@8.12.0)(prisma@5.15.0)(zod@3.21.1):
+  electric-sql@0.11.3(@tauri-apps/plugin-sql@2.0.0-beta.5)(pg@8.12.0)(prisma@5.15.0)(zod@3.23.8):
     dependencies:
       '@electric-sql/prisma-generator': 1.1.5
       '@prisma/client': 4.8.1(prisma@5.15.0)
@@ -4286,7 +4292,7 @@ snapshots:
       text-encoder-lite: 2.0.0
       ts-dedent: 2.2.0
       ws: 8.17.0
-      zod: 3.21.1
+      zod: 3.23.8
     optionalDependencies:
       '@tauri-apps/plugin-sql': 2.0.0-beta.5
       pg: 8.12.0
@@ -6012,3 +6018,5 @@ snapshots:
       readable-stream: 3.6.2
 
   zod@3.21.1: {}
+
+  zod@3.23.8: {}
