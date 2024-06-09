@@ -1,13 +1,16 @@
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { internalIpV4 } from "internal-ip";
+import { exec } from "node:child_process";
+import util from "node:util";
 
 // @ts-expect-error process is a nodejs global
 const mobile = !!/android|ios/.exec(process.env.TAURI_ENV_PLATFORM);
 
 // https://vitejs.dev/config/
+// @ts-expect-error no overloads matches this all
 export default defineConfig(async () => ({
-  plugins: [sveltekit()],
+  plugins: [sveltekit(), typePredicates()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
@@ -35,3 +38,24 @@ export default defineConfig(async () => ({
     globalSetup: "./vitest.setup.ts",
   },
 }));
+
+function typePredicates() {
+  const command = `pnpm exec type-predicates-generator -f 'src/lib/**/*.ts' -o 'src/generated/type-predicates.ts'`;
+  async function generate() {
+    const { stdout } = await util.promisify(exec)(command);
+    console.log(stdout);
+  }
+
+  return {
+    name: "type-predicates-generator",
+    configureServer(server) {
+      server.watcher.unwatch("src/generated/type-predicates.ts");
+    },
+    async buildStart() {
+      await generate();
+    },
+    async handleHotUpdate() {
+      await generate();
+    },
+  };
+}
