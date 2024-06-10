@@ -8,7 +8,7 @@ import util from "node:util";
 const mobile = !!/android|ios/.exec(process.env.TAURI_ENV_PLATFORM);
 
 // https://vitejs.dev/config/
-// @ts-expect-error description
+// @ts-expect-error no overloads matches this all
 export default defineConfig(async () => ({
   plugins: [sveltekit(), typePredicates()],
 
