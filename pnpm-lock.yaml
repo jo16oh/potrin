@@ -24,8 +24,8 @@ importers:
         specifier: ^0.31.1
         version: 0.31.1(@types/better-sqlite3@7.6.10)(better-sqlite3@11.0.0)(pg@8.12.0)
       electric-sql:
-        specifier: ^0.11.3
-        version: 0.11.3(@tauri-apps/plugin-sql@2.0.0-beta.5)(pg@8.12.0)(prisma@5.15.0)(zod@3.23.8)
+        specifier: ^0.12.0
+        version: 0.12.0(@tauri-apps/plugin-sql@2.0.0-beta.5)(pg@8.12.0)(prisma@5.15.0)(zod@3.23.8)
       fractional-indexing:
         specifier: ^3.2.0
         version: 3.2.0
@@ -1507,8 +1507,8 @@ packages:
       sqlite3:
         optional: true
 
-  electric-sql@0.11.3:
-    resolution: {integrity: sha512-5D9+n69ht4kgErTdTC9EUE+BhdjaaxeW12tYbzCehvSELRW7MdXrDU7Gqm0SLWYVJ+CAJWS+qfoaGt+wqXDOHA==}
+  electric-sql@0.12.0:
+    resolution: {integrity: sha512-nM2aHRnsgUgIX885CY6uEUajw1eawxwILLV6taEeWe14ddfkZ6zSaj21KEietp6aSvDXWIpXdyMEP71wg/aDHA==}
     hasBin: true
     peerDependencies:
       '@capacitor-community/sqlite': '>= 5.6.2'
@@ -4340,7 +4340,7 @@ snapshots:
       better-sqlite3: 11.0.0
       pg: 8.12.0
 
-  electric-sql@0.11.3(@tauri-apps/plugin-sql@2.0.0-beta.5)(pg@8.12.0)(prisma@5.15.0)(zod@3.23.8):
+  electric-sql@0.12.0(@tauri-apps/plugin-sql@2.0.0-beta.5)(pg@8.12.0)(prisma@5.15.0)(zod@3.23.8):
     dependencies:
       '@electric-sql/prisma-generator': 1.1.5
       '@prisma/client': 4.8.1(prisma@5.15.0)
