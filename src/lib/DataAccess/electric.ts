@@ -10,13 +10,13 @@ const config = {
   debug: false,
 };
 
-export let electric: undefined | ElectricClient<typeof schema>;
+export let ELECTRIC: undefined | ElectricClient<typeof schema>;
 
 export function init() {
   return execAsyncThrowable(() => Database.load("sqlite:electric.db"))
     .andThen((db) => ok(Object.assign(db, { name: "electric.db" })))
     .andThen((db) => execAsyncThrowable(() => electrify(db, schema, config)))
     .map((e) => {
-      electric = e;
+      ELECTRIC = e;
     });
 }
