@@ -11,11 +11,12 @@ export const card = pgTable(
   "cards",
   {
     id: uuid("id").primaryKey(),
-    thread: uuid("thread"),
-    fractional_index: text("fractional_index"),
+    thread: uuid("thread").notNull(),
+    fractional_index: text("fractional_index").notNull(),
     content: text("content"),
-    created_at: timestamp("created_at"),
-    updated_at: timestamp("updated_at"),
+    created_at: timestamp("created_at").notNull(),
+    updated_at: timestamp("updated_at").notNull(),
+    deleted: boolean("deleted").notNull(),
   },
   (cards) => {
     return {
@@ -32,11 +33,11 @@ export const thread = pgTable(
   {
     id: uuid("id").primaryKey(),
     parent_thread: uuid("parent_thread"),
-    fractional_index: text("fractional_index"),
+    fractional_index: text("fractional_index").notNull(),
     title: text("title"),
-    created_at: timestamp("created_at"),
-    updated_at: timestamp("updated_at"),
-    deleted: boolean("deleted"),
+    created_at: timestamp("created_at").notNull(),
+    updated_at: timestamp("updated_at").notNull(),
+    deleted: boolean("deleted").notNull(),
   },
   (threads) => {
     return {

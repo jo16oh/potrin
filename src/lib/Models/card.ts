@@ -18,8 +18,13 @@ export const Card = {
           data: {
             ...card,
             id: card.id ? card.id : uuidv7(),
+            thread: card.thread ? card.thread : uuidv7(),
+            fractional_index: card.fractional_index
+              ? card.fractional_index
+              : "a0",
             created_at: now,
             updated_at: now,
+            deleted: false,
           },
         })) as Card;
       });

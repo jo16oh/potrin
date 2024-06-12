@@ -32,13 +32,14 @@ async function createTree(depth: number, parent_thread?: string) {
   const currentID = uuidv7();
   if (depth > 6) return currentID;
 
-  if (parent_thread) {
-    const first = generateKeyBetween(null, null);
-    const third = generateKeyBetween(first, null);
-    const second = generateKeyBetween(first, third);
-    const fourth = third;
-    const fifth = third;
+  const first = generateKeyBetween(null, null);
+  const third = generateKeyBetween(first, null);
+  const second = generateKeyBetween(first, third);
+  const fourth = third;
+  const fifth = third;
+  const now = new Date();
 
+  if (parent_thread) {
     await ELECTRIC_TEST.db.threads.createMany({
       data: [
         {
@@ -46,30 +47,54 @@ async function createTree(depth: number, parent_thread?: string) {
           title: "1",
           parent_thread: parent_thread,
           fractional_index: first,
+          deleted: false,
+          created_at: now,
+          updated_at: now,
         },
         {
           id: uuidv7(),
           title: "2",
           parent_thread: parent_thread,
           fractional_index: second,
+          deleted: false,
+          created_at: now,
+          updated_at: now,
         },
         {
           id: uuidv7(),
           title: "3",
           parent_thread: parent_thread,
           fractional_index: third,
+          deleted: false,
+          created_at: now,
+          updated_at: now,
         },
         {
           id: uuidv7(),
           title: "4",
           parent_thread: parent_thread,
           fractional_index: fourth,
+          deleted: false,
+          created_at: now,
+          updated_at: now,
         },
         {
           id: uuidv7(),
           title: "5",
           parent_thread: parent_thread,
           fractional_index: fifth,
+          deleted: false,
+          created_at: now,
+          updated_at: now,
+        },
+        {
+          id: uuidv7(),
+          title: "deleted",
+          parent_thread: parent_thread,
+          fractional_index: fifth,
+          deleted: true,
+          created_at: now,
+          updated_at: now,
         },
       ],
     });
@@ -80,7 +105,10 @@ async function createTree(depth: number, parent_thread?: string) {
       data: {
         id: currentID,
         title: "root",
-        fractional_index: "a0",
+        fractional_index: first,
+        deleted: false,
+        created_at: now,
+        updated_at: now,
       },
     });
     await createTree(depth + 1, currentID);

@@ -13,10 +13,20 @@ export const Thread = {
     ({ ELECTRIC }, thread: Partial<Thread>): ResultAsync<Thread, Error> => {
       return execAsyncThrowable(async () => {
         if (!ELECTRIC) throw new Error("electric has not initialized yet");
+        const now = new Date();
         return (await ELECTRIC.db.threads.create({
           data: {
             ...thread,
             id: thread.id ? thread.id : uuidv7(),
+            parent_thread: thread.parent_thread
+              ? thread.parent_thread
+              : uuidv7(),
+            fractional_index: thread.fractional_index
+              ? thread.fractional_index
+              : "a0",
+            created_at: now,
+            updated_at: now,
+            deleted: false,
           },
         })) as Thread;
       });
