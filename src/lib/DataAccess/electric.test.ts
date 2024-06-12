@@ -1,4 +1,4 @@
-import { expect, afterAll, test, describe, beforeAll } from "vitest";
+import { expect, afterAll, test, describe } from "vitest";
 import Database from "better-sqlite3";
 import { electrify } from "electric-sql/node";
 import { schema } from "../../generated/client";

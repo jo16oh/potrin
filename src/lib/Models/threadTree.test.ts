@@ -2,21 +2,16 @@ import { expect, test, describe } from "vitest";
 import { ELECTRIC_TEST } from "$lib/DataAccess/electric.test";
 import { uuidv7 } from "uuidv7";
 import { generateKeyBetween } from "fractional-indexing";
-import { getLiveThreadTree } from "./threadTree";
+import { ThreadTree } from "./threadTree";
 
 describe("get threadtree", async () => {
   const id = await createTree(0);
-  const injectedGetLiveThreadTree = getLiveThreadTree.inject({
+  const injectedGetLiveThreadTree = ThreadTree.live.inject({
     ELECTRIC: ELECTRIC_TEST,
   });
-  const tree = await injectedGetLiveThreadTree(id).match(
-    (ok) => ok,
-    (err) => {
-      throw err;
-    },
-  );
-
-  test("findex ordering", () => {
+  const result = await injectedGetLiveThreadTree(id);
+  const tree = result._unsafeUnwrap({ withStackTrace: true });
+  test("fractional index ordering", () => {
     if (!tree.child_threads) throw new Error("test failed");
     expect(tree.child_threads[0]?.title).toBe("1");
     expect(tree.child_threads[1]?.title).toBe("2");
