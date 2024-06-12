@@ -53,7 +53,7 @@ describe("get threadtree", async () => {
       expect(tree.cards[4]?.content).toBe("5");
     });
 
-    test("exclude deleted thread", () => {
+    test("exclude deleted card", () => {
       if (!tree.child_threads) throw new Error("test failed");
       expect(tree.cards[5]).toBeUndefined();
     });
