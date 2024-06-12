@@ -13,13 +13,14 @@ const DUMMY_TOKEN =
 
 const sqlite = new Database(":memory:");
 sqlite.pragma("journal_mode = WAL");
-const electric = await electrify(sqlite, schema, config);
+
+export const ELECTRIC_TEST = await electrify(sqlite, schema, config);
 
 test("electric test instance initialization", async () => {
-  expect(electric.db).toBeTruthy();
+  expect(ELECTRIC_TEST.db).toBeTruthy();
 });
 
 test("electric connection", async () => {
-  await electric.connect(DUMMY_TOKEN);
-  expect(electric.isConnected).toBeTruthy();
+  await ELECTRIC_TEST.connect(DUMMY_TOKEN);
+  expect(ELECTRIC_TEST.isConnected).toBeTruthy();
 });
