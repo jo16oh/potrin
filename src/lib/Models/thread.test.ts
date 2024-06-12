@@ -19,10 +19,4 @@ describe("thread", () => {
       },
     );
   });
-
-  test("cleanup", async () => {
-    await ELECTRIC_TEST.db.threads.deleteMany();
-    const cleanup = await ELECTRIC_TEST.db.threads.findMany();
-    expect(cleanup.length).toBe(0);
-  });
 });

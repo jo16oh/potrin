@@ -17,10 +17,4 @@ describe("card", async () => {
       },
     );
   });
-
-  test("cleanup", async () => {
-    await ELECTRIC_TEST.db.cards.deleteMany();
-    const cleanup = await ELECTRIC_TEST.db.cards.findMany();
-    expect(cleanup.length).toBe(0);
-  });
 });

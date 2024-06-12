@@ -31,12 +31,6 @@ describe("get threadtree", async () => {
         .child_threads[0].child_threads[0].id,
     ).toBeTruthy();
   });
-
-  test("cleanup", async () => {
-    await ELECTRIC_TEST.db.threads.deleteMany();
-    const cleanup = await ELECTRIC_TEST.db.threads.findMany();
-    expect(cleanup.length).toBe(0);
-  });
 });
 
 async function createTree(depth: number, parent_thread?: string) {

@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, afterAll, test, describe, beforeAll } from "vitest";
 import Database from "better-sqlite3";
 import { electrify } from "electric-sql/node";
 import { schema } from "../../generated/client";
@@ -16,11 +16,18 @@ sqlite.pragma("journal_mode = WAL");
 
 export const ELECTRIC_TEST = await electrify(sqlite, schema, config);
 
-test("electric test instance initialization", async () => {
-  expect(ELECTRIC_TEST.db).toBeTruthy();
+describe("electric test instance initialization", async () => {
+  test("initialization", async () => {
+    expect(ELECTRIC_TEST.db).toBeTruthy();
+  });
+
+  test("connection", async () => {
+    await ELECTRIC_TEST.connect(DUMMY_TOKEN);
+    expect(ELECTRIC_TEST.isConnected).toBeTruthy();
+  });
 });
 
-test("electric connection", async () => {
-  await ELECTRIC_TEST.connect(DUMMY_TOKEN);
-  expect(ELECTRIC_TEST.isConnected).toBeTruthy();
+afterAll(async () => {
+  await ELECTRIC_TEST.db.cards.deleteMany();
+  await ELECTRIC_TEST.db.threads.deleteMany();
 });
