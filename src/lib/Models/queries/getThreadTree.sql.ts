@@ -26,7 +26,7 @@ WITH RECURSIVE thread_tree AS MATERIALIZED (
 	FROM thread_tree AS parent
 	JOIN threads AS child ON parent.id = child.parent_thread
 	WHERE parent.depth < 7 AND deleted = false
-	ORDER BY depth DESC
+	ORDER BY depth DESC, fractional_index ASC, id ASC
 ),
 thread_cards AS MATERIALIZED (
   SELECT cards.id, cards.content, cards.thread, cards.fractional_index
@@ -143,83 +143,83 @@ d3 AS (
 	ORDER BY fractional_index ASC, id ASC
 ),
 d2 AS (
-SELECT 
-	json_object(
-		'id', id,
-		'title', title,
-		'fractional_index', fractional_index,
-		'child_threads', (
-			SELECT json_group_array(json(json))
-			FROM d3
-			WHERE d3.parent_thread = t2.id
-		),
-		'cards', (
-      SELECT json_group_array(json_object(
-        'id', id,
-        'content', content,
-				'thread', thread,
-				'fractional_index', fractional_index
-      ) ORDER BY fractional_index ASC, id ASC)
-      FROM thread_cards
-      WHERE thread_cards.thread = t2.id
-    )
+	SELECT 
+		json_object(
+			'id', id,
+			'title', title,
+			'fractional_index', fractional_index,
+			'child_threads', (
+				SELECT json_group_array(json(json))
+				FROM d3
+				WHERE d3.parent_thread = t2.id
+			),
+			'cards', (
+				SELECT json_group_array(json_object(
+					'id', id,
+					'content', content,
+					'thread', thread,
+					'fractional_index', fractional_index
+				) ORDER BY fractional_index ASC, id ASC)
+				FROM thread_cards
+				WHERE thread_cards.thread = t2.id
+			)
+			) AS json,
+		fractional_index,
+		parent_thread
+	FROM thread_tree AS t2
+	WHERE depth = 2
+	ORDER BY fractional_index ASC, id ASC
+),
+d1 AS (
+	SELECT 
+		json_object(
+			'id', id,
+			'title', title,
+			'fractional_index', fractional_index,
+			'child_threads', (
+				SELECT json_group_array(json(json))
+				FROM d2
+				WHERE d2.parent_thread = t1.id
+			),
+			'cards', (
+				SELECT json_group_array(json_object(
+					'id', id,
+					'content', content,
+					'thread', thread,
+					'fractional_index', fractional_index
+				) ORDER BY fractional_index ASC, id ASC)
+				FROM thread_cards
+				WHERE thread_cards.thread = t1.id
+			)
 		) AS json,
 		fractional_index,
 		parent_thread
-		FROM thread_tree AS t2
-		WHERE depth = 2
-		ORDER BY fractional_index ASC, id ASC
-),
-d1 AS (
-SELECT 
-	json_object(
-		'id', id,
-		'title', title,
-		'fractional_index', fractional_index,
-		'child_threads', (
-			SELECT json_group_array(json(json))
-			FROM d2
-			WHERE d2.parent_thread = t1.id
-		),
-		'cards', (
-      SELECT json_group_array(json_object(
-        'id', id,
-        'content', content,
-				'thread', thread,
-				'fractional_index', fractional_index
-      ) ORDER BY fractional_index ASC, id ASC)
-      FROM thread_cards
-      WHERE thread_cards.thread = t1.id
-    )
-	) AS json,
-	fractional_index,
-	parent_thread
 	FROM thread_tree AS t1
 	WHERE depth = 1
 	ORDER BY fractional_index ASC, id ASC
 ),
 root AS (
-SELECT
-	json_object(
-		'id', id,
-		'title', title,
-		'fractional_index', fractional_index,
-		'child_threads', (
-			SELECT json_group_array(json(json))
-			FROM d1
-			WHERE d1.parent_thread = t0.id
-		),
-		'cards', (
-      SELECT json_group_array(json_object(
-        'id', id,
-        'content', content,
-				'thread', thread,
-				'fractional_index', fractional_index
-      ) ORDER BY fractional_index ASC, id ASC)
-      FROM thread_cards
-      WHERE thread_cards.thread = t0.id
-    )
-	) AS json
+	SELECT
+		json_object(
+			'id', id,
+			'title', title,
+			'fractional_index', fractional_index,
+			'child_threads', (
+				SELECT json_group_array(json(json))
+				FROM d1
+				WHERE d1.parent_thread = t0.id
+			),
+			'cards', (
+				SELECT json_group_array(json_object(
+					'id', id,
+					'content', content,
+					'thread', thread,
+					'fractional_index', fractional_index
+				) ORDER BY fractional_index ASC, id ASC)
+				FROM thread_cards
+				WHERE thread_cards.thread = t0.id
+			)
+		) AS json
 	FROM thread_tree AS t0
 	WHERE depth = 0
 	ORDER BY fractional_index ASC, id ASC
