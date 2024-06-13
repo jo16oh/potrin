@@ -1,12 +1,7 @@
-import {
-  DockerComposeEnvironment,
-  StartedDockerComposeEnvironment,
-  Wait,
-} from "testcontainers";
+import { DockerComposeEnvironment, Wait } from "testcontainers";
 import { exec } from "node:child_process";
 import util from "node:util";
 
-let env: StartedDockerComposeEnvironment | undefined = undefined;
 const targetLog =
   'LOG:  logical replication apply worker for subscription "postgres_1" has started';
 const commands = `
@@ -18,7 +13,7 @@ pnpm exec electric-sql generate --proxy postgresql://postgres:proxy_password@loc
 
 export async function setup() {
   console.log("🐳 setting up testcontainers...");
-  env = await new DockerComposeEnvironment("./docker", "compose.test.yml")
+  await new DockerComposeEnvironment("./docker", "compose.test.yml")
     .withNoRecreate()
     .withWaitStrategy("postgres-1", Wait.forLogMessage(targetLog))
     .up();

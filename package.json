@@ -47,6 +47,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.39.0",
     "internal-ip": "^7.0.0",
+    "jsdom": "^24.1.0",
     "prettier": "^3.3.1",
     "prettier-plugin-svelte": "^3.2.4",
     "prisma": "^5.15.0",
