@@ -3,20 +3,18 @@ import { sql } from "$lib/Utils/utils";
 type Card = {
   id: string;
   content: string;
-  thread: string;
   fractional_index: string;
 };
 
-export type ThreadTree = {
+export type ThreadTreeQueryResult = {
   id: string;
   title: string;
   fractional_index: string;
-  parent_thread: ThreadTree;
   cards: Card[];
-  child_threads?: ThreadTree[];
+  child_threads?: ThreadTreeQueryResult[];
 };
 
-export const query = sql`
+export const getThreadTree = sql`
 WITH RECURSIVE thread_tree AS MATERIALIZED (
 	SELECT id, title, parent_thread, fractional_index, 0 AS depth
 	FROM threads
@@ -45,7 +43,6 @@ d6 AS (
 				SELECT json_group_array(json_object(
 					'id', id,
 					'content', content,
-					'thread', thread,
 					'fractional_index', fractional_index
 				) ORDER BY fractional_index ASC, id ASC)
 				FROM thread_cards
@@ -73,7 +70,6 @@ d5 AS (
 				SELECT json_group_array(json_object(
 					'id', id,
 					'content', content,
-					'thread', thread,
 					'fractional_index', fractional_index
 				) ORDER BY fractional_index ASC, id ASC)
 				FROM thread_cards
@@ -101,7 +97,6 @@ d4 AS (
 				SELECT json_group_array(json_object(
 					'id', id,
 					'content', content,
-					'thread', thread,
 					'fractional_index', fractional_index
 				) ORDER BY fractional_index ASC, id ASC)
 				FROM thread_cards
@@ -129,7 +124,6 @@ d3 AS (
 				SELECT json_group_array(json_object(
 					'id', id,
 					'content', content,
-					'thread', thread,
 					'fractional_index', fractional_index
 				) ORDER BY fractional_index ASC, id ASC)
 				FROM thread_cards
@@ -157,7 +151,6 @@ d2 AS (
 				SELECT json_group_array(json_object(
 					'id', id,
 					'content', content,
-					'thread', thread,
 					'fractional_index', fractional_index
 				) ORDER BY fractional_index ASC, id ASC)
 				FROM thread_cards
@@ -185,7 +178,6 @@ d1 AS (
 				SELECT json_group_array(json_object(
 					'id', id,
 					'content', content,
-					'thread', thread,
 					'fractional_index', fractional_index
 				) ORDER BY fractional_index ASC, id ASC)
 				FROM thread_cards
@@ -213,7 +205,6 @@ root AS (
 				SELECT json_group_array(json_object(
 					'id', id,
 					'content', content,
-					'thread', thread,
 					'fractional_index', fractional_index
 				) ORDER BY fractional_index ASC, id ASC)
 				FROM thread_cards

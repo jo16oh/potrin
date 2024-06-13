@@ -6,7 +6,7 @@ import { ThreadTree } from "./threadTree";
 
 describe("get threadtree", async () => {
   const id = await createTree(0);
-  const injectedGetLiveThreadTree = ThreadTree.live.inject({
+  const injectedGetLiveThreadTree = ThreadTree.getLiveTree.inject({
     ELECTRIC: ELECTRIC_TEST,
   });
   const result = await injectedGetLiveThreadTree(id);
@@ -33,6 +33,15 @@ describe("get threadtree", async () => {
         tree.child_threads[0].child_threads[0].child_threads[0].child_threads[0]
           .child_threads[0].child_threads[0].id,
       ).toBeTruthy();
+    });
+
+    test("set parent", () => {
+      expect(
+        // @ts-expect-error thread nesting test
+        tree.child_threads[0].child_threads[0].child_threads[0].child_threads[0]
+          .child_threads[0].child_threads[0].parent.parent.parent.parent.parent
+          .parent.id,
+      ).toBe(id);
     });
   });
 
@@ -64,6 +73,15 @@ describe("get threadtree", async () => {
         tree.child_threads[0].child_threads[0].child_threads[0].child_threads[0]
           .child_threads[0].child_threads[0]?.cards[0].id,
       ).toBeTruthy();
+    });
+
+    test("set parent", () => {
+      expect(
+        // @ts-expect-error thread nesting test
+        tree.child_threads[0].child_threads[0].child_threads[0].child_threads[0]
+          .child_threads[0].child_threads[0].cards[0].thread.parent.parent
+          .parent.parent.parent.parent.id,
+      ).toBe(id);
     });
   });
 });
@@ -131,7 +149,7 @@ async function createTree(depth: number, parent_thread?: string) {
           id: uuidv7(),
           title: "deleted",
           parent_thread: parent_thread,
-          fractional_index: fifth,
+          fractional_index: "",
           deleted: true,
           created_at: now,
           updated_at: now,
@@ -217,7 +235,7 @@ async function createCard(thread: string) {
         id: uuidv7(),
         content: "deleted",
         thread: thread,
-        fractional_index: fifth,
+        fractional_index: "",
         deleted: true,
         created_at: now,
         updated_at: now,
