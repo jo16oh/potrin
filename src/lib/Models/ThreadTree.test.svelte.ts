@@ -1,47 +1,88 @@
-import { expect, test, describe } from "vitest";
+import { expect, test, describe, afterAll } from "vitest";
 import { ELECTRIC_TEST } from "$lib/DataAccess/electric.test";
 import { uuidv7 } from "uuidv7";
 import { generateKeyBetween } from "fractional-indexing";
-import { ThreadTree } from "./threadTree";
+import { ThreadTree } from "./ThreadTree.svelte";
 
 describe("get threadtree", async () => {
   const id = await createTree(0);
   const injectedGetLiveThreadTree = ThreadTree.getLiveTree.inject({
     ELECTRIC: ELECTRIC_TEST,
   });
-  const result = await injectedGetLiveThreadTree(id);
-  const tree = result._unsafeUnwrap({ withStackTrace: true });
+
+  let result: ReturnType<typeof injectedGetLiveThreadTree>;
+  const cleanup = $effect.root(() => {
+    result = injectedGetLiveThreadTree(id);
+  });
+
+  const [unsubscribe, liveTree] = result._unsafeUnwrap({
+    withStackTrace: true,
+  });
+
+  const derived = $derived(liveTree.state);
 
   describe("thread", () => {
     test("fractional index ordering", () => {
-      if (!tree.child_threads) throw new Error("test failed");
-      expect(tree.child_threads[0]?.title).toBe("1");
-      expect(tree.child_threads[1]?.title).toBe("2");
-      expect(tree.child_threads[2]?.title).toBe("3");
-      expect(tree.child_threads[3]?.title).toBe("4");
-      expect(tree.child_threads[4]?.title).toBe("5");
+      expect(liveTree.state.child_threads[0]?.title).toBe("1");
+      expect(liveTree.state.child_threads[1]?.title).toBe("2");
+      expect(liveTree.state.child_threads[2]?.title).toBe("3");
+      expect(liveTree.state.child_threads[3]?.title).toBe("4");
+      expect(liveTree.state.child_threads[4]?.title).toBe("5");
     });
 
     test("exclude deleted thread", () => {
-      if (!tree.child_threads) throw new Error("test failed");
-      expect(tree.child_threads[5]).toBeUndefined();
+      expect(liveTree.state.child_threads[5]).toBeUndefined();
     });
 
     test("tree structuring", () => {
       expect(
         // @ts-expect-error thread nesting test
-        tree.child_threads[0].child_threads[0].child_threads[0].child_threads[0]
-          .child_threads[0].child_threads[0].id,
+        liveTree.state.child_threads[0].child_threads[0].child_threads[0]
+          .child_threads[0].child_threads[0].child_threads[0].id,
       ).toBeTruthy();
     });
 
     test("set parent", () => {
       expect(
         // @ts-expect-error thread nesting test
-        tree.child_threads[0].child_threads[0].child_threads[0].child_threads[0]
-          .child_threads[0].child_threads[0].parent.parent.parent.parent.parent
-          .parent.id,
+        liveTree.state.child_threads[0].child_threads[0].child_threads[0]
+          .child_threads[0].child_threads[0].child_threads[0].parent.parent
+          .parent.parent.parent.parent.id,
       ).toBe(id);
+    });
+
+    test("change field", () => {
+      liveTree.state.title = "changed!";
+      expect(liveTree.state.title).toBe("changed!");
+      liveTree.state.child_threads[0].child_threads[0].parent.title =
+        "changed!";
+      expect(liveTree.state.child_threads[0].title).toBe("changed!");
+      expect(derived.child_threads[0].title).toBe("changed!");
+    });
+
+    test("add element", async () => {
+      liveTree.state.cards.push({
+        id: "id",
+        fractional_index: "f",
+        content: "content",
+      });
+      // wait until effect run
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(
+        liveTree.state.cards[liveTree.state.cards.length - 1].thread.id,
+      ).toBe(id);
+      liveTree.state.cards.pop();
+    });
+
+    test("move element", async () => {
+      const card = liveTree.state?.child_threads[0].cards.pop();
+      liveTree.state?.cards.push(card);
+      // wait until effect run
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(
+        liveTree.state?.cards[liveTree.state?.cards.length - 1]?.thread.id,
+      ).toBe(id);
+      liveTree.state.cards.pop();
     });
   });
 
@@ -54,35 +95,38 @@ describe("get threadtree", async () => {
     });
 
     test("fractional index ordering", () => {
-      if (!tree.cards) throw new Error("test failed");
-      expect(tree.cards[0]?.content).toBe("1");
-      expect(tree.cards[1]?.content).toBe("2");
-      expect(tree.cards[2]?.content).toBe("3");
-      expect(tree.cards[3]?.content).toBe("4");
-      expect(tree.cards[4]?.content).toBe("5");
+      expect(liveTree.state.cards[0]?.content).toBe("1");
+      expect(liveTree.state.cards[1]?.content).toBe("2");
+      expect(liveTree.state.cards[2]?.content).toBe("3");
+      expect(liveTree.state.cards[3]?.content).toBe("4");
+      expect(liveTree.state.cards[4]?.content).toBe("5");
     });
 
     test("exclude deleted card", () => {
-      if (!tree.child_threads) throw new Error("test failed");
-      expect(tree.cards[5]).toBeUndefined();
+      expect(liveTree.state.cards[5]).toBeUndefined();
     });
 
     test("tree structuring", () => {
       expect(
         // @ts-expect-error thread nesting test
-        tree.child_threads[0].child_threads[0].child_threads[0].child_threads[0]
-          .child_threads[0].child_threads[0]?.cards[0].id,
+        liveTree.state.child_threads[0].child_threads[0].child_threads[0]
+          .child_threads[0].child_threads[0].child_threads[0]?.cards[0].id,
       ).toBeTruthy();
     });
 
     test("set parent", () => {
       expect(
         // @ts-expect-error thread nesting test
-        tree.child_threads[0].child_threads[0].child_threads[0].child_threads[0]
-          .child_threads[0].child_threads[0].cards[0].thread.parent.parent
-          .parent.parent.parent.parent.id,
+        liveTree.state.child_threads[0].child_threads[0].child_threads[0]
+          .child_threads[0].child_threads[0].child_threads[0].cards[0].thread
+          .parent.parent.parent.parent.parent.parent.id,
       ).toBe(id);
     });
+  });
+
+  afterAll(() => {
+    unsubscribe();
+    cleanup();
   });
 });
 
