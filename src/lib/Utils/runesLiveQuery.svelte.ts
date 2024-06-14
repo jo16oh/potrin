@@ -65,11 +65,9 @@ export function createLiveQuery<T>(
       const changedTablenames = notifier.alias(notification);
       if (hasIntersection(tablenames, changedTablenames)) {
         execPreHooks(preHooks);
-        const time = performance.now();
         query()
           .then((r) => {
             result = r.result;
-            console.log(performance.now() - time);
           })
           .then(() => execHooks(hooks));
       }
