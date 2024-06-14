@@ -42,25 +42,25 @@ export const ThreadTree = {
 
         // Using $state and $effect rather than $derived
         // to notify changes of the properties inside the result to dependants
-        let result = $state<ThreadTree | null>(null);
+        let state = $state<ThreadTree | null>(null);
 
         $effect(() => {
           if (!Array.isArray(liveResult.result) || !liveResult.result[0]) {
-            result = null;
+            state = null;
             return;
           }
-          result = JSON.parse(liveResult.result[0]["json"]);
+          state = JSON.parse(liveResult.result[0]["json"]);
         });
 
         $effect(() => {
-          if (result) result = setParent(result);
+          if (state) state = setParent(state);
         });
 
         return [
           liveResult.unsubscribe,
           {
             get state() {
-              return result;
+              return state;
             },
           },
         ];
