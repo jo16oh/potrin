@@ -58,9 +58,11 @@ export function createLiveQuery<T>(
   const hooks = new Map<symbol, () => void>();
   const preHooks = new Map<symbol, () => void>();
 
+  execPreHooks(preHooks);
   query().then((r) => {
     const tablenames = r.tablenames;
     result = r.result;
+    execHooks(hooks);
     unsubscribe = notifier.subscribeToDataChanges((notification) => {
       const changedTablenames = notifier.alias(notification);
       if (hasIntersection(tablenames, changedTablenames)) {

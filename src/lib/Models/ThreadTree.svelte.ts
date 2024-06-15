@@ -44,17 +44,52 @@ export const ThreadTree = {
         // to notify changes of the properties inside the result to dependants
         let state = $state<ThreadTree | null>(null);
 
+        let isFirstQueryResult = true;
+        const cache = localStorage.getItem(id);
         $effect(() => {
           if (!Array.isArray(liveResult.result) || !liveResult.result[0]) {
+            console.log("waiting for first response from liveQuery...");
             state = null;
-            return;
+          } else if (isFirstQueryResult && cache) {
+            console.log("get first response from liveQuery!");
+            console.log("cache found!");
+            console.log("state <- cache");
+            state = JSON.parse(cache);
+            isFirstQueryResult = false;
+          } else {
+            if (isFirstQueryResult)
+              console.log("get first response from liveQuery!");
+            if (!isFirstQueryResult)
+              console.log("get response from liveQuery!");
+
+            console.log("state <- response from liveQuery");
+            state = JSON.parse(liveResult.result[0]["json"]);
+            isFirstQueryResult = false;
           }
-          state = JSON.parse(liveResult.result[0]["json"]);
+        });
+
+        let isChangeFromLiveQuery = false;
+        liveResult.addPreHook(() => {
+          isChangeFromLiveQuery = true;
         });
 
         $effect(() => {
-          if (state) state = setParent(state);
+          if (!state) return;
+          console.log("detect state change");
+          state = setParent(state);
+
+          console.log("set current state on localStorage");
+          localStorage.setItem(id, JSON.stringify(state));
+
+          if (isChangeFromLiveQuery) {
+            console.log("change from liveQuery");
+            localStorage.removeItem(id);
+            console.log("remove item from localStorage");
+            isChangeFromLiveQuery = false;
+          }
         });
+
+        $effect(() => console.log(state));
 
         return [
           liveResult.unsubscribe,
