@@ -43,7 +43,6 @@ export const ThreadTree = {
         // Using $state and $effect rather than $derived
         // to notify changes of the properties inside the result to dependants
         let state = $state<ThreadTree | null>(null);
-
         let isFirstQueryResult = true;
         const cache = localStorage.getItem(id);
         $effect(() => {
@@ -68,28 +67,27 @@ export const ThreadTree = {
           }
         });
 
-        let isChangeFromLiveQuery = false;
+        let isChangeFromLiveQuery: boolean;
         liveResult.addPreHook(() => {
           isChangeFromLiveQuery = true;
         });
 
         $effect(() => {
           if (!state) return;
-          console.log("detect state change");
           state = setParent(state);
-
-          console.log("set current state on localStorage");
-          localStorage.setItem(id, JSON.stringify(state));
-
-          if (isChangeFromLiveQuery) {
-            console.log("change from liveQuery");
-            localStorage.removeItem(id);
-            console.log("remove item from localStorage");
-            isChangeFromLiveQuery = false;
-          }
+          (async () => {
+            const json = JSON.stringify(state);
+            if (isChangeFromLiveQuery) {
+              console.log("change from liveQuery");
+              localStorage.removeItem(id);
+              console.log("remove item from localStorage");
+              isChangeFromLiveQuery = false;
+            } else {
+              console.log("set current state on localStorage");
+              localStorage.setItem(id, json);
+            }
+          })();
         });
-
-        $effect(() => console.log(state));
 
         return [
           liveResult.unsubscribe,

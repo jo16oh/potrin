@@ -1,4 +1,4 @@
-import { expect, test, describe, beforeEach } from "vitest";
+import { expect, test, describe } from "vitest";
 import { ELECTRIC_TEST } from "$lib/DataAccess/electric.test";
 import { uuidv7 } from "uuidv7";
 import { generateKeyBetween } from "fractional-indexing";
@@ -59,7 +59,7 @@ describe("threadtree", () => {
   });
 });
 
-describe.skip("get threadtree", async () => {
+describe("get threadtree", async () => {
   test("get threadtree", async () => {
     const id = await createTree(0);
     const injectedGetLiveThreadTree = ThreadTree.getLiveTree.inject({
