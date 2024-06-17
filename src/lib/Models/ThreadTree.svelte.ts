@@ -68,9 +68,11 @@ export const ThreadTree = {
           }
 
           // will run from the second query result onward
-          liveResult.addHook(async () => {
+          liveResult.addPreHook(() => {
             isChangeFromLiveQuery = true;
-            await tick();
+          });
+          liveResult.addHook(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 0));
             localStorage.removeItem(id);
             isChangeFromLiveQuery = false;
           });
