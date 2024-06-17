@@ -15,20 +15,6 @@ export class LiveResult<T> {
   ) {}
 }
 
-export class QueryStore<T> {
-  #query = $state<LiveResultContext<T>>();
-  get query() {
-    return this.#query!;
-  }
-  set query(query: LiveResultContext<T>) {
-    this.#query = query;
-  }
-
-  constructor(query: LiveResultContext<T>) {
-    this.#query = query;
-  }
-}
-
 function execPreHooks(map: Map<symbol, () => void>) {
   map.forEach((fn) => {
     try {
@@ -53,7 +39,7 @@ export function createLiveQuery<T>(
   notifier: Notifier,
   query: LiveResultContext<T>,
 ) {
-  let result = $state<T | null>(null);
+  let result = $state<T | undefined>(undefined);
   let unsubscribe: () => void = () => {};
   const hooks = new Map<symbol, () => void>();
   const preHooks = new Map<symbol, () => void>();
@@ -79,9 +65,6 @@ export function createLiveQuery<T>(
   return {
     get result() {
       return result;
-    },
-    set result(r) {
-      result = r;
     },
     addHook(fn: () => void): () => void {
       const key = Symbol("key");
