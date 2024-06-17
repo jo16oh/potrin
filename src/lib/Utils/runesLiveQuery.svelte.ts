@@ -44,23 +44,27 @@ export function createLiveQuery<T>(
   const hooks = new Map<symbol, () => void>();
   const preHooks = new Map<symbol, () => void>();
 
-  execPreHooks(preHooks);
-  query().then((r) => {
-    const tablenames = r.tablenames;
-    result = r.result;
-    execHooks(hooks);
-    unsubscribe = notifier.subscribeToDataChanges((notification) => {
-      const changedTablenames = notifier.alias(notification);
-      if (hasIntersection(tablenames, changedTablenames)) {
-        execPreHooks(preHooks);
-        query()
-          .then((r) => {
-            result = r.result;
-          })
-          .then(() => execHooks(hooks));
-      }
+  function subscribe() {
+    query().then((r) => {
+      const tablenames = r.tablenames;
+      result = r.result;
+      execHooks(hooks);
+      unsubscribe = notifier.subscribeToDataChanges((notification) => {
+        const changedTablenames = notifier.alias(notification);
+        if (hasIntersection(tablenames, changedTablenames)) {
+          execPreHooks(preHooks);
+          query()
+            .then((r) => {
+              result = r.result;
+            })
+            .then(() => execHooks(hooks));
+        }
+      });
     });
-  });
+  }
+
+  execPreHooks(preHooks);
+  subscribe();
 
   return {
     get result() {
@@ -82,6 +86,7 @@ export function createLiveQuery<T>(
     },
     unsubscribe: () => {
       unsubscribe();
+      return subscribe;
     },
   };
 }

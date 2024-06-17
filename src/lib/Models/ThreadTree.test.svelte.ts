@@ -71,9 +71,9 @@ describe("get threadtree", async () => {
       result = injectedGetLiveThreadTree(id);
     });
 
-    const liveTree = result._unsafeUnwrap({
+    const [unsubscribe, liveTree] = result._unsafeUnwrap({
       withStackTrace: true,
-    })[1];
+    });
 
     const derived = $derived(liveTree.state);
 
@@ -141,6 +141,25 @@ describe("get threadtree", async () => {
             liveTree.state?.cards.length - 1
           ]?.thread.parent.id,
         ).toBe(id);
+      });
+
+      test("unsubscribe", async () => {
+        const resubscribe = unsubscribe();
+        const newCard = await ELECTRIC_TEST.db.threads.create({
+          data: {
+            id: uuidv7(),
+            title: "title",
+            deleted: false,
+            created_at: new Date(),
+            updated_at: new Date(),
+            fractional_index: "a0",
+          },
+        });
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(liveTree.state?.cards.length).toBe(5);
+        resubscribe();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        expect(liveTree.state?.cards.length).toBe(6);
       });
     });
 

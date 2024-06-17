@@ -29,7 +29,7 @@ export const ThreadTree = {
     (
       { ELECTRIC },
       id: string,
-    ): Result<[() => void, { state: ThreadTree | null }], Error> => {
+    ): Result<[() => () => void, { state: ThreadTree | null }], Error> => {
       return execThrowable(() => {
         if (!ELECTRIC) throw new Error("electric has not initialized yet");
         const liveResult = createLiveQuery<{ json: string }[]>(
