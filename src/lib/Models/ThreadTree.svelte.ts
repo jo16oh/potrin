@@ -8,6 +8,7 @@ import {
 } from "./queries/getThreadTree.sql";
 import { depend } from "velona";
 import { createLiveQuery } from "$lib/Utils/runesLiveQuery.svelte";
+import { tick } from "svelte";
 
 type Card = ExtractArrayType<ThreadTreeQueryResult["cards"]> & {
   thread: ThreadTree;
@@ -31,62 +32,63 @@ export const ThreadTree = {
     ): Result<[() => void, { state: ThreadTree | null }], Error> => {
       return execThrowable(() => {
         if (!ELECTRIC) throw new Error("electric has not initialized yet");
-        const liveQuery = ELECTRIC.db.liveRawQuery({
-          sql: getThreadTree,
-          args: [id],
-        });
         const liveResult = createLiveQuery<{ json: string }[]>(
           ELECTRIC.notifier,
-          liveQuery,
+          ELECTRIC.db.liveRawQuery({
+            sql: getThreadTree,
+            args: [id],
+          }),
         );
 
         // Using $state and $effect rather than $derived
         // to notify changes of the properties inside the result to dependants
         let state = $state<ThreadTree | null>(null);
-        let isFirstQueryResult = true;
-        const cache = localStorage.getItem(id);
-        $effect(() => {
-          if (!Array.isArray(liveResult.result) || !liveResult.result[0]) {
-            console.log("waiting for first response from liveQuery...");
-            state = null;
-          } else if (isFirstQueryResult && cache) {
-            console.log("get first response from liveQuery!");
-            console.log("cache found!");
-            console.log("state <- cache");
-            state = JSON.parse(cache);
-            isFirstQueryResult = false;
-          } else {
-            if (isFirstQueryResult)
-              console.log("get first response from liveQuery!");
-            if (!isFirstQueryResult)
-              console.log("get response from liveQuery!");
+        let isChangeFromLiveQuery: boolean;
 
-            console.log("state <- response from liveQuery");
+        $effect(() => {
+          if (!Array.isArray(liveResult.result)) {
+            state = null;
+          } else if (!liveResult.result[0]) {
+            throw new Error("thread not found!");
+          } else {
             state = JSON.parse(liveResult.result[0]["json"]);
-            isFirstQueryResult = false;
           }
         });
 
-        let isChangeFromLiveQuery: boolean;
-        liveResult.addPreHook(() => {
+        const removeHook = liveResult.addHook(async () => {
+          // will run only after the first query result
           isChangeFromLiveQuery = true;
+          await tick();
+          const cache = localStorage.getItem(id);
+          if (cache) {
+            isChangeFromLiveQuery = false;
+            state = JSON.parse(cache);
+          } else {
+            isChangeFromLiveQuery = false;
+          }
+
+          // will run from the second query result onward
+          liveResult.addHook(async () => {
+            isChangeFromLiveQuery = true;
+            await tick();
+            localStorage.removeItem(id);
+            isChangeFromLiveQuery = false;
+          });
+
+          removeHook();
         });
 
         $effect(() => {
           if (!state) return;
           state = setParent(state);
-          (async () => {
-            const json = JSON.stringify(state);
-            if (isChangeFromLiveQuery) {
-              console.log("change from liveQuery");
-              localStorage.removeItem(id);
-              console.log("remove item from localStorage");
-              isChangeFromLiveQuery = false;
-            } else {
-              console.log("set current state on localStorage");
-              localStorage.setItem(id, json);
-            }
-          })();
+
+          // if you put this line into if block below,
+          // svelte won't be able to react to changes of the properties inside state
+          const json = JSON.stringify(state);
+
+          if (!isChangeFromLiveQuery) {
+            localStorage.setItem(id, json);
+          }
         });
 
         return [
