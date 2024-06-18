@@ -125,7 +125,7 @@ describe("thread", () => {
         data: {
           id: uuidv7(),
           content: "title",
-          thread: liveTree.state.id,
+          thread_id: liveTree.state.id,
           deleted: false,
           created_at: new Date(),
           updated_at: new Date(),
@@ -143,7 +143,7 @@ describe("thread", () => {
 describe("card", () => {
   testThreadTree("card creation", async ({ liveTree, electric }) => {
     const result = await electric.db.cards.findMany({
-      where: { thread: liveTree.state.id },
+      where: { thread_id: liveTree.state.id },
     });
     expect(result.length).toBe(6);
   });
@@ -231,7 +231,7 @@ describe("cache", () => {
 const createTree = async (
   electric: ElectricClient<typeof schema>,
   depth: number,
-  parent_thread?: string,
+  parent_id?: string,
 ) => {
   const currentID = uuidv7();
   if (depth > 6) return currentID;
@@ -243,13 +243,13 @@ const createTree = async (
   const fifth = third;
   const now = new Date();
 
-  if (parent_thread) {
+  if (parent_id) {
     await electric.db.threads.createMany({
       data: [
         {
           id: currentID,
           title: "1",
-          parent_thread: parent_thread,
+          parent_id: parent_id,
           fractional_index: first,
           deleted: false,
           created_at: now,
@@ -258,7 +258,7 @@ const createTree = async (
         {
           id: uuidv7(),
           title: "2",
-          parent_thread: parent_thread,
+          parent_id: parent_id,
           fractional_index: second,
           deleted: false,
           created_at: now,
@@ -267,7 +267,7 @@ const createTree = async (
         {
           id: uuidv7(),
           title: "3",
-          parent_thread: parent_thread,
+          parent_id: parent_id,
           fractional_index: third,
           deleted: false,
           created_at: now,
@@ -276,7 +276,7 @@ const createTree = async (
         {
           id: uuidv7(),
           title: "4",
-          parent_thread: parent_thread,
+          parent_id: parent_id,
           fractional_index: fourth,
           deleted: false,
           created_at: now,
@@ -285,7 +285,7 @@ const createTree = async (
         {
           id: uuidv7(),
           title: "5",
-          parent_thread: parent_thread,
+          parent_id: parent_id,
           fractional_index: fifth,
           deleted: false,
           created_at: now,
@@ -294,7 +294,7 @@ const createTree = async (
         {
           id: uuidv7(),
           title: "deleted",
-          parent_thread: parent_thread,
+          parent_id: parent_id,
           fractional_index: "",
           deleted: true,
           created_at: now,
@@ -325,7 +325,7 @@ const createTree = async (
 
 async function createCard(
   electric: ElectricClient<typeof schema>,
-  thread: string,
+  thread_id: string,
 ) {
   const first = generateKeyBetween(null, null);
   const third = generateKeyBetween(first, null);
@@ -336,9 +336,9 @@ async function createCard(
   await electric.db.cards.createMany({
     data: [
       {
-        id: thread,
+        id: thread_id,
         content: "1",
-        thread: thread,
+        thread_id: thread_id,
         fractional_index: first,
         deleted: false,
         created_at: now,
@@ -347,7 +347,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "2",
-        thread: thread,
+        thread_id: thread_id,
         fractional_index: second,
         deleted: false,
         created_at: now,
@@ -356,7 +356,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "3",
-        thread: thread,
+        thread_id: thread_id,
         fractional_index: third,
         deleted: false,
         created_at: now,
@@ -365,7 +365,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "4",
-        thread: thread,
+        thread_id: thread_id,
         fractional_index: fourth,
         deleted: false,
         created_at: now,
@@ -374,7 +374,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "5",
-        thread: thread,
+        thread_id: thread_id,
         fractional_index: fifth,
         deleted: false,
         created_at: now,
@@ -383,7 +383,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "deleted",
-        thread: thread,
+        thread_id: thread_id,
         fractional_index: "",
         deleted: true,
         created_at: now,

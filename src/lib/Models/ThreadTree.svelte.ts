@@ -16,7 +16,7 @@ export type ThreadTree = Omit<
   "child_threads" | "cards"
 > & {
   cards: Card[];
-  parent: ThreadTree | undefined;
+  parent?: ThreadTree;
   child_threads?: ThreadTree[];
 };
 

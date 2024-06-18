@@ -15,10 +15,11 @@ export const Card = {
         data: {
           ...card,
           id: card.id ? card.id : uuidv7(),
-          thread: card.thread ? card.thread : uuidv7(),
+          thread_id: card.thread_id ? card.thread_id : uuidv7(),
           fractional_index: card.fractional_index
             ? card.fractional_index
             : "a0",
+          content: card.content ? card.content : "",
           created_at: now,
           updated_at: now,
           deleted: false,

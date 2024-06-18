@@ -15,10 +15,11 @@ export const Thread = {
         data: {
           ...thread,
           id: thread.id ? thread.id : uuidv7(),
-          parent_thread: thread.parent_thread ? thread.parent_thread : uuidv7(),
+          parent_id: thread.parent_id ? thread.parent_id : uuidv7(),
           fractional_index: thread.fractional_index
             ? thread.fractional_index
             : "a0",
+          title: thread.title ? thread.title : "",
           created_at: now,
           updated_at: now,
           deleted: false,
