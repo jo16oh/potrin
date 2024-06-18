@@ -1,4 +1,4 @@
-import { test } from "vitest";
+import { afterEach, onTestFinished, test, onTestFinished } from "vitest";
 import Database from "better-sqlite3";
 import { electrify } from "electric-sql/node";
 import { schema } from "../../generated/client";
@@ -9,19 +9,18 @@ const config = {
   debug: false,
 };
 
-const sqlite = new Database("");
-sqlite.pragma("journal_mode = WAL");
-
-const electric = await electrify(sqlite, schema, config);
-
 export interface TestWithElectric {
   electric: ElectricClient<typeof schema>;
 }
 
 export const testWithElectric = test.extend<TestWithElectric>({
   electric: async ({}, use) => {
-    await electric.db.cards.deleteMany();
-    await electric.db.threads.deleteMany();
+    const sqlite = new Database(":memory:");
+    sqlite.pragma("journal_mode = WAL");
+    const electric = await electrify(sqlite, schema, config);
     await use(electric);
+    onTestFinished(async () => {
+      await electric.close();
+    });
   },
 });

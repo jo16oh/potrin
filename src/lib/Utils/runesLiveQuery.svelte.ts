@@ -45,6 +45,7 @@ export function createLiveQuery<T>(
   const preHooks = new Map<symbol, () => void>();
 
   function subscribe() {
+    execPreHooks(preHooks);
     query().then((r) => {
       const tablenames = r.tablenames;
       result = r.result;
@@ -53,17 +54,15 @@ export function createLiveQuery<T>(
         const changedTablenames = notifier.alias(notification);
         if (hasIntersection(tablenames, changedTablenames)) {
           execPreHooks(preHooks);
-          query()
-            .then((r) => {
-              result = r.result;
-            })
-            .then(() => execHooks(hooks));
+          query().then((r) => {
+            result = r.result;
+            execHooks(hooks);
+          });
         }
       });
     });
   }
 
-  execPreHooks(preHooks);
   subscribe();
 
   return {
