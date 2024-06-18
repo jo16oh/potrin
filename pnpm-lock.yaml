@@ -123,6 +123,9 @@ importers:
       typescript-eslint:
         specifier: ^7.12.0
         version: 7.12.0(eslint@8.57.0)(typescript@5.4.5)
+      utility-types:
+        specifier: ^3.11.0
+        version: 3.11.0
       vite:
         specifier: ^5.0.3
         version: 5.2.12(@types/node@20.14.1)
@@ -3105,6 +3108,10 @@ packages:
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+
+  utility-types@3.11.0:
+    resolution: {integrity: sha512-6Z7Ma2aVEWisaL6TvBCy7P8rm2LQoPv6dJ7ecIaIixHcwfbJ0x7mWdbcwlIM5IGQxPZSFYeqRCqlOOeKoJYMkw==}
+    engines: {node: '>= 4'}
 
   uuidv7@1.0.0:
     resolution: {integrity: sha512-XkvPwTtSmYwxIE1FSYQTYg79zHL1ZWV5vM/Qyl9ahXCU8enOPPA4bTjzvafvYUB7l2+miv4EqK/qEe75cOXIdA==}
@@ -6237,6 +6244,8 @@ snapshots:
       requires-port: 1.0.0
 
   util-deprecate@1.0.2: {}
+
+  utility-types@3.11.0: {}
 
   uuidv7@1.0.0: {}
 

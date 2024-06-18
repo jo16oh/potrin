@@ -6,6 +6,9 @@ type Card = {
   fractional_index: string;
 };
 
+export type ThreadTreeQueryRawResult = {
+  json: string;
+}[];
 export type ThreadTreeQueryResult = {
   id: string;
   title: string;

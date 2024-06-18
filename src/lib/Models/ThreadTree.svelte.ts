@@ -1,20 +1,15 @@
 import { ELECTRIC } from "$lib/DataAccess/electric";
-import type { ExtractArrayType } from "$lib/Utils/utilTypes";
 import {
   getThreadTree,
   type ThreadTreeQueryResult,
+  type ThreadTreeQueryRawResult,
 } from "./queries/getThreadTree.sql";
 import { depend } from "velona";
 import { createLiveQuery } from "$lib/Utils/runesLiveQuery.svelte";
+import { type Card } from "./Card";
+import { type Thread } from "./Thread";
 
-type Card = ExtractArrayType<ThreadTreeQueryResult["cards"]> & {
-  thread: ThreadTree;
-};
-
-export type ThreadTree = Omit<
-  ThreadTreeQueryResult,
-  "child_threads" | "cards"
-> & {
+export type ThreadTree = Thread & {
   cards: Card[];
   parent?: ThreadTree;
   child_threads?: ThreadTree[];
@@ -28,7 +23,7 @@ export const ThreadTree = {
       id: string,
     ): { state: ThreadTree | undefined; unsubscribe: () => () => void } => {
       if (!ELECTRIC) throw new Error("electric has not initialized yet");
-      const liveResult = createLiveQuery<{ json: string }[]>(
+      const liveResult = createLiveQuery<ThreadTreeQueryRawResult>(
         ELECTRIC.notifier,
         ELECTRIC.db.liveRawQuery({
           sql: getThreadTree,
@@ -48,7 +43,9 @@ export const ThreadTree = {
           state = undefined;
           throw new Error("thread not found!");
         } else {
-          state = JSON.parse(liveResult.result[0]["json"]);
+          state = JSON.parse(
+            liveResult.result[0]["json"],
+          ) as ThreadTreeQueryResult;
         }
       });
 
@@ -60,7 +57,7 @@ export const ThreadTree = {
         await new Promise((resolve) => resolve(null));
         const cache = localStorage.getItem(id);
         if (cache) {
-          state = JSON.parse(cache);
+          state = JSON.parse(cache) as ThreadTreeQueryResult;
         }
         isChangeFromLiveQuery = false;
 
