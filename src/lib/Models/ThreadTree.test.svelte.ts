@@ -9,13 +9,13 @@ import { Thread } from "./Thread";
 import { Card } from "./Card";
 
 interface TestThreadTree {
-  liveTree: ReturnType<typeof ThreadTree.getLiveTree>;
+  liveTree: ReturnType<typeof ThreadTree.liveFullTree>;
 }
 
 const testThreadTree = testElectric.extend<TestThreadTree>({
   liveTree: async ({ electric }, use) => {
     const id = await createTree(electric);
-    const injectedGetLiveTree = ThreadTree.getLiveTree.inject({
+    const injectedGetLiveTree = ThreadTree.liveFullTree.inject({
       ELECTRIC: electric,
     });
 
@@ -36,7 +36,7 @@ const testThreadTree = testElectric.extend<TestThreadTree>({
 const testThreadTreeWithCache = testElectric.extend<TestThreadTree>({
   liveTree: async ({ electric }, use) => {
     const id = await createTree(electric);
-    const injectedGetLiveTree = ThreadTree.getLiveTree.inject({
+    const injectedGetLiveTree = ThreadTree.liveFullTree.inject({
       ELECTRIC: electric,
     });
 
@@ -232,7 +232,7 @@ describe("cache", () => {
 
 describe("sync", () => {
   testElectricSync(
-    "When e1 deletes root thread then e2 add childs to it while they are offline, all rows should be deleted eventually.",
+    "When e1 deletes the root thread and e2 adds children to it while they are offline, all rows should eventually be deleted",
     async ({ e1, e2, token }) => {
       const injectedCreateThread2 = Thread.create.inject({
         ELECTRIC: e2,
@@ -278,8 +278,7 @@ describe("sync", () => {
       });
       expect(res1).toBeTruthy();
 
-      // When e1 deletes root thread then e2 add childs to it while they are offline,
-      // all rows should be deleted eventually.
+      // disconnect and deletes the root
       e1.disconnect();
       e2.disconnect();
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -291,6 +290,7 @@ describe("sync", () => {
       await injectedCreateCard2({ thread_id: grandChild.id });
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      // resync
       await e1.connect(token);
       await e2.connect(token);
       const shape1_2 = await e1.db.threads.sync();
@@ -312,6 +312,38 @@ describe("sync", () => {
     },
     60000,
   );
+});
+
+testElectric("liveNode", async ({ electric }) => {
+  const injectedLiveNode = ThreadTree.liveNode.inject({ ELECTRIC: electric });
+  const root = await createTree(electric);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  let liveNode;
+  $effect.root(() => {
+    liveNode = injectedLiveNode(root);
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(liveNode?.child_threads).toBeUndefined();
+});
+
+testElectric("livePartialTree", async ({ electric }) => {
+  const injectedLivePartialTree = ThreadTree.livePartialTree.inject({
+    ELECTRIC: electric,
+  });
+  const root = await createTree(electric);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  let livePartialTree;
+  $effect.root(() => {
+    livePartialTree = injectedLivePartialTree(root);
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(
+    livePartialTree.state.child_threads[0].child_threads[0]?.cards,
+  ).toBeUndefined();
 });
 
 const createTree = async (

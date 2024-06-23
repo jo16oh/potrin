@@ -1,23 +1,6 @@
 import { sql } from "$lib/Utils/utils";
 
-type Card = {
-  id: string;
-  content: string;
-  fractional_index: string;
-};
-
-export type ThreadTreeQueryRawResult = {
-  json: string;
-}[];
-export type ThreadTreeQueryResult = {
-  id: string;
-  title: string;
-  fractional_index: string;
-  cards: Card[];
-  child_threads?: ThreadTreeQueryResult[];
-};
-
-export const getThreadTree = sql`
+export const getFullTree = sql`
 WITH RECURSIVE thread_tree AS MATERIALIZED (
 	SELECT id, title, parent_id, fractional_index, 0 AS depth
 	FROM threads
