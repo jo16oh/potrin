@@ -1,18 +1,20 @@
 import { expect, describe, afterEach } from "vitest";
 import { uuidv7 } from "uuidv7";
 import { generateKeyBetween } from "fractional-indexing";
-import { testWithElectric } from "$lib/TestUtils/testWithElectric";
+import { testElectric, testElectricSync } from "$lib/DataAccess/testElectric";
 import { ThreadTree } from "./ThreadTree.svelte";
 import type { ElectricClient } from "electric-sql/client/model";
 import type { schema } from "../../generated/client";
+import { Thread } from "./Thread";
+import { Card } from "./Card";
 
 interface TestThreadTree {
   liveTree: ReturnType<typeof ThreadTree.getLiveTree>;
 }
 
-const testThreadTree = testWithElectric.extend<TestThreadTree>({
+const testThreadTree = testElectric.extend<TestThreadTree>({
   liveTree: async ({ electric }, use) => {
-    const id = await createTree(electric, 0);
+    const id = await createTree(electric);
     const injectedGetLiveTree = ThreadTree.getLiveTree.inject({
       ELECTRIC: electric,
     });
@@ -31,9 +33,9 @@ const testThreadTree = testWithElectric.extend<TestThreadTree>({
   },
 });
 
-const testThreadTreeWithCache = testWithElectric.extend<TestThreadTree>({
+const testThreadTreeWithCache = testElectric.extend<TestThreadTree>({
   liveTree: async ({ electric }, use) => {
-    const id = await createTree(electric, 0);
+    const id = await createTree(electric);
     const injectedGetLiveTree = ThreadTree.getLiveTree.inject({
       ELECTRIC: electric,
     });
@@ -58,15 +60,15 @@ const testThreadTreeWithCache = testWithElectric.extend<TestThreadTree>({
 
 describe("thread", () => {
   testThreadTree("fractional index ordering", ({ liveTree }) => {
-    expect(liveTree.state.child_threads[0]?.title).toBe("1");
-    expect(liveTree.state.child_threads[1]?.title).toBe("2");
-    expect(liveTree.state.child_threads[2]?.title).toBe("3");
-    expect(liveTree.state.child_threads[3]?.title).toBe("4");
-    expect(liveTree.state.child_threads[4]?.title).toBe("5");
+    expect(liveTree?.state?.child_threads?.[0]?.title).toBe("1");
+    expect(liveTree?.state?.child_threads?.[1]?.title).toBe("2");
+    expect(liveTree?.state?.child_threads?.[2]?.title).toBe("3");
+    expect(liveTree?.state?.child_threads?.[3]?.title).toBe("4");
+    expect(liveTree?.state?.child_threads?.[4]?.title).toBe("5");
   });
 
   testThreadTree("exclude deleted thread", ({ liveTree }) => {
-    expect(liveTree.state.child_threads[5]).toBeUndefined();
+    expect(liveTree.state?.child_threads?.[5]).toBeUndefined();
   });
 
   testThreadTree("tree structuring", ({ liveTree }) => {
@@ -217,7 +219,7 @@ describe("cache", () => {
   );
 
   testThreadTreeWithCache(
-    " cache should be updated along with the state change",
+    "cache should be updated along with the state change",
     async ({ liveTree }) => {
       liveTree.state.title = "3";
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -228,9 +230,93 @@ describe("cache", () => {
   );
 });
 
+describe("sync", () => {
+  testElectricSync(
+    "When e1 deletes root thread then e2 add childs to it while they are offline, all rows should be deleted eventually.",
+    async ({ e1, e2, token }) => {
+      const injectedCreateThread2 = Thread.create.inject({
+        ELECTRIC: e2,
+      });
+      const injectedCreateCard2 = Card.create.inject({ ELECTRIC: e2 });
+      const injectedDeleteThread = Thread.deletePhysical.inject({
+        ELECTRIC: e1,
+      });
+
+      await e1.connect(token);
+      await e2.connect(token);
+      const shape1 = await e1.db.threads.sync();
+      const shape2 = await e2.db.threads.sync();
+      const shape3 = await e1.db.cards.sync();
+      const shape4 = await e2.db.cards.sync();
+      await Promise.all([
+        shape1.synced,
+        shape2.synced,
+        shape3.synced,
+        shape4.synced,
+      ]);
+
+      await e1.db.threads.deleteMany();
+      await e2.db.threads.deleteMany();
+      await e1.db.cards.deleteMany();
+      await e2.db.cards.deleteMany();
+
+      // connection
+      expect(e1.isConnected).toBeTruthy();
+      expect(e2.isConnected).toBeTruthy();
+
+      // initial cleanup
+      const initialState1 = await e1.db.threads.findMany();
+      const initialState2 = await e1.db.threads.findMany();
+      expect(initialState1.length).toBe(0);
+      expect(initialState2.length).toBe(0);
+
+      // sync ( e1 → e2 )
+      const rootID = await createTree(e1);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const res1 = await e2.db.threads.findUnique({
+        where: { id: rootID },
+      });
+      expect(res1).toBeTruthy();
+
+      // When e1 deletes root thread then e2 add childs to it while they are offline,
+      // all rows should be deleted eventually.
+      e1.disconnect();
+      e2.disconnect();
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      await injectedDeleteThread(rootID);
+      const child = await injectedCreateThread2({ parent_id: rootID });
+      const grandChild = await injectedCreateThread2({ parent_id: child.id });
+      await injectedCreateCard2({ thread_id: child.id });
+      await injectedCreateCard2({ thread_id: grandChild.id });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      await e1.connect(token);
+      await e2.connect(token);
+      const shape1_2 = await e1.db.threads.sync();
+      const shape2_2 = await e2.db.threads.sync();
+      const shape3_2 = await e1.db.cards.sync();
+      const shape4_2 = await e2.db.cards.sync();
+      await Promise.all([
+        shape1_2.synced,
+        shape2_2.synced,
+        shape3_2.synced,
+        shape4_2.synced,
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      expect((await e1.db.threads.findMany()).length).toBe(0);
+      expect((await e2.db.threads.findMany()).length).toBe(0);
+      expect((await e1.db.cards.findMany()).length).toBe(0);
+      expect((await e2.db.cards.findMany()).length).toBe(0);
+    },
+    60000,
+  );
+});
+
 const createTree = async (
   electric: ElectricClient<typeof schema>,
-  depth: number,
+  depth: number = 0,
   parent_id?: string,
 ) => {
   const currentID = uuidv7();

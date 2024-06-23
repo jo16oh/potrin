@@ -6,8 +6,8 @@ import {
 } from "./queries/getThreadTree.sql";
 import { depend } from "velona";
 import { createLiveQuery } from "$lib/Utils/runesLiveQuery.svelte";
-import { type Card } from "./Card";
-import { type Thread } from "./Thread";
+import { Card } from "./Card";
+import { Thread } from "./Thread";
 
 export type ThreadTree = Thread & {
   cards: Card[];
@@ -16,6 +16,18 @@ export type ThreadTree = Thread & {
 };
 
 export const ThreadTree = {
+  createNode: async (tree?: {
+    thread?: Partial<ThreadTree>;
+    card?: Partial<Card>;
+  }): Promise<ThreadTree> => {
+    const thread = await Thread.create(tree?.thread);
+    const card = await Card.create({ ...tree?.card, thread_id: thread.id });
+    return {
+      ...thread,
+      cards: [card],
+    };
+  },
+
   getLiveTree: depend(
     { ELECTRIC },
     (

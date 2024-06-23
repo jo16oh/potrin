@@ -12,21 +12,30 @@ export type Card = Optional<
   thread?: ThreadTree;
 };
 
+type CardInput = Omit<
+  Optional<Card, "id" | "fractional_index" | "content">,
+  "thread_id" | "created_at" | "updated_at" | "deleted"
+> & { thread_id: string };
+
 export const Card = {
   create: depend(
     { ELECTRIC },
-    async ({ ELECTRIC }, card?: Partial<Card>): Promise<Card> => {
+    async ({ ELECTRIC }, card: CardInput): Promise<Card> => {
       if (!ELECTRIC) throw new Error("electric has not initialized yet");
+
+      const thread = await ELECTRIC.db.threads.findUnique({
+        where: { id: card.thread_id },
+      });
+      if (!thread) throw new Error("thread doesn't exist");
+
       const now = new Date();
       return (await ELECTRIC.db.cards.create({
         data: {
           ...card,
-          id: card?.id ? card.id : uuidv7(),
-          thread_id: card?.thread_id ? card.thread_id : uuidv7(),
-          fractional_index: card?.fractional_index
-            ? card.fractional_index
-            : "a0",
-          content: card?.content ? card.content : "",
+          id: card?.id || uuidv7(),
+          thread_id: card.thread_id,
+          fractional_index: card?.fractional_index || "a0",
+          content: card.content || "",
           created_at: now,
           updated_at: now,
           deleted: false,
@@ -34,6 +43,7 @@ export const Card = {
       })) as Card;
     },
   ),
+
   update: depend(
     { ELECTRIC },
     async (
@@ -50,4 +60,19 @@ export const Card = {
       })) as Card;
     },
   ),
+
+  deleteLogical: depend({ ELECTRIC }, async ({ ELECTRIC }, id: string) => {
+    if (!ELECTRIC) throw new Error("electric has not initialized yet");
+    return await ELECTRIC.db.cards.update({
+      where: { id: id },
+      data: { deleted: true },
+    });
+  }),
+
+  deletePhysical: depend({ ELECTRIC }, async ({ ELECTRIC }, id: string) => {
+    if (!ELECTRIC) throw new Error("electric has not initialized yet");
+    return await ELECTRIC.db.cards.delete({
+      where: { id: id },
+    });
+  }),
 };
