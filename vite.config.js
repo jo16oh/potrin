@@ -35,6 +35,7 @@ export default defineConfig(async () => ({
   test: {
     globalSetup: "./vitest.setup.ts",
     include: ["src/**/*.{test,test.svelte,spec}.{js,ts}"],
+    exclude: ["src/generated/**"],
     environment: "jsdom",
   },
 }));
