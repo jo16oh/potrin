@@ -17,6 +17,10 @@ export type ThreadTree = Thread & {
   cards: Card[];
   parent?: ThreadTree;
   child_threads?: ThreadTree[];
+  breadcrumbs?: {
+    id: string;
+    title: string;
+  };
 };
 
 export const ThreadTree = {

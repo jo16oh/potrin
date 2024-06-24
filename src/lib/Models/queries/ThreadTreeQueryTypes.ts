@@ -4,6 +4,11 @@ type Card = {
   fractional_index: string;
 };
 
+type Breadcrumb = {
+  id: string;
+  title: string;
+};
+
 export type ThreadTreeQueryRawResult = {
   json: string;
 }[];
@@ -14,4 +19,5 @@ export type ThreadTreeQueryResult = {
   fractional_index: string;
   cards: Card[];
   child_threads?: ThreadTreeQueryResult[];
+  breadcrumbs?: Breadcrumb[];
 };

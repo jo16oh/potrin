@@ -19,6 +19,15 @@ thread_cards AS MATERIALIZED (
   WHERE cards.thread_id = thread_tree.id AND deleted = false AND thread_tree.depth < 2
 	ORDER BY cards.fractional_index ASC, cards.id ASC
 ),
+breadcrumbs AS (
+	SELECT id, title, parent_id, 0 AS breadcrumb
+	FROM threads
+	WHERE threads.id = (SELECT parent_id FROM thread_tree WHERE depth = 0)
+	UNION ALL
+	SELECT parent.id, parent.title, parent.parent_id, child.breadcrumb + 1
+	FROM threads AS parent
+	JOIN breadcrumbs AS child ON child.parent_id = parent.id
+),
 d2 AS (
 	SELECT 
 		json_object(
@@ -78,8 +87,16 @@ root AS (
 				) ORDER BY fractional_index ASC, id ASC)
 				FROM thread_cards
 				WHERE thread_cards.thread_id = t0.id
-			)
-		) AS json
+			),
+			'breadcrumbs', (
+				SELECT json_group_array(json_object(
+						'id', id,
+						'title', title,
+						'parent_id', parent_id
+					) ORDER BY breadcrumb DESC)
+					FROM breadcrumbs
+				)
+			) AS json
 	FROM thread_tree AS t0
 	WHERE depth = 0
 	ORDER BY fractional_index ASC, id ASC

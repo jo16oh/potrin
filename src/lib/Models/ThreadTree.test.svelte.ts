@@ -328,22 +328,42 @@ testElectric("liveNode", async ({ electric }) => {
   expect(liveNode?.child_threads).toBeUndefined();
 });
 
-testElectric("livePartialTree", async ({ electric }) => {
+testThreadTree("livePartialTree", async ({ electric, liveTree }) => {
   const injectedLivePartialTree = ThreadTree.livePartialTree.inject({
     ELECTRIC: electric,
   });
-  const root = await createTree(electric);
-  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  liveTree.unsubscribe();
+  localStorage.clear();
 
   let livePartialTree;
   $effect.root(() => {
-    livePartialTree = injectedLivePartialTree(root);
+    livePartialTree = injectedLivePartialTree(liveTree.state.id);
   });
 
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(
     livePartialTree.state.child_threads[0].child_threads[0]?.cards,
   ).toBeUndefined();
+});
+
+testThreadTree("breadcrumbs", async ({ electric, liveTree }) => {
+  const injectedLivePartialTree = ThreadTree.livePartialTree.inject({
+    ELECTRIC: electric,
+  });
+
+  const id =
+    liveTree.state?.child_threads[0]?.child_threads[0]?.child_threads[0].id;
+  liveTree.unsubscribe();
+  localStorage.clear();
+
+  let livePartialTree;
+  $effect.root(() => {
+    livePartialTree = injectedLivePartialTree(id);
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(livePartialTree.state.breadcrumbs[0].id).toBe(liveTree.state.id);
 });
 
 const createTree = async (
