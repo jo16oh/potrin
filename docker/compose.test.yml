@@ -19,7 +19,7 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   electric:
-    image: electricsql/electric:0.11.1
+    image: electricsql/electric:0.12.1
     depends_on:
       - pg
     environment:
