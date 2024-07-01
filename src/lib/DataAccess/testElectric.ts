@@ -53,6 +53,7 @@ export const testElectricSync = test.extend<TestElectricSync>({
       await cleanup(e2);
     });
   },
+
   token: token,
 });
 
@@ -69,10 +70,10 @@ async function createElectric(sqlite: SQLite) {
 }
 
 async function cleanup(e: ElectricClient<typeof schema>) {
-  await e.db.threads.deleteMany();
-  await e.db.cards.deleteMany();
-  const threads = await e.db.threads.sync();
-  const cards = await e.db.cards.sync();
+  await e.db["threads"].deleteMany();
+  await e.db["cards"].deleteMany();
+  const threads = await e.db["threads"].sync();
+  const cards = await e.db["cards"].sync();
   await threads.synced;
   await cards.synced;
 }
