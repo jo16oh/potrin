@@ -16,23 +16,23 @@ export class LiveResult<T> {
 }
 
 function execPreHooks(map: Map<symbol, () => void>) {
-  map.forEach((fn) => {
+  for (const [, fn] of map) {
     try {
       fn();
     } catch (err) {
       console.error(err);
     }
-  });
+  }
 }
 
 function execHooks(map: Map<symbol, () => void>) {
-  map.forEach((fn) => {
+  for (const [, fn] of map) {
     try {
       fn();
     } catch (err) {
       console.error(err);
     }
-  });
+  }
 }
 
 export function createLiveQuery<T>(
