@@ -11,9 +11,7 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "tauri": "tauri",
     "test": "vitest",
-    "test:ui": "vitest --ui",
-    "drizzle": "drizzle-kit",
-    "drizzle:push": "drizzle-kit push --config=./db/drizzle.config.ts"
+    "test:ui": "vitest --ui"
   },
   "license": "AGPLv3",
   "dependencies": {
@@ -22,7 +20,6 @@
     "@tauri-apps/plugin-shell": "2.0.0-beta.6",
     "@tauri-apps/plugin-sql": "2.0.0-beta.5",
     "@tauri-apps/plugin-store": "2.0.0-beta.5",
-    "drizzle-orm": "^0.31.1",
     "electric-sql": "^0.12.1",
     "fractional-indexing": "^3.2.0",
     "globals": "^15.4.0",
@@ -32,6 +29,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@databases/pg-migrations": "^5.0.3",
     "@eslint/js": "^9.4.0",
     "@sveltejs/adapter-static": "^3.0.1",
     "@sveltejs/kit": "^2.5.10",
@@ -42,7 +40,6 @@
     "@vitest/ui": "^1.6.0",
     "better-sqlite3": "^11.0.0",
     "dotenv": "^16.4.5",
-    "drizzle-kit": "^0.22.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-svelte": "^2.39.0",

@@ -22,10 +22,7 @@ while true; do
   sleep 1
 done
 
-pnpm run drizzle push --dialect='postgresql' --schema='./db/schema.ts' --url=postgresql://postgres:proxy_password@localhost:65432
-
-export PGPASSWORD='proxy_password'
-psql -h localhost -p 65432 -U postgres -a -f db/electrify.sql
+pnpm pg-migrations apply --directory db/migrations --database postgresql://postgres:proxy_password@localhost:65432/postgres
 
 pnpm exec electric-sql generate
 
