@@ -184,8 +184,6 @@ describe("cache", () => {
   testThreadTreeWithCache(
     "initial state of the liveTree to be cache",
     async ({ liveTree }) => {
-      // この最初のsetTimeoutがないとテストが失敗する、なぜ？
-      // beforeEachやtest.extend内でawaitしてもだめ
       expect(liveTree.state?.title).toBe("cache");
     },
   );
