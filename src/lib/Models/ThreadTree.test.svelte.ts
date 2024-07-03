@@ -123,6 +123,7 @@ describe("thread", () => {
     "unsubscribe / resubscribe",
     async ({ liveTree, electric }) => {
       const resubscribe = liveTree.unsubscribe();
+      const ydocId = await createYDoc(electric);
       await electric.db.cards.create({
         data: {
           id: uuidv7(),
@@ -132,6 +133,7 @@ describe("thread", () => {
           created_at: new Date(),
           updated_at: new Date(),
           fractional_index: "a0",
+          ydoc_id: ydocId,
         },
       });
       expect(liveTree.state?.cards.length).toBe(5);
@@ -211,7 +213,7 @@ describe("cache", () => {
         where: { id: liveTree.state.id },
         data: { title: "updated" },
       });
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 0));
       expect(JSON.parse(localStorage.getItem(liveTree.state.id))).toBe(null);
     },
   );
@@ -301,7 +303,7 @@ describe("sync", () => {
         shape3_2.synced,
         shape4_2.synced,
       ]);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect((await e1.db.threads.findMany()).length).toBe(0);
       expect((await e2.db.threads.findMany()).length).toBe(0);
@@ -468,6 +470,9 @@ async function createCard(
   const second = generateKeyBetween(first, third);
   const fourth = third;
   const fifth = third;
+  const ydocs = await Promise.all(
+    Array.from({ length: 6 }).map(() => createYDoc(electric)),
+  );
   const now = new Date();
   await electric.db.cards.createMany({
     data: [
@@ -479,6 +484,7 @@ async function createCard(
         deleted: false,
         created_at: now,
         updated_at: now,
+        ydoc_id: ydocs[0]!,
       },
       {
         id: uuidv7(),
@@ -488,6 +494,7 @@ async function createCard(
         deleted: false,
         created_at: now,
         updated_at: now,
+        ydoc_id: ydocs[1]!,
       },
       {
         id: uuidv7(),
@@ -497,6 +504,7 @@ async function createCard(
         deleted: false,
         created_at: now,
         updated_at: now,
+        ydoc_id: ydocs[2]!,
       },
       {
         id: uuidv7(),
@@ -506,6 +514,7 @@ async function createCard(
         deleted: false,
         created_at: now,
         updated_at: now,
+        ydoc_id: ydocs[3]!,
       },
       {
         id: uuidv7(),
@@ -515,6 +524,7 @@ async function createCard(
         deleted: false,
         created_at: now,
         updated_at: now,
+        ydoc_id: ydocs[4]!,
       },
       {
         id: uuidv7(),
@@ -524,7 +534,20 @@ async function createCard(
         deleted: true,
         created_at: now,
         updated_at: now,
+        ydoc_id: ydocs[5]!,
       },
     ],
   });
+}
+
+async function createYDoc(e: ElectricClient<typeof schema>) {
+  const id = crypto.randomUUID();
+  await e.db.ydocs.create({
+    data: {
+      id: id,
+      type: "card",
+      last_materialized: "",
+    },
+  });
+  return id;
 }

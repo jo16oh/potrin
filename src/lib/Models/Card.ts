@@ -14,7 +14,13 @@ export type Card = Optional<
 
 type CardInput = Omit<
   Optional<Card, "id" | "fractional_index" | "content">,
-  "thread_id" | "created_at" | "updated_at" | "deleted"
+  | "thread_id"
+  | "created_at"
+  | "updated_at"
+  | "deleted"
+  | "ydoc_id"
+  | "author"
+  | "pot_id"
 > & { thread_id: string };
 
 export const Card = {
@@ -39,6 +45,13 @@ export const Card = {
           created_at: now,
           updated_at: now,
           deleted: false,
+          ydocs: {
+            create: {
+              id: crypto.randomUUID() as string,
+              type: "card",
+              last_materialized: "",
+            },
+          },
         },
       })) as Card;
     },
