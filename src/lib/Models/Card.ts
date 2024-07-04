@@ -42,16 +42,10 @@ export const Card = {
           thread_id: card.thread_id,
           fractional_index: card?.fractional_index || "a0",
           content: card.content || "",
+          last_materialized: "",
           created_at: now,
           updated_at: now,
           deleted: false,
-          ydocs: {
-            create: {
-              id: crypto.randomUUID() as string,
-              type: "card",
-              last_materialized: "",
-            },
-          },
         },
       })) as Card;
     },

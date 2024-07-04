@@ -123,17 +123,16 @@ describe("thread", () => {
     "unsubscribe / resubscribe",
     async ({ liveTree, electric }) => {
       const resubscribe = liveTree.unsubscribe();
-      const ydocId = await createYDoc(electric);
       await electric.db.cards.create({
         data: {
           id: uuidv7(),
           content: "title",
+          last_materialized: "",
           thread_id: liveTree.state.id,
           deleted: false,
           created_at: new Date(),
           updated_at: new Date(),
           fractional_index: "a0",
-          ydoc_id: ydocId,
         },
       });
       expect(liveTree.state?.cards.length).toBe(5);
@@ -222,7 +221,7 @@ describe.skip("cache", () => {
     "cache should be updated along with the state change",
     async ({ liveTree }) => {
       liveTree.state.title = "3";
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       expect(JSON.parse(localStorage.getItem(liveTree.state.id))?.title).toBe(
         "3",
       );
@@ -248,17 +247,23 @@ describe("sync", () => {
       const shape2 = await e2.db.threads.sync();
       const shape3 = await e1.db.cards.sync();
       const shape4 = await e2.db.cards.sync();
+      const shape5 = await e1.db.card_ydoc_updates.sync();
+      const shape6 = await e2.db.card_ydoc_updates.sync();
       await Promise.all([
         shape1.synced,
         shape2.synced,
         shape3.synced,
         shape4.synced,
+        shape5.synced,
+        shape6.synced,
       ]);
 
       await e1.db.threads.deleteMany();
       await e2.db.threads.deleteMany();
       await e1.db.cards.deleteMany();
       await e2.db.cards.deleteMany();
+      await e1.db.card_ydoc_updates.deleteMany();
+      await e2.db.card_ydoc_updates.deleteMany();
 
       // connection
       expect(e1.isConnected).toBeTruthy();
@@ -272,7 +277,7 @@ describe("sync", () => {
 
       // sync ( e1 → e2 )
       const rootID = await createTree(e1);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       const res1 = await e2.db.threads.findUnique({
         where: { id: rootID },
       });
@@ -297,11 +302,15 @@ describe("sync", () => {
       const shape2_2 = await e2.db.threads.sync();
       const shape3_2 = await e1.db.cards.sync();
       const shape4_2 = await e2.db.cards.sync();
+      const shape5_2 = await e1.db.card_ydoc_updates.sync();
+      const shape6_2 = await e2.db.card_ydoc_updates.sync();
       await Promise.all([
         shape1_2.synced,
         shape2_2.synced,
         shape3_2.synced,
         shape4_2.synced,
+        shape5_2.synced,
+        shape6_2.synced,
       ]);
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -318,7 +327,6 @@ testElectric("liveNode", async ({ electric }) => {
   const injectedLiveNode = ThreadTree.liveNode.inject({ ELECTRIC: electric });
   const root = await createTree(electric);
   await new Promise((resolve) => setTimeout(resolve, 0));
-
   let liveNode;
   $effect.root(() => {
     liveNode = injectedLiveNode(root);
@@ -470,84 +478,69 @@ async function createCard(
   const second = generateKeyBetween(first, third);
   const fourth = third;
   const fifth = third;
-  const ydocs = await Promise.all(
-    Array.from({ length: 6 }).map(() => createYDoc(electric)),
-  );
   const now = new Date();
   await electric.db.cards.createMany({
     data: [
       {
         id: thread_id,
         content: "1",
+        last_materialized: "",
         thread_id: thread_id,
         fractional_index: first,
         deleted: false,
         created_at: now,
         updated_at: now,
-        ydoc_id: ydocs[0]!,
       },
       {
         id: uuidv7(),
         content: "2",
+        last_materialized: "",
         thread_id: thread_id,
         fractional_index: second,
         deleted: false,
         created_at: now,
         updated_at: now,
-        ydoc_id: ydocs[1]!,
       },
       {
         id: uuidv7(),
         content: "3",
+        last_materialized: "",
         thread_id: thread_id,
         fractional_index: third,
         deleted: false,
         created_at: now,
         updated_at: now,
-        ydoc_id: ydocs[2]!,
       },
       {
         id: uuidv7(),
         content: "4",
+        last_materialized: "",
         thread_id: thread_id,
         fractional_index: fourth,
         deleted: false,
         created_at: now,
         updated_at: now,
-        ydoc_id: ydocs[3]!,
       },
       {
         id: uuidv7(),
         content: "5",
+        last_materialized: "",
         thread_id: thread_id,
         fractional_index: fifth,
         deleted: false,
         created_at: now,
         updated_at: now,
-        ydoc_id: ydocs[4]!,
       },
       {
         id: uuidv7(),
         content: "deleted",
+        last_materialized: "",
         thread_id: thread_id,
         fractional_index: "",
         deleted: true,
         created_at: now,
         updated_at: now,
-        ydoc_id: ydocs[5]!,
       },
     ],
   });
-}
-
-async function createYDoc(e: ElectricClient<typeof schema>) {
-  const id = crypto.randomUUID();
-  await e.db.ydocs.create({
-    data: {
-      id: id,
-      type: "card",
-      last_materialized: "",
-    },
-  });
-  return id;
 }
