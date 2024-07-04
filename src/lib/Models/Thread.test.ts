@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { Thread } from "$lib/Models/Thread";
-import { testElectric, testElectricSync } from "$lib/DataAccess/testElectric";
-import { Card } from "./Card";
+import { testElectric } from "$lib/DataAccess/testElectric";
+import { uuidv7 } from "uuidv7";
 
 describe("Thread", async () => {
   testElectric("create thread", async ({ electric }) => {
@@ -25,7 +25,7 @@ describe("Thread", async () => {
   testElectric("check parent existence", async ({ electric }) => {
     const injectedCreateThread = Thread.create.inject({ ELECTRIC: electric });
     const res = injectedCreateThread({
-      parent_id: crypto.randomUUID(),
+      parent_id: uuidv7(),
     });
 
     expect(res).rejects.toThrow();
