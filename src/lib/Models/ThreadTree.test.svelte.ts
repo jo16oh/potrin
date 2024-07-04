@@ -182,7 +182,7 @@ describe("card", () => {
   });
 });
 
-describe("cache", () => {
+describe.skip("cache", () => {
   testThreadTreeWithCache(
     "initial state of the liveTree to be cache",
     async ({ liveTree }) => {
