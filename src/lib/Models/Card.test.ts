@@ -4,7 +4,7 @@ import { testElectric } from "$lib/DataAccess/testElectric";
 import { Thread } from "./Thread";
 import { uuidv7 } from "uuidv7";
 
-describe("card", async () => {
+describe("card", () => {
   testElectric("create card", async ({ electric }) => {
     const injectedCreateThread = Thread.create.inject({ ELECTRIC: electric });
     const injectedCreateCard = Card.create.inject({ ELECTRIC: electric });

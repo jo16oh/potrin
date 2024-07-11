@@ -3,7 +3,7 @@ import { Thread } from "$lib/Models/Thread";
 import { testElectric } from "$lib/DataAccess/testElectric";
 import { uuidv7 } from "uuidv7";
 
-describe("Thread", async () => {
+describe("Thread", () => {
   testElectric("create thread", async ({ electric }) => {
     const injectedCreateThread = Thread.create.inject({ ELECTRIC: electric });
     await injectedCreateThread();
