@@ -24,9 +24,18 @@ CREATE TABLE IF NOT EXISTS threads (
   updated_at TIMESTAMPTZ NOT NULL,
   deleted BOOLEAN NOT NULL
 );
+CREATE INDEX threads_title_idx ON threads(title);
 CREATE INDEX threads_parent_id_idx ON threads(parent_id);
-CREATE INDEX threads_fractional_index_idx ON threads(fractional_index);
 ALTER TABLE threads ENABLE ELECTRIC;
+
+CREATE TABLE IF NOT EXISTS thread_checkpoints (
+  id UUID PRIMARY KEY,
+  thread_id UUID REFERENCES threads(id) NOT NULL,
+  fractional_index TEXT NOT NULL,
+  title TEXT NOT NULL
+);
+CREATE INDEX thread_checkpoints_thread_id_idx ON thread_checkpoints(thread_id);
+ALTER TABLE thread_checkpoints ENABLE ELECTRIC;
 
 CREATE TABLE IF NOT EXISTS cards (
   id UUID PRIMARY KEY,
@@ -41,13 +50,52 @@ CREATE TABLE IF NOT EXISTS cards (
   deleted BOOLEAN NOT NULL
 );
 CREATE INDEX cards_thread_id_idx ON cards(thread_id);
-CREATE INDEX cards_fractional_index_idx ON cards(fractional_index);
 ALTER TABLE cards ENABLE ELECTRIC;
 
 CREATE TABLE IF NOT EXISTS card_ydoc_updates (
   id UUID PRIMARY KEY,
-  card_id UUID REFERENCES cards(id) NOT NULL,
+  card_id UUID REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
   data BYTEA NOT NULL,
+  checkpoint BOOLEAN NOT NULL,
   created_at TIMESTAMPTZ NOT NULL
 );
+CREATE INDEX card_ydoc_updates_card_id_idx ON card_ydoc_updates(card_id);
 ALTER TABLE card_ydoc_updates ENABLE ELECTRIC;
+
+CREATE TABLE IF NOT EXISTS card_checkpoints (
+  id UUID PRIMARY KEY,
+  card_id UUID REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
+  ydoc_id UUID REFERENCES card_ydoc_updates(id) ON DELETE CASCADE NOT NULL,
+  fractional_index TEXT NOT NULL,
+  content TEXT NOT NULL
+);
+CREATE INDEX card_checkpoints_card_id_idx ON card_checkpoints(card_id);
+ALTER TABLE card_checkpoints ENABLE ELECTRIC;
+
+
+CREATE TABLE IF NOT EXISTS thread_card_checkpoints (
+  thread_checkpoint_id UUID REFERENCES thread_checkpoints(id) ON DELETE CASCADE NOT NULL,
+  card_checkpoint_id UUID REFERENCES card_checkpoints(id) ON DELETE CASCADE NOT NULL,
+  PRIMARY KEY (thread_checkpoint_id, card_checkpoint_id)
+);
+CREATE INDEX thread_card_checkpoints_thread_idx ON thread_card_checkpoints(thread_checkpoint_id);
+CREATE INDEX thread_card_checkpoints_card_idx ON thread_card_checkpoints(card_checkpoint_id);
+ALTER TABLE thread_card_checkpoints ENABLE ELECTRIC;
+
+-- this table is not meant to be sync
+-- but declared here because we can utilize electric's notification API
+CREATE TABLE IF NOT EXISTS changed_threads (
+  id UUID PRIMARY KEY,
+  -- if we set FK on this column somehow electric will fail to sync threads table.
+  thread_id UUID,
+  is_orphan BOOLEAN NOT NULL,
+  is_title_duplicated BOOLEAN NOT NULL
+);
+ALTER TABLE changed_threads ENABLE ELECTRIC;
+
+CREATE TABLE IF NOT EXISTS changed_cards (
+  id UUID PRIMARY KEY,
+  card_id UUID,
+  is_orphan BOOLEAN NOT NULL 
+);
+ALTER TABLE changed_cards ENABLE ELECTRIC;
