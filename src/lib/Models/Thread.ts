@@ -17,10 +17,15 @@ export const Thread = {
       if (!ELECTRIC) throw new Error("electric has not initialized yet");
 
       if (thread?.parent_id) {
-        const parent = await ELECTRIC.db.threads.findUnique({
-          where: { id: thread.parent_id },
+        const res = await ELECTRIC.db.rawQuery({
+          sql: sql`
+					SELECT 1 FROM threads 
+					WHERE id = ?
+					LIMIT 1;
+					`,
+          args: [thread.parent_id],
         });
-        if (!parent) throw new Error("parent not found!");
+        if (!res.length) throw new Error("parent not found!");
       }
 
       if (thread?.title) {
