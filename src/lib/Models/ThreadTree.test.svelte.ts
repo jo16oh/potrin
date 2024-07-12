@@ -311,7 +311,6 @@ describe("ThreadTree", () => {
         expect((await e2.db.threads.findMany()).length).toBe(0);
         expect((await e1.db.cards.findMany()).length).toBe(0);
         expect((await e2.db.cards.findMany()).length).toBe(0);
-        await new Promise((resolve) => setTimeout(resolve, 100));
       },
       10000,
     );
