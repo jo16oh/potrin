@@ -1,4 +1,4 @@
-import { test, onTestFinished, afterEach } from "vitest";
+import { test, onTestFinished } from "vitest";
 import Database from "better-sqlite3";
 import type { Database as SQLite } from "better-sqlite3";
 import type { ElectricClient } from "electric-sql/client/model";
@@ -39,19 +39,15 @@ export const testElectricSync = test.extend<TestElectricSync>({
   e1: async ({}, use) => {
     const sqlite = new Database(":memory:");
     const e1 = await createElectric(sqlite);
+    await cleanup(e1);
     await use(e1);
-    afterEach(async () => {
-      await cleanup(e1);
-    });
   },
 
   e2: async ({}, use) => {
     const sqlite = new Database("");
     const e2 = await createElectric(sqlite);
+    await cleanup(e2);
     await use(e2);
-    afterEach(async () => {
-      await cleanup(e2);
-    });
   },
 
   token: token,
@@ -61,19 +57,19 @@ async function createElectric(sqlite: SQLite) {
   sqlite.pragma("journal_mode = WAL");
 
   const electric = await wrappedElectrify(electrify, sqlite, schema, config);
-
-  onTestFinished(async () => {
-    await electric.close();
-  });
-
   return electric;
 }
 
 async function cleanup(e: ElectricClient<typeof schema>) {
-  await e.db["threads"].deleteMany();
-  await e.db["cards"].deleteMany();
-  const threads = await e.db["threads"].sync();
+  await e.connect(token);
   const cards = await e.db["cards"].sync();
+  const threads = await e.db["threads"].sync();
   await threads.synced;
   await cards.synced;
+  await e.db["cards"].deleteMany();
+  await e.db["threads"].deleteMany();
+  await e.db["changed_threads"].deleteMany();
+  onTestFinished(async () => {
+    await e.close();
+  });
 }
