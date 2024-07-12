@@ -7,7 +7,7 @@ import { sql } from "$lib/Utils/utils";
 
 export type Thread = Optional<
   Threads,
-  "deleted" | "created_at" | "updated_at" | "parent_id"
+  "deleted" | "created_at" | "updated_at" | "parent_id" | "fractional_index"
 >;
 
 export const Thread = {
@@ -21,6 +21,18 @@ export const Thread = {
           where: { id: thread.parent_id },
         });
         if (!parent) throw new Error("parent not found!");
+      }
+
+      if (thread?.title) {
+        const res = await ELECTRIC.db.rawQuery({
+          sql: sql`
+					SELECT 1 FROM threads 
+					WHERE title = ? AND (parent_id = ? OR parent_id IS NULL)
+					LIMIT 1;
+					`,
+          args: [thread.title, thread.parent_id || null],
+        });
+        if (res.length) throw new Error("thread title must be unique");
       }
 
       const now = new Date();
@@ -43,9 +55,25 @@ export const Thread = {
     { ELECTRIC },
     async (
       { ELECTRIC },
-      thread: Omit<Thread, "created_at" | "updated_at" | "deleted">,
+      thread: Omit<
+        Thread,
+        "created_at" | "updated_at" | "deleted" | "pot_id" | "author"
+      >,
     ): Promise<Thread> => {
       if (!ELECTRIC) throw new Error("electric has not initialized yet");
+
+      if (thread?.title) {
+        const res = await ELECTRIC.db.rawQuery({
+          sql: sql`
+					SELECT 1 FROM threads 
+					WHERE title = ? AND id <> ? AND (parent_id = ? OR parent_id IS NULL)
+					LIMIT 1;
+					`,
+          args: [thread.title, thread.id, thread.parent_id || null],
+        });
+        if (res.length) throw new Error("thread title must be unique");
+      }
+
       return (await ELECTRIC.db.threads.update({
         where: { id: thread.id },
         data: {

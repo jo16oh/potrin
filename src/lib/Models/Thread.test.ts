@@ -88,7 +88,7 @@ describe("Thread", () => {
     expect(res).rejects.toThrow();
   });
 
-  testElectric("cascade delete", async ({ electric }) => {
+  testElectric("deletePhysical should cascade down", async ({ electric }) => {
     const injectedCreateThread = Thread.create.inject({ ELECTRIC: electric });
     const injectedDeleteThread = Thread.deletePhysical.inject({
       ELECTRIC: electric,
@@ -102,8 +102,7 @@ describe("Thread", () => {
     expect(res.length).toBe(3);
 
     await injectedDeleteThread(thread.id);
-    // await electric.db.threads.delete({ where: { id: thread.id } });
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
     const res2 = await electric.db.threads.findMany();
     expect(res2.length).toBe(0);
@@ -120,18 +119,5 @@ describe("Thread", () => {
       where: { id: thread.id },
     });
     expect(deleted.deleted).toBeTruthy();
-  });
-
-  testElectric("delete physical", async ({ electric }) => {
-    const injectedCreateThread = Thread.create.inject({ ELECTRIC: electric });
-    const injectedDeleteThreadPhysical = Thread.deletePhysical.inject({
-      ELECTRIC: electric,
-    });
-    const thread = await injectedCreateThread();
-    await injectedDeleteThreadPhysical(thread.id);
-    const deleted = await electric.db.threads.findUnique({
-      where: { id: thread.id },
-    });
-    expect(deleted).toBeFalsy();
   });
 });
