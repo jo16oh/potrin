@@ -81,21 +81,3 @@ CREATE TABLE IF NOT EXISTS thread_card_checkpoints (
 CREATE INDEX thread_card_checkpoints_thread_idx ON thread_card_checkpoints(thread_checkpoint_id);
 CREATE INDEX thread_card_checkpoints_card_idx ON thread_card_checkpoints(card_checkpoint_id);
 ALTER TABLE thread_card_checkpoints ENABLE ELECTRIC;
-
--- this table is not meant to be sync
--- but declared here because we can utilize electric's notification API
-CREATE TABLE IF NOT EXISTS changed_threads (
-  id UUID PRIMARY KEY,
-  -- if we set FK on this column somehow electric will fail to sync threads table.
-  thread_id UUID,
-  is_orphan BOOLEAN NOT NULL,
-  is_title_duplicated BOOLEAN NOT NULL
-);
-ALTER TABLE changed_threads ENABLE ELECTRIC;
-
-CREATE TABLE IF NOT EXISTS changed_cards (
-  id UUID PRIMARY KEY,
-  card_id UUID,
-  is_orphan BOOLEAN NOT NULL 
-);
-ALTER TABLE changed_cards ENABLE ELECTRIC;

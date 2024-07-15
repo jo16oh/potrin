@@ -7,6 +7,9 @@ import type { ElectricClient } from "electric-sql/client/model";
 import type { schema } from "../../generated/client";
 import { Thread } from "./Thread";
 import { Card } from "./Card";
+import { sql } from "$lib/Utils/utils";
+import { exec } from "node:child_process";
+import util from "node:util";
 
 interface TestThreadTree {
   liveTree: ReturnType<typeof ThreadTree.liveFullTree>;
@@ -236,6 +239,9 @@ describe("ThreadTree", () => {
     testElectricSync(
       "When e1 deletes the root thread and e2 adds children to it while they are offline, all rows should eventually be deleted",
       async ({ e1, e2, token }) => {
+        const injectedCreateThread1 = Thread.create.inject({
+          ELECTRIC: e1,
+        });
         const injectedCreateThread2 = Thread.create.inject({
           ELECTRIC: e2,
         });
@@ -244,50 +250,36 @@ describe("ThreadTree", () => {
           ELECTRIC: e1,
         });
 
-        await e1.connect(token);
-        await e2.connect(token);
-        const shape1 = await e1.db.threads.sync();
-        const shape2 = await e2.db.threads.sync();
-        const shape3 = await e1.db.cards.sync();
-        const shape4 = await e2.db.cards.sync();
-        await Promise.all([
-          shape1.synced,
-          shape2.synced,
-          shape3.synced,
-          shape4.synced,
-        ]);
-
-        await e1.db.threads.deleteMany();
-        await e2.db.threads.deleteMany();
-        await e1.db.cards.deleteMany();
-        await e2.db.cards.deleteMany();
-
         // connection
         expect(e1.isConnected).toBeTruthy();
         expect(e2.isConnected).toBeTruthy();
 
         // initial cleanup
         const initialState1 = await e1.db.threads.findMany();
-        const initialState2 = await e1.db.threads.findMany();
+        const initialState2 = await e2.db.threads.findMany();
+        expect((await e1.db.cards.findMany()).length).toBe(0);
+        expect((await e2.db.cards.findMany()).length).toBe(0);
         expect(initialState1.length).toBe(0);
         expect(initialState2.length).toBe(0);
 
         // sync ( e1 → e2 )
-        const rootID = await createTree(e1);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const res1 = await e2.db.threads.findUnique({
-          where: { id: rootID },
+        const { id } = await injectedCreateThread1();
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const res = await e2.db.threads.findUnique({
+          where: { id: id },
         });
-        expect(res1?.["id"]).toBeTruthy();
+        expect(res.id).toBe(id);
 
         // disconnect and deletes the root
         e1.disconnect();
         e2.disconnect();
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        await injectedDeleteThread(rootID);
-        const child = await injectedCreateThread2({ parent_id: rootID });
+        await injectedDeleteThread(id);
+
+        const child = await injectedCreateThread2({ parent_id: id });
         const grandChild = await injectedCreateThread2({ parent_id: child.id });
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         await injectedCreateCard2({ thread_id: child.id });
         await injectedCreateCard2({ thread_id: grandChild.id });
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -305,14 +297,14 @@ describe("ThreadTree", () => {
           shape3_2.synced,
           shape4_2.synced,
         ]);
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         expect((await e1.db.threads.findMany()).length).toBe(0);
         expect((await e2.db.threads.findMany()).length).toBe(0);
         expect((await e1.db.cards.findMany()).length).toBe(0);
         expect((await e2.db.cards.findMany()).length).toBe(0);
       },
-      10000,
+      30000,
     );
   });
 

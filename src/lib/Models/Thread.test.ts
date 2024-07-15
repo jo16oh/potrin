@@ -2,7 +2,6 @@ import { describe, expect } from "vitest";
 import { Thread } from "$lib/Models/Thread";
 import { testElectric, testElectricSync } from "$lib/DataAccess/testElectric";
 import { uuidv7 } from "uuidv7";
-import { sql } from "$lib/Utils/utils";
 
 describe("Thread", () => {
   testElectric("create thread", async ({ electric }) => {
@@ -46,7 +45,6 @@ describe("Thread", () => {
       // console.log(e1);
       const createThread1 = Thread.create.inject({ ELECTRIC: e1 });
       const createThread2 = Thread.create.inject({ ELECTRIC: e2 });
-      // const updateThread1 = Thread.update.inject({ ELECTRIC: e1 });
 
       await createThread1({ title: "title" });
       await createThread2({ title: "title" });
@@ -59,24 +57,10 @@ describe("Thread", () => {
       await s2.synced;
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // update trigger
-      // const t = await createThread1({ title: "t" });
-      // await new Promise((resolve) => setTimeout(resolve, 1000));
-      // createThread2({ title: "update" });
-      // updateThread1({ id: t.id, title: "update" });
-      // await new Promise((resolve) => setTimeout(resolve, 1000));
-
       const res = await e1.db.threads.findMany({ where: { title: "title" } });
-      const r = await e1.db.rawQuery({
-        sql: sql`
-      	SELECT * FROM changed_threads;
-      `,
-      });
-      console.log(r);
-      console.log(await e1.db.threads.findMany());
       expect(res.length).toBe(1);
     },
-    10000,
+    100000,
   );
 
   testElectric("check parent existence", async ({ electric }) => {

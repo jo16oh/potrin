@@ -21,6 +21,7 @@ type CardInput = Omit<
   | "ydoc_id"
   | "author"
   | "pot_id"
+  | "last_materialized"
 > & { thread_id: string };
 
 export const Card = {
