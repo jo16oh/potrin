@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS cards (
   thread_id UUID NOT NULL,
   fractional_index TEXT NOT NULL,
   content TEXT NOT NULL,
-  last_materialized TEXT NOT NULL,
+  last_materialized_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL,
   deleted BOOLEAN NOT NULL
