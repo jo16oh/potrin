@@ -21,7 +21,7 @@ type CardInput = Omit<
   | "ydoc_id"
   | "author"
   | "pot_id"
-  | "last_materialized_hash"
+  | "last_materialized"
 > & { thread_id: string };
 
 export const Card = {
@@ -43,6 +43,7 @@ export const Card = {
           thread_id: card.thread_id,
           fractional_index: card?.fractional_index || "a0",
           content: card.content || "",
+          last_materialized: "",
           created_at: now,
           updated_at: now,
           deleted: false,
