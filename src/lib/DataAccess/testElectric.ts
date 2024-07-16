@@ -4,7 +4,7 @@ import type { Database as SQLite } from "better-sqlite3";
 import type { ElectricClient } from "electric-sql/client/model";
 import { electrify } from "electric-sql/node";
 import { schema } from "../../generated/client";
-import { wrappedElectrify } from "$lib/DataAccess/electric";
+import { createElectric } from "$lib/DataAccess/electric";
 import { sql } from "$lib/Utils/utils";
 import * as fs from "node:fs";
 
@@ -22,8 +22,8 @@ export interface TestElectric {
 
 export const testElectric = test.extend<TestElectric>({
   electric: async ({}, use) => {
-    const sqlite = new Database(":memory:");
-    const electric = await createElectric(sqlite);
+    const sqlite = initSQLite(":memory:");
+    const electric = await createElectric(electrify, sqlite, schema, config);
     onTestFinished(async () => {
       await electric.close();
       sqlite.close();
@@ -42,8 +42,8 @@ export const testElectricSync = test.extend<TestElectricSync>({
   e1: async ({}, use) => {
     const path = "e1.db";
     removeFile(path);
-    const sqlite = new Database(path);
-    const e1 = await createElectric(sqlite);
+    const sqlite = initSQLite(path);
+    const e1 = await createElectric(electrify, sqlite, schema, config);
     await cleanup(e1, sqlite, path);
     await use(e1);
   },
@@ -51,8 +51,8 @@ export const testElectricSync = test.extend<TestElectricSync>({
   e2: async ({}, use) => {
     const path = "e2.db";
     removeFile(path);
-    const sqlite = new Database(path);
-    const e2 = await createElectric(sqlite);
+    const sqlite = initSQLite(path);
+    const e2 = await createElectric(electrify, sqlite, schema, config);
     await cleanup(e2, sqlite, path);
     await use(e2);
   },
@@ -60,11 +60,10 @@ export const testElectricSync = test.extend<TestElectricSync>({
   token: token,
 });
 
-async function createElectric(sqlite: SQLite) {
+function initSQLite(path: string): SQLite {
+  const sqlite = new Database(path);
   sqlite.pragma("journal_mode = WAL");
-
-  const electric = await wrappedElectrify(electrify, sqlite, schema, config);
-  return electric;
+  return sqlite;
 }
 
 async function cleanup(
