@@ -138,4 +138,4 @@ export const Thread = {
       },
     );
   }),
-};
+} as const;

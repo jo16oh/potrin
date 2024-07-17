@@ -42,7 +42,7 @@ export const TableReconciler = {
         break;
     }
   },
-};
+} as const;
 
 async function createLogTableAndTrigger(electric: ElectricClient<Schema>) {
   await electric.adapter.runInTransaction(
