@@ -40,20 +40,20 @@ export interface TestElectricSync {
 
 export const testElectricSync = test.extend<TestElectricSync>({
   e1: async ({}, use) => {
-    const path = "e1.db";
-    removeFile(path);
-    const sqlite = initSQLite(path);
+    const dbName = "e1";
+    removeFile(dbName);
+    const sqlite = initSQLite(dbName + ".db");
     const e1 = await createElectric(electrify, sqlite, schema, config);
-    await cleanup(e1, sqlite, path);
+    await cleanup(e1, sqlite, dbName);
     await use(e1);
   },
 
   e2: async ({}, use) => {
-    const path = "e2.db";
-    removeFile(path);
-    const sqlite = initSQLite(path);
+    const dbName = "e2";
+    removeFile(dbName);
+    const sqlite = initSQLite(dbName + ".db");
     const e2 = await createElectric(electrify, sqlite, schema, config);
-    await cleanup(e2, sqlite, path);
+    await cleanup(e2, sqlite, dbName);
     await use(e2);
   },
 
@@ -98,10 +98,20 @@ async function cleanup(
   });
 }
 
-function removeFile(path: string) {
-  fs.access(path, fs.constants.F_OK, (err) => {
+function removeFile(dbName: string) {
+  fs.access(dbName + ".db", fs.constants.F_OK, (err) => {
     if (!err) {
-      fs.unlinkSync(path);
+      fs.unlinkSync(dbName + ".db");
+    }
+  });
+  fs.access(dbName + ".db-shm", fs.constants.F_OK, (err) => {
+    if (!err) {
+      fs.unlinkSync(dbName + ".db-shm");
+    }
+  });
+  fs.access(dbName + ".db-wal", fs.constants.F_OK, (err) => {
+    if (!err) {
+      fs.unlinkSync(dbName + ".db-wal");
     }
   });
 }
