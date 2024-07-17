@@ -133,7 +133,7 @@ describe("ThreadTree", () => {
           data: {
             id: uuidv7(),
             content: "title",
-            last_materialized: "",
+            last_materialized_hash: "",
             thread_id: liveTree.state.id,
             deleted: false,
             created_at: new Date(),
@@ -470,7 +470,7 @@ async function createCard(
       {
         id: thread_id,
         content: "1",
-        last_materialized: "",
+        last_materialized_hash: "",
         thread_id: thread_id,
         fractional_index: first,
         deleted: false,
@@ -480,7 +480,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "2",
-        last_materialized: "",
+        last_materialized_hash: "",
         thread_id: thread_id,
         fractional_index: second,
         deleted: false,
@@ -490,7 +490,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "3",
-        last_materialized: "",
+        last_materialized_hash: "",
         thread_id: thread_id,
         fractional_index: third,
         deleted: false,
@@ -500,7 +500,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "4",
-        last_materialized: "",
+        last_materialized_hash: "",
         thread_id: thread_id,
         fractional_index: fourth,
         deleted: false,
@@ -510,7 +510,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "5",
-        last_materialized: "",
+        last_materialized_hash: "",
         thread_id: thread_id,
         fractional_index: fifth,
         deleted: false,
@@ -520,7 +520,7 @@ async function createCard(
       {
         id: uuidv7(),
         content: "deleted",
-        last_materialized: "",
+        last_materialized_hash: "",
         thread_id: thread_id,
         fractional_index: "",
         deleted: true,

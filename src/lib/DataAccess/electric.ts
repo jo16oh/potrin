@@ -4,6 +4,7 @@ import { schema } from "../../generated/client";
 import type { ElectricConfig, ElectrifyOptions } from "electric-sql";
 import Database from "@tauri-apps/plugin-sql";
 import { TableReconciler } from "./TableReconciler";
+import { YDocMatelializer } from "./YDocMaterializer";
 
 type Schema = typeof schema;
 
@@ -36,5 +37,6 @@ export const createElectric = async <T>(
 ): Promise<ElectricClient<Schema>> => {
   const electric = await electrify(db, schema, config);
   await TableReconciler.init(electric);
+  await YDocMatelializer.init(electric);
   return electric;
 };
