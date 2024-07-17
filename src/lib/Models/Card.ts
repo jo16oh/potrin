@@ -4,6 +4,8 @@ import type { Cards } from "../../generated/client";
 import type { Optional } from "utility-types";
 import { depend } from "velona";
 import type { ThreadTree } from "./ThreadTree.svelte";
+import * as Y from "yjs";
+import { sql } from "$lib/Utils/utils";
 
 export type Card = Optional<
   Cards,
@@ -83,4 +85,54 @@ export const Card = {
       where: { id: id },
     });
   }),
-};
+
+  getElectricYDoc: depend(
+    { ELECTRIC },
+    async ({ ELECTRIC }, cardId: string): Promise<Y.Doc> => {
+      if (!ELECTRIC) throw new Error("electric has not initialized yet");
+      const ydoc = new Y.Doc();
+      const ydocUpdates = (
+        await ELECTRIC.db.card_ydoc_updates.findMany({
+          where: { card_id: cardId },
+        })
+      ).map((c) => c["data"]);
+
+      ydocUpdates.forEach((update) => {
+        Y.applyUpdateV2(ydoc, update);
+      });
+
+      ydoc.on("updateV2", (update) => {
+        ELECTRIC.db.card_ydoc_updates.create({
+          data: {
+            id: uuidv7(),
+            card_id: cardId,
+            data: update,
+            checkpoint: false,
+            created_at: new Date(),
+          },
+        });
+      });
+
+      return ydoc;
+    },
+  ),
+
+  checkpoint: depend({ ELECTRIC }, async ({ ELECTRIC }, cardId: string) => {
+    if (!ELECTRIC) throw new Error("electric has not initialized yet");
+
+    await ELECTRIC.adapter.run({
+      sql: sql`
+				UPDATE card_ydoc_updates 
+				SET checkpoint = 1
+				WHERE id = (
+					SELECT id 
+					FROM card_ydoc_updates
+					WHERE card_id = ?
+					ORDER BY created_at DESC
+					LIMIT 1
+				);
+			`,
+      args: [cardId],
+    });
+  }),
+} as const;

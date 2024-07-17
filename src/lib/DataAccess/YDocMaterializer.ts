@@ -3,6 +3,7 @@ import type { schema } from "../../generated/client";
 import { sql } from "$lib/Utils/utils";
 import { murmurHash } from "ohash";
 import * as Y from "yjs";
+import { uuidv7 } from "uuidv7";
 
 export const YDocMatelializer = {
   async init(electric: ElectricClient<typeof schema>) {
@@ -65,7 +66,7 @@ export const YDocMatelializer = {
       Y.applyUpdateV2(ydoc, update["data"]);
     });
 
-    const content = ydoc.getXmlFragment().toString();
+    const content = ydoc.getXmlFragment("prosemirror").toString();
 
     await electric.db.cards.update({
       where: { id: card.id },
@@ -76,4 +77,91 @@ export const YDocMatelializer = {
       },
     });
   },
-};
+
+  async mergeCardUpdates(
+    cardId: string,
+    mergeTargetLength: number,
+    electric: ElectricClient<typeof schema>,
+  ) {
+    const checkpoints = await electric.db.card_ydoc_updates.findMany({
+      where: { card_id: cardId, checkpoint: true },
+      orderBy: { created_at: "asc" },
+    });
+
+    let mergedUpdatesLengh: number = 0;
+
+    for (const c of checkpoints) {
+      if (mergedUpdatesLengh >= mergeTargetLength) return;
+
+      const mergeTargets = await electric.db.card_ydoc_updates.findMany({
+        where: {
+          card_id: cardId,
+          checkpoint: false,
+          created_at: { lte: c["created_at"] },
+        },
+        take: mergeTargetLength - mergedUpdatesLengh,
+        orderBy: { created_at: "asc" },
+      });
+      if (!mergeTargets.length) return;
+
+      const mergedUpdate = Y.mergeUpdatesV2([
+        c["data"],
+        ...mergeTargets.map((i) => i["data"]),
+      ]);
+
+      await electric.adapter.runInTransaction(
+        {
+          sql: sql`
+						DELETE 
+						FROM card_ydoc_updates 
+						WHERE id IN (${mergeTargets.map(() => "?").join(", ")});
+					`,
+          args: mergeTargets.map((c) => c["id"]),
+        },
+        {
+          sql: sql`
+						UPDATE card_ydoc_updates
+						SET data = ?
+						WHERE id = ?;
+					`,
+          args: [mergedUpdate, c["id"]],
+        },
+      );
+
+      mergedUpdatesLengh = mergedUpdatesLengh + mergeTargets.length;
+    }
+
+    if (mergedUpdatesLengh >= mergeTargetLength) return;
+
+    const mergeTargets = await electric.db.card_ydoc_updates.findMany({
+      where: {
+        card_id: cardId,
+        checkpoint: false,
+      },
+      take: mergeTargetLength - mergedUpdatesLengh,
+      orderBy: { created_at: "asc" },
+    });
+    if (!mergeTargets.length) return;
+
+    const mergedUpdate = Y.mergeUpdatesV2(mergeTargets.map((i) => i["data"]));
+
+    await electric.adapter.runInTransaction(
+      {
+        sql: sql`
+					DELETE 
+					FROM card_ydoc_updates 
+					WHERE id IN (${mergeTargets.map(() => "?").join(", ")});
+				`,
+        args: mergeTargets.map((c) => c["id"]),
+      },
+      {
+        sql: sql`
+					INSERT
+					INTO card_ydoc_updates (id, card_id, data, checkpoint, created_at)
+					VALUES (?, ?, ?, ?, ?)
+				`,
+        args: [uuidv7(), cardId, mergedUpdate, 0, new Date().toString()],
+      },
+    );
+  },
+} as const;

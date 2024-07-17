@@ -14,8 +14,6 @@ testElectric("YDocMaterializer", async ({ electric }) => {
   const ydoc = new Y.Doc();
 
   ydoc.on("updateV2", (update) => {
-		// @ts-expect-error to avoid error in test
-		if (typeof process !== "undefined" && !electric.adapter.db.open) return;
     electric.db.card_ydoc_updates.create({
       data: {
         id: uuidv7(),
@@ -27,7 +25,7 @@ testElectric("YDocMaterializer", async ({ electric }) => {
     });
   });
 
-  const xml = ydoc.getXmlFragment();
+  const xml = ydoc.getXmlFragment('prosemirror');
   const element = new Y.XmlElement("div");
   element.insert(0, [new Y.XmlText("content")]);
   xml.insert(0, [element]);
