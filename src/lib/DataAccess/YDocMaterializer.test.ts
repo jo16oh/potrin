@@ -14,6 +14,8 @@ testElectric("YDocMaterializer", async ({ electric }) => {
   const ydoc = new Y.Doc();
 
   ydoc.on("updateV2", (update) => {
+		// @ts-expect-error to avoid error in test
+		if (typeof process !== "undefined" && !electric.adapter.db.open) return;
     electric.db.card_ydoc_updates.create({
       data: {
         id: uuidv7(),
