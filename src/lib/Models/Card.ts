@@ -2,8 +2,8 @@ import { ELECTRIC } from "$lib/DataAccess/electric";
 import { uuidv7 } from "uuidv7";
 import type { Cards } from "../../generated/client";
 import type { Optional } from "utility-types";
-import { depend } from "velona";
 import type { ThreadTree } from "./ThreadTree.svelte";
+import { depend } from "velona";
 
 export type Card = Optional<
   Cards,
@@ -14,7 +14,14 @@ export type Card = Optional<
 
 type CardInput = Omit<
   Optional<Card, "id" | "fractional_index" | "content">,
-  "thread_id" | "created_at" | "updated_at" | "deleted"
+  | "thread_id"
+  | "created_at"
+  | "updated_at"
+  | "deleted"
+  | "ydoc_id"
+  | "author"
+  | "pot_id"
+  | "last_materialized_hash"
 > & { thread_id: string };
 
 export const Card = {
@@ -36,6 +43,7 @@ export const Card = {
           thread_id: card.thread_id,
           fractional_index: card?.fractional_index || "a0",
           content: card.content || "",
+          last_materialized_hash: "",
           created_at: now,
           updated_at: now,
           deleted: false,
@@ -75,4 +83,4 @@ export const Card = {
       where: { id: id },
     });
   }),
-};
+} as const;

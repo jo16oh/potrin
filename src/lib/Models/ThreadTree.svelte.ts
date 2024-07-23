@@ -50,7 +50,7 @@ export const ThreadTree = {
     if (!ELECTRIC) throw new Error("electric has not initialized yet");
     return getLiveTree(ELECTRIC, id, getNode);
   }),
-};
+} as const;
 
 function getLiveTree(
   electric: ElectricClient<typeof schema>,

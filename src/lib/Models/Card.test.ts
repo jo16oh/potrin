@@ -2,8 +2,9 @@ import { describe, expect } from "vitest";
 import { Card } from "$lib/Models/Card";
 import { testElectric } from "$lib/DataAccess/testElectric";
 import { Thread } from "./Thread";
+import { uuidv7 } from "uuidv7";
 
-describe("card", async () => {
+describe("card", () => {
   testElectric("create card", async ({ electric }) => {
     const injectedCreateThread = Thread.create.inject({ ELECTRIC: electric });
     const injectedCreateCard = Card.create.inject({ ELECTRIC: electric });
@@ -57,7 +58,8 @@ describe("card", async () => {
     expect(deleted).toBeFalsy();
   });
 
-  testElectric("fails if the thread doesn't exists", async () => {
-    expect(Card.create({ thread_id: crypto.randomUUID() })).rejects.toThrow();
+  testElectric("fails if the thread doesn't exists", async ({ electric }) => {
+    const injectedCreateCard = Card.create.inject({ ELECTRIC: electric });
+    expect(injectedCreateCard({ thread_id: uuidv7() })).rejects.toThrow();
   });
 });
