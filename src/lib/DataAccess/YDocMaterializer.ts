@@ -3,10 +3,23 @@ import type { schema } from "../../generated/client";
 import { sql } from "$lib/Utils/utils";
 import { murmurHash } from "ohash";
 import * as Y from "yjs";
-import { uuidv7 } from "uuidv7";
+
+type Options = {
+  maxUpdateLength: number;
+  mergeTargetLength: number;
+};
 
 export const YDocMatelializer = {
-  async init(electric: ElectricClient<typeof schema>) {
+  async init(
+    electric: ElectricClient<typeof schema>,
+    options: Options = {
+      maxUpdateLength: 1000,
+      mergeTargetLength: 100,
+    },
+  ) {
+    if (options.maxUpdateLength - options.mergeTargetLength <= 0)
+      throw new Error("mergeTargetLength must be less then maxUpdateLength");
+
     electric.notifier.subscribeToDataChanges((notification) => {
       // @ts-expect-error to avoid error in test
       if (typeof process !== "undefined" && !electric.adapter.db.open) return;
@@ -37,7 +50,12 @@ export const YDocMatelializer = {
         })) as Array<{ id: string; last_materialized_hash: string }>;
 
         cards.forEach((c) => {
-          this.materializeCard(c, electric);
+          this.materializeCard(
+            c,
+            options.maxUpdateLength,
+            options.mergeTargetLength,
+            electric,
+          );
         });
       });
     });
@@ -45,11 +63,16 @@ export const YDocMatelializer = {
 
   async materializeCard(
     card: { id: string; last_materialized_hash: string },
+    maxUpdateLength: number,
+    mergeTargetLength: number,
     electric: ElectricClient<typeof schema>,
   ) {
     const ydocUpdates = await electric.db.card_ydoc_updates.findMany({
       where: { card_id: card.id },
     });
+
+    if (ydocUpdates.length >= maxUpdateLength)
+      await this.mergeCardUpdates(card.id, mergeTargetLength, electric);
 
     const hash = murmurHash(
       ydocUpdates
@@ -133,17 +156,22 @@ export const YDocMatelializer = {
 
     if (mergedUpdatesLengh >= mergeTargetLength) return;
 
-    const mergeTargets = await electric.db.card_ydoc_updates.findMany({
+    const mergeTargets = (await electric.db.card_ydoc_updates.findMany({
+      select: {
+        id: true,
+        data: true,
+      },
       where: {
         card_id: cardId,
         checkpoint: false,
       },
       take: mergeTargetLength - mergedUpdatesLengh,
       orderBy: { created_at: "asc" },
-    });
-    if (!mergeTargets.length) return;
+    })) as { id: string; data: Uint8Array }[];
 
     const mergedUpdate = Y.mergeUpdatesV2(mergeTargets.map((i) => i["data"]));
+    const lastMergeTarget = mergeTargets.pop();
+    if (!lastMergeTarget) return;
 
     await electric.adapter.runInTransaction(
       {
@@ -156,11 +184,11 @@ export const YDocMatelializer = {
       },
       {
         sql: sql`
-					INSERT
-					INTO card_ydoc_updates (id, card_id, data, checkpoint, created_at)
-					VALUES (?, ?, ?, ?, ?)
+					UPDATE card_ydoc_updates
+					SET data = ?
+					WHERE id = ?;
 				`,
-        args: [uuidv7(), cardId, mergedUpdate, 0, new Date().toString()],
+        args: [mergedUpdate, lastMergeTarget.id],
       },
     );
   },
