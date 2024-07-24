@@ -17,6 +17,7 @@
     const res = await invoke("search", {
       input: "content",
       levenshteinDistance: 0,
+      limit: 100,
     });
     console.log("resolved", res);
   }

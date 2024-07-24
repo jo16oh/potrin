@@ -115,12 +115,17 @@ pub fn index(json: &str) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn search(input: &str, levenshtein_distance: u8) -> Result<SearchResults, String> {
+pub fn search(
+    input: &str,
+    levenshtein_distance: u8,
+    limit: usize,
+) -> Result<SearchResults, String> {
     let thread_ids: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
     let card_ids: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
     let input = input.to_string();
 
     let input_clone = input.clone();
+    let limit_clone = limit.clone();
     let card_ids_clone = Arc::clone(&card_ids);
     let handle_card = thread::spawn(move || {
         let mut ids = card_ids_clone.lock().unwrap();
@@ -134,7 +139,7 @@ pub fn search(input: &str, levenshtein_distance: u8) -> Result<SearchResults, St
             .unwrap();
 
         let top_docs = searcher
-            .search(&query, &TopDocs::with_limit(10))
+            .search(&query, &TopDocs::with_limit(limit_clone))
             .map_err(|e| e.to_string())
             .unwrap();
 
@@ -167,7 +172,7 @@ pub fn search(input: &str, levenshtein_distance: u8) -> Result<SearchResults, St
             .unwrap();
 
         let thread_top_docs = searcher
-            .search(&thread_query, &TopDocs::with_limit(10))
+            .search(&thread_query, &TopDocs::with_limit(limit))
             .map_err(|e| e.to_string())
             .unwrap();
 
@@ -213,7 +218,7 @@ mod tests {
         let _ = index(json);
         let __ = index(json);
 
-        let res = search("cantnt", 2).unwrap();
+        let res = search("cantnt", 2, 100).unwrap();
 
         assert_eq!(res.cards, vec!["id"]);
     }
