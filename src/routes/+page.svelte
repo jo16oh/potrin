@@ -7,6 +7,18 @@
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     greetMsg = await invoke("greet", { name });
+    await testTantivy();
+  }
+
+  async function testTantivy() {
+    await invoke("index", {
+      json: `{"cards": [{"id": "id", "content": "content"}], "threads": [{"id": "id", "title": "title"}]}`,
+    });
+    const res = await invoke("search", {
+      input: "content",
+      levenshteinDistance: 0,
+    });
+    console.log("resolved", res);
   }
 </script>
 
