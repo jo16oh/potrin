@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::thread::JoinHandle;
 use std::{fs, thread};
 use tantivy::collector::TopDocs;
@@ -62,7 +62,7 @@ fn get_once_lock<T>(lock: &OnceLock<T>) -> anyhow::Result<&T> {
     Ok(result)
 }
 
-fn join_handle_and_convert_error<T>(handle: JoinHandle<anyhow::Result<T>>) -> anyhow::Result<T> {
+fn join_handle<T>(handle: JoinHandle<anyhow::Result<T>>) -> anyhow::Result<T> {
     handle.join().map_err(|e| {
         if let Some(string) = e.downcast_ref::<String>() {
             anyhow!("Thread panicked: {}", string)
@@ -72,6 +72,10 @@ fn join_handle_and_convert_error<T>(handle: JoinHandle<anyhow::Result<T>>) -> an
             anyhow!("Thread panicked with unknown error")
         }
     })?
+}
+
+fn lock_arc_mutex<T>(mutex: &Arc<Mutex<T>>) -> anyhow::Result<MutexGuard<'_, T>> {
+    mutex.lock().map_err(|e| anyhow!(e.to_string()))
 }
 
 #[tauri::command]
@@ -181,8 +185,8 @@ pub fn index(json: &str) -> anyhow::Result<()> {
         Ok(())
     });
 
-    join_handle_and_convert_error(handle_thread)?;
-    join_handle_and_convert_error(handle_card)?;
+    join_handle(handle_thread)?;
+    join_handle(handle_card)?;
 
     Ok(())
 }
@@ -202,7 +206,7 @@ pub fn search(
     let limit_clone = limit.clone();
     let card_ids_clone = Arc::clone(&card_ids);
     let handle_card = thread::spawn(move || -> anyhow::Result<()> {
-        let mut ids = card_ids_clone.lock().map_err(|e| anyhow!(e.to_string()))?;
+        let mut ids = lock_arc_mutex(&card_ids_clone)?;
         let index = get_once_lock(&CARDS_INDEX)?;
         let searcher = get_once_lock(&CARDS_READER)?.searcher();
         let id_field = get_once_lock(&CARDS_ID_FIELD)?;
@@ -230,9 +234,7 @@ pub fn search(
 
     let thread_ids_clone = Arc::clone(&thread_ids);
     let handle_thread = thread::spawn(move || -> anyhow::Result<()> {
-        let mut ids = thread_ids_clone
-            .lock()
-            .map_err(|e| anyhow!(e.to_string()))?;
+        let mut ids = lock_arc_mutex(&thread_ids_clone)?;
         let index = get_once_lock(&THREADS_INDEX)?;
         let searcher = get_once_lock(&THREADS_READER)?.searcher();
         let id_field = get_once_lock(&THREADS_ID_FIELD)?;
@@ -258,17 +260,11 @@ pub fn search(
         Ok(())
     });
 
-    join_handle_and_convert_error(handle_card)?;
-    join_handle_and_convert_error(handle_thread)?;
+    join_handle(handle_card)?;
+    join_handle(handle_thread)?;
 
-    let thread_ids: Vec<String> = thread_ids
-        .lock()
-        .map_err(|e| anyhow!(e.to_string()))?
-        .to_vec();
-    let card_ids: Vec<String> = card_ids
-        .lock()
-        .map_err(|e| anyhow!(e.to_string()))?
-        .to_vec();
+    let thread_ids: Vec<String> = lock_arc_mutex(&thread_ids)?.to_vec();
+    let card_ids: Vec<String> = lock_arc_mutex(&card_ids)?.to_vec();
 
     Ok(SearchResults {
         threads: thread_ids,
