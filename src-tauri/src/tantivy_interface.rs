@@ -189,7 +189,11 @@ pub fn index(json: &str) -> anyhow::Result<()> {
 
 #[tauri::command]
 #[macros::anyhow_to_string]
-pub fn search(input: &str, levenshtein_distance: u8, limit: usize) -> anyhow::Result<SearchResults> {
+pub fn search(
+    input: &str,
+    levenshtein_distance: u8,
+    limit: usize,
+) -> anyhow::Result<SearchResults> {
     let thread_ids: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
     let card_ids: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
     let input = input.to_string();
@@ -257,8 +261,14 @@ pub fn search(input: &str, levenshtein_distance: u8, limit: usize) -> anyhow::Re
     join_handle_and_convert_error(handle_card)?;
     join_handle_and_convert_error(handle_thread)?;
 
-    let thread_ids: Vec<String> = thread_ids.lock().unwrap().to_vec();
-    let card_ids: Vec<String> = card_ids.lock().unwrap().to_vec();
+    let thread_ids: Vec<String> = thread_ids
+        .lock()
+        .map_err(|e| anyhow!(e.to_string()))?
+        .to_vec();
+    let card_ids: Vec<String> = card_ids
+        .lock()
+        .map_err(|e| anyhow!(e.to_string()))?
+        .to_vec();
 
     Ok(SearchResults {
         threads: thread_ids,
