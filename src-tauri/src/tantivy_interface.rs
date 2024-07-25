@@ -192,7 +192,7 @@ pub fn search(
         let searcher = THREADS_READER.get().unwrap().searcher();
         let id_field = THREADS_ID_FIELD.get().unwrap();
         let title_field = THREADS_TITLE_FIELD.get().unwrap();
-        let mut query_parser = QueryParser::for_index(&index, vec![*id_field]);
+        let mut query_parser = QueryParser::for_index(&index, vec![*title_field]);
         query_parser.set_field_fuzzy(*title_field, true, levenshtein_distance, true);
         query_parser.set_conjunction_by_default();
         let thread_query = query_parser
@@ -253,5 +253,7 @@ mod tests {
 
         let res = search("cantnt", 2, 100).unwrap();
         assert_eq!(res.cards, vec!["id"]);
+        let res = search("title", 2, 100).unwrap();
+        assert_eq!(res.threads, vec!["id"]);
     }
 }
