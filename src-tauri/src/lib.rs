@@ -11,7 +11,7 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             let app_handle = app.handle();
-            tantivy_interface::init(&app_handle);
+            tantivy_interface::init(&app_handle).unwrap();
             Ok(())
         })
         .plugin(tauri_plugin_shell::init())

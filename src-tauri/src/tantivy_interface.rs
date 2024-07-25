@@ -47,9 +47,9 @@ static CARDS_WRITER: OnceLock<Mutex<IndexWriter>> = OnceLock::new();
 static CARDS_ID_FIELD: OnceLock<Field> = OnceLock::new();
 static CARDS_CONTENT_FIELD: OnceLock<Field> = OnceLock::new();
 
-pub fn init(app_handle: &AppHandle) {
+pub fn init(app_handle: &AppHandle) -> Result<(), String> {
     if let Some(_) = INITIALIZED.get() {
-        return;
+        return Ok(());
     }
 
     let app_dir = app_handle.path().app_data_dir().unwrap();
@@ -115,6 +115,8 @@ pub fn init(app_handle: &AppHandle) {
     CARDS_CONTENT_FIELD.set(content_field).unwrap();
 
     INITIALIZED.set(()).unwrap();
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -161,8 +163,10 @@ pub fn index(json: &str) -> Result<(), String> {
         threads_writer.commit().unwrap();
     });
 
-    handle_card.join().unwrap();
-    handle_thread.join().unwrap();
+    handle_card.join().map_err(|_| "failed to index cards")?;
+    handle_thread
+        .join()
+        .map_err(|_| "failed to index threads")?;
 
     Ok(())
 }
@@ -251,8 +255,10 @@ pub fn search(
         }
     });
 
-    handle_card.join().unwrap();
-    handle_thread.join().unwrap();
+    handle_card.join().map_err(|_| "faild to search cards")?;
+    handle_thread
+        .join()
+        .map_err(|_| "failed to search threads")?;
 
     let thread_ids: Vec<String> = thread_ids.lock().unwrap().to_vec();
     let card_ids: Vec<String> = card_ids.lock().unwrap().to_vec();
