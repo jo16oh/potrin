@@ -98,41 +98,50 @@ pub fn init() {
 
 #[tauri::command]
 pub fn index(json: &str) -> Result<(), String> {
-    let mut cards_writer = CARDS_WRITER.get().unwrap().lock().unwrap();
-    let mut threads_writer = THREADS_WRITER.get().unwrap().lock().unwrap();
-    let cards_id_field = CARDS_ID_FIELD.get().unwrap();
-    let cards_content_field = CARDS_CONTENT_FIELD.get().unwrap();
-    let threads_id_field = THREADS_ID_FIELD.get().unwrap();
-    let threads_title_field = THREADS_TITLE_FIELD.get().unwrap();
-
     let index_targets: IndexTargets = serde_json::from_str(json).map_err(|e| e.to_string())?;
 
-    for card in index_targets.cards {
-        let term = Term::from_field_text(*cards_id_field, &card.id);
-        cards_writer.delete_term(term);
+    let handle_card = thread::spawn(|| {
+        let mut cards_writer = CARDS_WRITER.get().unwrap().lock().unwrap();
+        let cards_id_field = CARDS_ID_FIELD.get().unwrap();
+        let cards_content_field = CARDS_CONTENT_FIELD.get().unwrap();
 
-        cards_writer
-            .add_document(doc!(
-                *cards_id_field => card.id,
-                *cards_content_field => card.content
-            ))
-            .map_err(|e| e.to_string())?;
-    }
+        for card in index_targets.cards {
+            let term = Term::from_field_text(*cards_id_field, &card.id);
+            cards_writer.delete_term(term);
 
-    for thread in index_targets.threads {
-        let term = Term::from_field_text(*threads_id_field, &thread.id);
-        threads_writer.delete_term(term);
+            cards_writer
+                .add_document(doc!(
+                    *cards_id_field => card.id,
+                    *cards_content_field => card.content
+                ))
+                .unwrap();
+        }
 
-        threads_writer
-            .add_document(doc!(
-                *threads_id_field => thread.id,
-                *threads_title_field => thread.title
-            ))
-            .map_err(|e| e.to_string())?;
-    }
+        cards_writer.commit().unwrap();
+    });
 
-    threads_writer.commit().map_err(|e| e.to_string())?;
-    cards_writer.commit().map_err(|e| e.to_string())?;
+    let handle_thread = thread::spawn(|| {
+        let mut threads_writer = THREADS_WRITER.get().unwrap().lock().unwrap();
+        let threads_id_field = THREADS_ID_FIELD.get().unwrap();
+        let threads_title_field = THREADS_TITLE_FIELD.get().unwrap();
+
+        for thread in index_targets.threads {
+            let term = Term::from_field_text(*threads_id_field, &thread.id);
+            threads_writer.delete_term(term);
+
+            threads_writer
+                .add_document(doc!(
+                    *threads_id_field => thread.id,
+                    *threads_title_field => thread.title
+                ))
+                .unwrap();
+        }
+
+        threads_writer.commit().unwrap();
+    });
+
+    handle_card.join().unwrap();
+    handle_thread.join().unwrap();
 
     Ok(())
 }
