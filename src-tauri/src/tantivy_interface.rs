@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
-use std::thread;
+use std::{fs, thread};
 use tantivy::collector::TopDocs;
+use tantivy::directory::{ManagedDirectory, MmapDirectory};
 use tantivy::query::QueryParser;
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
+use tauri::{AppHandle, Manager};
 
 #[derive(Serialize, Deserialize)]
 struct Thread {
@@ -44,10 +47,28 @@ static CARDS_WRITER: OnceLock<Mutex<IndexWriter>> = OnceLock::new();
 static CARDS_ID_FIELD: OnceLock<Field> = OnceLock::new();
 static CARDS_CONTENT_FIELD: OnceLock<Field> = OnceLock::new();
 
-pub fn init() {
+pub fn init(app_handle: &AppHandle) {
     if let Some(_) = INITIALIZED.get() {
         return;
     }
+
+    let app_dir = app_handle.path().app_data_dir().unwrap();
+    let card_path = Path::join(&app_dir, "tantivy/cards");
+    let thread_path = Path::join(&app_dir, "tantivy/threads");
+    println!("{}", card_path.to_string_lossy().to_string());
+
+    if !card_path.exists() {
+        fs::create_dir_all(card_path.clone()).unwrap();
+    }
+
+    if !thread_path.exists() {
+        fs::create_dir_all(thread_path.clone()).unwrap();
+    }
+
+    let card_dir =
+        ManagedDirectory::wrap(Box::new(MmapDirectory::open(card_path).unwrap())).unwrap();
+    let thread_dir =
+        ManagedDirectory::wrap(Box::new(MmapDirectory::open(thread_path).unwrap())).unwrap();
 
     let mut schema_builder = Schema::builder();
     schema_builder.add_text_field("id", STRING | STORED);
@@ -55,7 +76,7 @@ pub fn init() {
     let schema = schema_builder.build();
     let id_field = schema.get_field("id").unwrap();
     let title_field = schema.get_field("title").unwrap();
-    let index = Index::create_in_ram(schema);
+    let index = Index::open_or_create(thread_dir, schema).unwrap();
     let reader = index.reader().map_err(|e| e.to_string()).unwrap();
     let writer = index.writer(100_000_000).unwrap();
 
@@ -77,7 +98,7 @@ pub fn init() {
     let schema = schema_builder.build();
     let id_field = schema.get_field("id").unwrap();
     let content_field = schema.get_field("content").unwrap();
-    let index = Index::create_in_ram(schema);
+    let index = Index::open_or_create(card_dir, schema).unwrap();
     let reader = index.reader().map_err(|e| e.to_string()).unwrap();
     let writer = index.writer(100_000_000).unwrap();
 
@@ -248,7 +269,7 @@ mod tests {
 
     #[test]
     fn test() {
-        init();
+        init_test();
 
         let json = r#"
             {
@@ -264,5 +285,53 @@ mod tests {
         assert_eq!(res.cards, vec!["id"]);
         let res = search("title", 2, 100).unwrap();
         assert_eq!(res.threads, vec!["id"]);
+    }
+
+    fn init_test() {
+        let mut schema_builder = Schema::builder();
+        schema_builder.add_text_field("id", STRING | STORED);
+        schema_builder.add_text_field("title", TEXT);
+        let schema = schema_builder.build();
+        let id_field = schema.get_field("id").unwrap();
+        let title_field = schema.get_field("title").unwrap();
+        let index = Index::create_in_ram(schema);
+        let reader = index.reader().map_err(|e| e.to_string()).unwrap();
+        let writer = index.writer(100_000_000).unwrap();
+
+        THREADS_INDEX.set(index).unwrap();
+        THREADS_READER
+            .set(reader)
+            .map_err(|_| "failed to set THREADS_READER")
+            .unwrap();
+        THREADS_WRITER
+            .set(Mutex::new(writer))
+            .map_err(|_| "failed to set THREADS_WRITER")
+            .unwrap();
+        THREADS_ID_FIELD.set(id_field).unwrap();
+        THREADS_TITLE_FIELD.set(title_field).unwrap();
+
+        let mut schema_builder = Schema::builder();
+        schema_builder.add_text_field("id", STRING | STORED);
+        schema_builder.add_text_field("content", TEXT);
+        let schema = schema_builder.build();
+        let id_field = schema.get_field("id").unwrap();
+        let content_field = schema.get_field("content").unwrap();
+        let index = Index::create_in_ram(schema);
+        let reader = index.reader().map_err(|e| e.to_string()).unwrap();
+        let writer = index.writer(100_000_000).unwrap();
+
+        CARDS_INDEX.set(index).unwrap();
+        CARDS_READER
+            .set(reader)
+            .map_err(|_| "failed to set CARDS_READER")
+            .unwrap();
+        CARDS_WRITER
+            .set(Mutex::new(writer))
+            .map_err(|_| "failed to set CARDS_READER")
+            .unwrap();
+        CARDS_ID_FIELD.set(id_field).unwrap();
+        CARDS_CONTENT_FIELD.set(content_field).unwrap();
+
+        INITIALIZED.set(()).unwrap();
     }
 }

@@ -8,9 +8,12 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tantivy_interface::init();
-
     tauri::Builder::default()
+        .setup(|app| {
+            let app_handle = app.handle();
+            tantivy_interface::init(&app_handle);
+            Ok(())
+        })
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             greet,
