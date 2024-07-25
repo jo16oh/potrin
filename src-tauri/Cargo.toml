@@ -22,6 +22,7 @@ serde_json = "1.0.120"
 tauri-plugin-store = "2.0.0-beta.8"
 tantivy = "0.22.0"
 anyhow = "1.0.86"
+macros = { path = "macros" }
 
 [dependencies.tauri-plugin-sql]
 features = ["sqlite"] # or "postgres", or "mysql"

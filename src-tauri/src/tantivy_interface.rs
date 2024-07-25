@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -50,20 +49,20 @@ static CARDS_WRITER: OnceLock<Mutex<IndexWriter>> = OnceLock::new();
 static CARDS_ID_FIELD: OnceLock<Field> = OnceLock::new();
 static CARDS_CONTENT_FIELD: OnceLock<Field> = OnceLock::new();
 
-fn set_once_lock<T>(lock: &OnceLock<T>, value: T) -> Result<()> {
+fn set_once_lock<T>(lock: &OnceLock<T>, value: T) -> anyhow::Result<()> {
     lock.set(value)
         .map_err(|_| anyhow!("Failed to set value to OnceLock"))?;
     Ok(())
 }
 
-fn get_once_lock<T>(lock: &OnceLock<T>) -> Result<&T> {
+fn get_once_lock<T>(lock: &OnceLock<T>) -> anyhow::Result<&T> {
     let result = lock
         .get()
         .ok_or_else(|| anyhow!("Failed to set value to OnceLock"))?;
     Ok(result)
 }
 
-fn join_handle_and_convert_error<T>(handle: JoinHandle<Result<T>>) -> anyhow::Result<T> {
+fn join_handle_and_convert_error<T>(handle: JoinHandle<anyhow::Result<T>>) -> anyhow::Result<T> {
     handle.join().map_err(|e| {
         if let Some(string) = e.downcast_ref::<String>() {
             anyhow!("Thread panicked: {}", string)
@@ -75,7 +74,9 @@ fn join_handle_and_convert_error<T>(handle: JoinHandle<Result<T>>) -> anyhow::Re
     })?
 }
 
-pub fn init(app_handle: AppHandle) -> Result<()> {
+#[tauri::command]
+#[macros::anyhow_to_string]
+pub fn init(app_handle: AppHandle) -> anyhow::Result<()> {
     if let Some(_) = INITIALIZED.get() {
         return Ok(());
     }
@@ -131,10 +132,12 @@ pub fn init(app_handle: AppHandle) -> Result<()> {
     Ok(())
 }
 
-pub fn index(json: &str) -> Result<()> {
+#[tauri::command]
+#[macros::anyhow_to_string]
+pub fn index(json: &str) -> anyhow::Result<()> {
     let index_targets: IndexTargets = serde_json::from_str(json)?;
 
-    let handle_card = thread::spawn(|| -> Result<()> {
+    let handle_card = thread::spawn(|| -> anyhow::Result<()> {
         let mut cards_writer = get_once_lock(&CARDS_WRITER)?
             .lock()
             .map_err(|e| anyhow!(e.to_string()))?;
@@ -156,7 +159,7 @@ pub fn index(json: &str) -> Result<()> {
         Ok(())
     });
 
-    let handle_thread = thread::spawn(|| -> Result<()> {
+    let handle_thread = thread::spawn(|| -> anyhow::Result<()> {
         let mut threads_writer = get_once_lock(&THREADS_WRITER)?
             .lock()
             .map_err(|e| anyhow!(e.to_string()))?;
@@ -184,7 +187,9 @@ pub fn index(json: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn search(input: &str, levenshtein_distance: u8, limit: usize) -> Result<SearchResults> {
+#[tauri::command]
+#[macros::anyhow_to_string]
+pub fn search(input: &str, levenshtein_distance: u8, limit: usize) -> anyhow::Result<SearchResults> {
     let thread_ids: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
     let card_ids: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
     let input = input.to_string();
@@ -192,7 +197,7 @@ pub fn search(input: &str, levenshtein_distance: u8, limit: usize) -> Result<Sea
     let input_clone = input.clone();
     let limit_clone = limit.clone();
     let card_ids_clone = Arc::clone(&card_ids);
-    let handle_card = thread::spawn(move || -> Result<()> {
+    let handle_card = thread::spawn(move || -> anyhow::Result<()> {
         let mut ids = card_ids_clone.lock().map_err(|e| anyhow!(e.to_string()))?;
         let index = get_once_lock(&CARDS_INDEX)?;
         let searcher = get_once_lock(&CARDS_READER)?.searcher();
@@ -220,7 +225,7 @@ pub fn search(input: &str, levenshtein_distance: u8, limit: usize) -> Result<Sea
     });
 
     let thread_ids_clone = Arc::clone(&thread_ids);
-    let handle_thread = thread::spawn(move || -> Result<()> {
+    let handle_thread = thread::spawn(move || -> anyhow::Result<()> {
         let mut ids = thread_ids_clone
             .lock()
             .map_err(|e| anyhow!(e.to_string()))?;
