@@ -4,7 +4,7 @@
   let name = "";
   let greetMsg = "";
 
-  invoke("init");
+  invoke("tantivy_init");
 
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -13,14 +13,16 @@
   }
 
   async function testTantivy() {
-    await invoke("index", {
+    await invoke("tantivy_index", {
       json: `{"cards": [{"id": "id", "content": "content"}], "threads": [{"id": "id", "title": "title"}]}`,
     });
-    const res = await invoke("search", {
+    const now = performance.now();
+    const res = await invoke("tantivy_search", {
       input: "content",
       levenshteinDistance: 0,
       limit: 100,
     });
+    console.log(performance.now() - now);
     console.log("resolved", res);
   }
 </script>
