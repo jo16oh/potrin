@@ -58,7 +58,7 @@ fn set_once_lock<T>(lock: &OnceLock<T>, value: T) -> anyhow::Result<()> {
 fn get_once_lock<T>(lock: &OnceLock<T>) -> anyhow::Result<&T> {
     let result = lock
         .get()
-        .ok_or_else(|| anyhow!("Failed to set value to OnceLock"))?;
+        .ok_or_else(|| anyhow!("Failed to get value of OnceLock"))?;
     Ok(result)
 }
 
