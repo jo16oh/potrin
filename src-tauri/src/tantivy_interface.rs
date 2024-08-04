@@ -200,9 +200,9 @@ pub fn search(
 ) -> anyhow::Result<SearchResults> {
     let thread_ids: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
     let card_ids: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(vec![]));
-    let input = input.to_string();
+    let input = Arc::new(input.to_string());
 
-    let input_clone = input.clone();
+    let input_clone = Arc::clone(&input);
     let limit_clone = limit.clone();
     let card_ids_clone = Arc::clone(&card_ids);
     let handle_card = thread::spawn(move || -> anyhow::Result<()> {
@@ -232,6 +232,7 @@ pub fn search(
         Ok(())
     });
 
+    let input_clone = Arc::clone(&input);
     let thread_ids_clone = Arc::clone(&thread_ids);
     let handle_thread = thread::spawn(move || -> anyhow::Result<()> {
         let mut ids = lock_arc_mutex(&thread_ids_clone)?;
@@ -242,7 +243,7 @@ pub fn search(
         let mut query_parser = QueryParser::for_index(&index, vec![*title_field]);
         query_parser.set_field_fuzzy(*title_field, true, levenshtein_distance, true);
         query_parser.set_conjunction_by_default();
-        let thread_query = query_parser.parse_query(&input)?;
+        let thread_query = query_parser.parse_query(&input_clone)?;
 
         let thread_top_docs = searcher.search(&thread_query, &TopDocs::with_limit(limit))?;
 
