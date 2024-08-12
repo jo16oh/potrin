@@ -67,6 +67,7 @@ pub fn init(app_handle: AppHandle) -> anyhow::Result<()> {
     schema_builder.add_text_field("text", TEXT);
     let schema = schema_builder.build();
     let id_field = schema.get_field("id")?;
+    let type_field = schema.get_field("type")?;
     let text_field = schema.get_field("text")?;
     let index = Index::open_or_create(dir, schema)?;
     let reader = index.reader()?;
@@ -76,7 +77,7 @@ pub fn init(app_handle: AppHandle) -> anyhow::Result<()> {
     set_once_lock(&READER, reader)?;
     set_once_lock(&WRITER, Mutex::new(writer))?;
     set_once_lock(&ID_FIELD, id_field)?;
-    set_once_lock(&TYPE_FIELD, id_field)?;
+    set_once_lock(&TYPE_FIELD, type_field)?;
     set_once_lock(&TEXT_FIELD, text_field)?;
 
     set_once_lock(&INITIALIZED, ())?;
