@@ -112,7 +112,7 @@ pub fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
 #[tauri::command]
 #[macros::anyhow_to_string]
 pub fn search(
-    input: &str,
+    query: &str,
     levenshtein_distance: u8,
     limit: usize,
 ) -> anyhow::Result<Vec<SearchResult>> {
@@ -128,9 +128,9 @@ pub fn search(
     query_parser.set_field_fuzzy(*text_field, true, levenshtein_distance, true);
     query_parser.set_conjunction_by_default();
 
-    let query = query_parser.parse_query(&input)?;
+    let query_parsed = query_parser.parse_query(&query)?;
 
-    let top_docs = searcher.search(&query, &TopDocs::with_limit(limit))?;
+    let top_docs = searcher.search(&query_parsed, &TopDocs::with_limit(limit))?;
 
     for (_, doc_addres) in top_docs {
         let retreived_doc = searcher.doc::<TantivyDocument>(doc_addres)?;
