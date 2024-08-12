@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SearchEngine } from "$lib/DataAccess/SearchEngine";
   import { invoke } from "@tauri-apps/api/core";
 
   let name = "";
@@ -13,15 +14,9 @@
   }
 
   async function testTantivy() {
-    await invoke("index", {
-      json: `{"cards": [{"id": "id", "content": "content"}], "threads": [{"id": "id", "title": "title"}]}`,
-    });
+    await SearchEngine.index([{ id: "id", doc_type: "card", text: "content" }]);
     const now = performance.now();
-    const res = await invoke("search", {
-      input: "content",
-      levenshteinDistance: 0,
-      limit: 100,
-    });
+    const res = await SearchEngine.search("yves tumor");
     console.log(performance.now() - now);
     console.log("resolved", res);
   }
