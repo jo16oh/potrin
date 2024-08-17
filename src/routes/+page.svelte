@@ -14,9 +14,11 @@
   }
 
   async function testTantivy() {
-    await SearchEngine.index([{ id: "id", doc_type: "card", text: "content" }]);
+    await SearchEngine.index([
+      { id: "id", doc_type: "card", text: "東京特許許可局許可局長" },
+    ]);
     const now = performance.now();
-    const res = await SearchEngine.search("yves tumor");
+    const res = await SearchEngine.search("特許");
     console.log(performance.now() - now);
     console.log("resolved", res);
   }

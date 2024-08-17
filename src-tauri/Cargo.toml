@@ -12,18 +12,22 @@ name = "potrin_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-beta", features = [] }
+tauri-build = { version = "2.0.0-beta.17", features = [] }
 
 [dependencies]
-tauri = { version = "2.0.0-beta", features = [] }
-tauri-plugin-shell = "2.0.0-beta"
+tauri = { version = "2.0.0-beta.22", features = [] }
+tauri-plugin-shell = "2.0.0-beta.7"
+tauri-plugin-store = "2.0.0-beta.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.120"
-tauri-plugin-store = "2.0.0-beta.8"
-tantivy = "0.22.0"
 anyhow = "1.0.86"
 macros = { path = "macros" }
+tantivy = "0.22.0"
+unicode-normalization = "0.1.20"
+cjk = "0.2"
+diacritics = "0.2.2"
+
 
 [dependencies.tauri-plugin-sql]
 features = ["sqlite"] # or "postgres", or "mysql"
-version = "2.0.0-beta"
+version = "2.0.0-beta.6"
