@@ -4,6 +4,8 @@
   "description": "Capability for the main window",
   "windows": ["main"],
   "permissions": [
+    "core:app:default",
+    "store:default",
     "store:allow-get",
     "store:allow-set",
     "store:allow-save",
