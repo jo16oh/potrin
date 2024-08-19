@@ -1,12 +1,26 @@
 <script lang="ts">
+  import { SearchEngine } from "$lib/DataAccess/SearchEngine";
   import { invoke } from "@tauri-apps/api/core";
 
   let name = "";
   let greetMsg = "";
 
+  invoke("init");
+
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     greetMsg = await invoke("greet", { name });
+    await testTantivy();
+  }
+
+  async function testTantivy() {
+    await SearchEngine.index([
+      { id: "id", doc_type: "card", text: "東京特許許可局許可局長" },
+    ]);
+    const now = performance.now();
+    const res = await SearchEngine.search("特許");
+    console.log(performance.now() - now);
+    console.log("resolved", res);
   }
 </script>
 
