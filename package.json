@@ -20,7 +20,6 @@
     "@tauri-apps/plugin-shell": "2.0.0-beta.6",
     "@tauri-apps/plugin-sql": "2.0.0-beta.5",
     "@tauri-apps/plugin-store": "2.0.0-beta.5",
-    "electric-sql": "^0.12.1",
     "fractional-indexing": "^3.2.0",
     "globals": "^15.4.0",
     "ohash": "^1.1.3",

@@ -37,9 +37,5 @@ export default defineConfig(async () => ({
     include: ["src/**/*.{test,test.svelte,spec}.{js,ts}"],
     exclude: ["src/generated/**"],
     environment: "jsdom",
-    poolOptions: {
-      threads: { singleThread: true },
-      forks: { singleFork: true },
-    },
   },
 }));
