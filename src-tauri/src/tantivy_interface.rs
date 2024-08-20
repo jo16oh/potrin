@@ -1,5 +1,6 @@
 mod cjk_bigram_tokenizer;
 
+use crate::utils::{get_once_lock, set_once_lock};
 use anyhow::anyhow;
 use cjk_bigram_tokenizer::CJKBigramTokenizer;
 use diacritics::remove_diacritics;
@@ -42,19 +43,6 @@ static ID_FIELD: OnceLock<Field> = OnceLock::new();
 static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
 static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
 static QUERY_PARSER: OnceLock<Mutex<QueryParser>> = OnceLock::new();
-
-fn set_once_lock<T>(lock: &OnceLock<T>, value: T) -> anyhow::Result<()> {
-    lock.set(value)
-        .map_err(|_| anyhow!("Failed to set value to OnceLock"))?;
-    Ok(())
-}
-
-fn get_once_lock<T>(lock: &OnceLock<T>) -> anyhow::Result<&T> {
-    let result = lock
-        .get()
-        .ok_or_else(|| anyhow!("Failed to get value of OnceLock"))?;
-    Ok(result)
-}
 
 #[tauri::command]
 #[specta::specta]

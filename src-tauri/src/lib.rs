@@ -1,4 +1,5 @@
 mod tantivy_interface;
+pub mod utils;
 
 use specta_typescript::Typescript;
 use tauri_specta::{collect_commands, Builder};
