@@ -10,9 +10,11 @@ pub fn anyhow_to_string(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // 関数のシグネチャを取得
     let sig = &input.sig;
-    let name = &sig.ident;
-    let block = &input.block;
     let vis = &input.vis;
+    let asyncness = &sig.asyncness;
+    let name = &sig.ident;
+    let inputs = &sig.inputs;
+    let block = &input.block;
 
     // 戻り値の型がanyhow::Resultであることをチェック
     if let ReturnType::Type(_, ty) = &sig.output {
@@ -45,19 +47,28 @@ pub fn anyhow_to_string(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 // 新しい戻り値の型をResult<T, String>に変更
                 let new_output = quote! { -> Result<#inner_ty, String> };
 
-                // 引数リストを取得
-                let inputs = &sig.inputs;
-
                 // 条件を満たしている場合は元の関数をラップして新しい関数を生成
-                let gen = quote! {
-                    #vis fn #name(#inputs) #new_output {
-                        let result: anyhow::Result<#inner_ty> = (|| #block)();
-                        match result {
-                            Ok(val) => Ok(val),
-                            Err(e) => Err(e.to_string()),
+                let gen = match asyncness {
+                    Some(_) => quote! {
+                        #vis async fn #name(#inputs) #new_output {
+                            let result: anyhow::Result<#inner_ty> = async { #block }.await;
+                            match result {
+                                Ok(val) => Ok(val),
+                                Err(e) => Err(e.to_string()),
+                            }
                         }
-                    }
+                    },
+                    None => quote! {
+                        #vis fn #name(#inputs) #new_output {
+                            let result: anyhow::Result<#inner_ty> = (|| #block)();
+                            match result {
+                                Ok(val) => Ok(val),
+                                Err(e) => Err(e.to_string()),
+                            }
+                        }
+                    },
                 };
+
                 return gen.into();
             }
         }

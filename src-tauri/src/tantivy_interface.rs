@@ -213,8 +213,8 @@ pub async fn search(
 mod tests {
     use super::*;
 
-    #[test]
-    fn test() {
+    #[tokio::test]
+    async fn test() {
         let _ = build_schema(None);
 
         let input = vec![
@@ -240,12 +240,12 @@ mod tests {
             },
         ];
 
-        let _ = index(input);
+        let _ = index(input).await;
         READER.get().unwrap().reload().unwrap();
 
         // prefix search
         assert_eq!(
-            search("c", 0, 100).unwrap(),
+            search("c", 0, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("1"),
                 doc_type: String::from("card")
@@ -254,7 +254,7 @@ mod tests {
 
         // remove diacritics
         assert_eq!(
-            search("brulee", 0, 100).unwrap(),
+            search("brulee", 0, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("1"),
                 doc_type: String::from("card")
@@ -263,7 +263,9 @@ mod tests {
 
         // NFC normalization
         assert_eq!(
-            search("brûlée".nfd().collect::<String>().as_str(), 0, 100).unwrap(),
+            search("brûlée".nfd().collect::<String>().as_str(), 0, 100)
+                .await
+                .unwrap(),
             vec![SearchResult {
                 id: String::from("1"),
                 doc_type: String::from("card")
@@ -272,7 +274,7 @@ mod tests {
 
         // english stemming
         assert_eq!(
-            search("connected", 0, 100).unwrap(),
+            search("connected", 0, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("1"),
                 doc_type: String::from("card")
@@ -281,7 +283,7 @@ mod tests {
 
         // fuzzy search
         assert_eq!(
-            search("cantnt", 2, 100).unwrap(),
+            search("cantnt", 2, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("1"),
                 doc_type: String::from("card")
@@ -290,7 +292,7 @@ mod tests {
 
         // japanese bigram
         assert_eq!(
-            search("はねだ", 0, 100).unwrap(),
+            search("はねだ", 0, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("2"),
                 doc_type: String::from("thread")
@@ -299,7 +301,7 @@ mod tests {
 
         // english and japanese compound
         assert_eq!(
-            search("羽田Airport", 0, 100).unwrap(),
+            search("羽田Airport", 0, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("2"),
                 doc_type: String::from("thread")
@@ -308,7 +310,7 @@ mod tests {
 
         // lowercase
         assert_eq!(
-            search("hnd", 0, 100).unwrap(),
+            search("hnd", 0, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("2"),
                 doc_type: String::from("thread")
@@ -317,7 +319,7 @@ mod tests {
 
         // chinese bigram
         assert_eq!(
-            search("份有", 0, 100).unwrap(),
+            search("份有", 0, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("3"),
                 doc_type: String::from("thread")
@@ -326,7 +328,7 @@ mod tests {
 
         // search one character word on the end of the sentence
         assert_eq!(
-            search("草", 0, 100).unwrap(),
+            search("草", 0, 100).await.unwrap(),
             vec![SearchResult {
                 id: String::from("4"),
                 doc_type: String::from("card")
