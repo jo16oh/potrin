@@ -12,12 +12,14 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = Builder::<tauri::Wry>::new().commands(collect_commands![
-        greet,
-        tantivy_interface::init,
-        tantivy_interface::index,
-        tantivy_interface::search
-    ]);
+    let builder = Builder::<tauri::Wry>::new()
+        .commands(collect_commands![
+            greet,
+            tantivy_interface::init,
+            tantivy_interface::index,
+            tantivy_interface::search
+        ])
+        .error_handling(tauri_specta::ErrorHandlingMode::Throw);
 
     #[cfg(debug_assertions)]
     builder

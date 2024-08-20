@@ -20,7 +20,7 @@
     const now = performance.now();
     const res = await commands.search("特許", 0, 1);
     console.log(performance.now() - now);
-    if (res.status === "ok") console.log("resolved", res.data);
+    console.log(res);
   }
 </script>
 

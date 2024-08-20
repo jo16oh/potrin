@@ -8,29 +8,14 @@ export const commands = {
 async greet(name: string) : Promise<string> {
     return await TAURI_INVOKE("greet", { name });
 },
-async init() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("init") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async init() : Promise<null> {
+    return await TAURI_INVOKE("init");
 },
-async index(input: IndexTarget[]) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("index", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async index(input: IndexTarget[]) : Promise<null> {
+    return await TAURI_INVOKE("index", { input });
 },
-async search(query: string, levenshteinDistance: number, limit: number) : Promise<Result<SearchResult[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("search", { query, levenshteinDistance, limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async search(query: string, levenshteinDistance: number, limit: number) : Promise<SearchResult[]> {
+    return await TAURI_INVOKE("search", { query, levenshteinDistance, limit });
 }
 }
 
