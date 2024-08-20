@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { SearchEngine } from "$lib/DataAccess/SearchEngine";
   import { invoke } from "@tauri-apps/api/core";
+  import { commands } from "../generated/tauri-commands";
 
   let name = "";
   let greetMsg = "";
@@ -14,13 +14,13 @@
   }
 
   async function testTantivy() {
-    await SearchEngine.index([
+    await commands.index([
       { id: "id", doc_type: "card", text: "東京特許許可局許可局長" },
     ]);
     const now = performance.now();
-    const res = await SearchEngine.search("特許");
+    const res = await commands.search("特許", 0, 1);
     console.log(performance.now() - now);
-    console.log("resolved", res);
+    if (res.status === "ok") console.log("resolved", res.data);
   }
 </script>
 
