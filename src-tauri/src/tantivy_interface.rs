@@ -58,7 +58,7 @@ fn get_once_lock<T>(lock: &OnceLock<T>) -> anyhow::Result<&T> {
 
 #[tauri::command]
 #[specta::specta]
-pub fn init(app_handle: AppHandle) -> Result<(), String> {
+pub async fn init(app_handle: AppHandle) -> Result<(), String> {
     build_schema(Some(app_handle))
 }
 
@@ -135,7 +135,7 @@ fn build_schema(app_handle: Option<AppHandle>) -> anyhow::Result<()> {
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
+pub async fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
     let mut writer = get_once_lock(&WRITER)?
         .lock()
         .map_err(|e| anyhow!(e.to_string()))?;
@@ -163,7 +163,7 @@ pub fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub fn search(
+pub async fn search(
     query: &str,
     levenshtein_distance: u8,
     limit: u8,
