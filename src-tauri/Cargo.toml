@@ -2,7 +2,7 @@
 name = "potrin"
 version = "0.0.0"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["Joichiro Hayashi"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,22 +12,21 @@ name = "potrin_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-beta.17", features = [] }
+tauri-build = { version = "=2.0.0-rc.3" ,features = ["config-toml"] }
 
 [dependencies]
-tauri = { version = "2.0.0-beta.22", features = [] }
-tauri-plugin-shell = "2.0.0-beta.7"
-tauri-plugin-store = "2.0.0-beta.8"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1.0.120"
-anyhow = "1.0.86"
+tauri = { version = "=2.0.0-rc.3" ,features = ["config-toml"] }
+tauri-plugin-store = "^2.0.0-rc"
+specta = "=2.0.0-rc.20"
+specta-typescript = "0.0.7"
+tauri-specta = { version = "=2.0.0-rc.17", features = ["derive", "typescript"] }
+serde = { version = "^1", features = ["derive"] }
+serde_json = "^1.0"
+anyhow = "^1.0"
 macros = { path = "macros" }
-tantivy = "0.22.0"
-unicode-normalization = "0.1.20"
-cjk = "0.2"
-diacritics = "0.2.2"
+tantivy = "^0.22"
+unicode-normalization = "^0.1.20"
+cjk = "^0.2"
+diacritics = "^0.2"
+sqlx = "^0.8.0"
 
-
-[dependencies.tauri-plugin-sql]
-features = ["sqlite"] # or "postgres", or "mysql"
-version = "2.0.0-beta.6"
