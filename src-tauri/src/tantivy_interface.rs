@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use cjk_bigram_tokenizer::CJKBigramTokenizer;
 use diacritics::remove_diacritics;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::fs;
 use std::path::Path;
 use std::sync::{Mutex, OnceLock};
@@ -17,14 +18,16 @@ use tantivy::{Index, IndexWriter};
 use tauri::{AppHandle, Manager};
 use unicode_normalization::UnicodeNormalization;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, derive(Type, Debug))]
+#[derive(Serialize, Deserialize)]
 pub struct IndexTarget {
     id: String,
     doc_type: String,
     text: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[cfg_attr(debug_assertions, derive(Type, Debug, PartialEq))]
+#[derive(Serialize, Deserialize)]
 pub struct SearchResult {
     id: String,
     doc_type: String,
@@ -54,6 +57,7 @@ fn get_once_lock<T>(lock: &OnceLock<T>) -> anyhow::Result<&T> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn init(app_handle: AppHandle) -> Result<(), String> {
     build_schema(Some(app_handle))
 }
@@ -129,6 +133,7 @@ fn build_schema(app_handle: Option<AppHandle>) -> anyhow::Result<()> {
 }
 
 #[tauri::command]
+#[specta::specta]
 #[macros::anyhow_to_string]
 pub fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
     let mut writer = get_once_lock(&WRITER)?
@@ -156,11 +161,12 @@ pub fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
 }
 
 #[tauri::command]
+#[specta::specta]
 #[macros::anyhow_to_string]
 pub fn search(
     query: &str,
     levenshtein_distance: u8,
-    limit: usize,
+    limit: u8,
 ) -> anyhow::Result<Vec<SearchResult>> {
     let mut results: Vec<SearchResult> = vec![];
     let query = remove_diacritics(query.nfc().collect::<String>().as_str());
@@ -178,7 +184,7 @@ pub fn search(
 
     let query_parsed = query_parser.parse_query(&query)?;
 
-    let top_docs = searcher.search(&query_parsed, &TopDocs::with_limit(limit))?;
+    let top_docs = searcher.search(&query_parsed, &TopDocs::with_limit(limit as usize))?;
 
     for (_, doc_addres) in top_docs {
         let retreived_doc = searcher.doc::<TantivyDocument>(doc_addres)?;
