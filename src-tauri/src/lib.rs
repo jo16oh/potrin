@@ -1,3 +1,4 @@
+mod sqlite_interface;
 mod tantivy_interface;
 pub mod utils;
 
