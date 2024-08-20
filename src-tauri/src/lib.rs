@@ -21,7 +21,7 @@ pub fn run() {
 
     #[cfg(debug_assertions)]
     builder
-        .export(Typescript::default(), "../src/generated/bindings.ts")
+        .export(Typescript::default(), "../src/generated/tauri-commands.ts")
         .expect("Failed to export typescript bindings");
 
     tauri::Builder::default()
