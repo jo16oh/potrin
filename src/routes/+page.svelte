@@ -10,6 +10,7 @@
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     greetMsg = await invoke("greet", { name });
+    await testSQLite();
     await testTantivy();
   }
 
@@ -21,6 +22,11 @@
     const res = await commands.search("特許", 0, 1);
     console.log(performance.now() - now);
     console.log(res);
+  }
+
+  async function testSQLite() {
+    await commands.initSqlite();
+    const id = await commands.insert("text");
   }
 </script>
 

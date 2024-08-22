@@ -17,6 +17,8 @@ pub fn run() {
     let builder = Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             greet,
+            sqlite_interface::init_sqlite,
+            sqlite_interface::insert,
             sqlite_interface::select,
             tantivy_interface::init,
             tantivy_interface::index,

@@ -8,6 +8,12 @@ export const commands = {
 async greet(name: string) : Promise<string> {
     return await TAURI_INVOKE("greet", { name });
 },
+async initSqlite() : Promise<null> {
+    return await TAURI_INVOKE("init_sqlite");
+},
+async insert(text: string) : Promise<string> {
+    return await TAURI_INVOKE("insert", { text });
+},
 async select(id: string) : Promise<Res> {
     return await TAURI_INVOKE("select", { id });
 },
@@ -33,7 +39,7 @@ async search(query: string, levenshteinDistance: number, limit: number) : Promis
 /** user-defined types **/
 
 export type IndexTarget = { id: string; doc_type: string; text: string }
-export type Res = { parent: string | null }
+export type Res = { parent: string | null; created_at: string }
 export type SearchResult = { id: string; doc_type: string }
 
 /** tauri-specta globals **/
