@@ -40,18 +40,20 @@ pub fn run() {
         .setup(|app| {
             let app_handle = app.handle();
             let path = Arc::new(app_handle.path().app_data_dir()?);
-            let p1 = Arc::clone(&path);
-            let h1 =
-                async_runtime::spawn(
-                    async move { sqlite_interface::init_sqlite(Some(&*p1)).await },
-                );
-            let p = Arc::clone(&path);
-            let h2 =
-                async_runtime::spawn(
-                    async move { tantivy_interface::init_tantivy(Some(&*p)).await },
-                );
-            let _ = async_runtime::block_on(h1)??;
-            let _ = async_runtime::block_on(h2)??;
+
+            let sqlite_path = Arc::clone(&path);
+            let sqlite_handle = async_runtime::spawn(async move {
+                sqlite_interface::init_sqlite(Some(&*sqlite_path)).await
+            });
+
+            let tantivy_path = Arc::clone(&path);
+            let tantivy_handle = async_runtime::spawn(async move {
+                tantivy_interface::init_tantivy(Some(&*tantivy_path)).await
+            });
+
+            let _ = async_runtime::block_on(sqlite_handle)??;
+            let _ = async_runtime::block_on(tantivy_handle)??;
+
             Ok(())
         })
         .invoke_handler(builder.invoke_handler())
