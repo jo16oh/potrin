@@ -11,3 +11,4 @@ vite.config.ts.timestamp-*
 src/generated/client/*
 src-tauri/target/*
 src-tauri/macros/target/*
+src-tauri/db/dev.db
