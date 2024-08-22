@@ -1,8 +1,14 @@
-[tasks.watch-test]
-env = { DATABASE_URL = "sqlite:db/dev.db" }
+[env]
+DATABASE_URL = "sqlite:db/dev.db"
+
+[tasks.setup-db]
 script = [
   "rm -f db/dev.db",
   "sqlx db create",
   "sqlx migrate run --source db/migrations/",
-  "cargo watch -x 'test ${FILTER} -- --nocapture ${OPTION}'",
+]
+
+[tasks.watch-test]
+script = [
+  "cargo watch -x 'make setup-db' -x 'test ${FILTER} -- --nocapture ${OPTION}'",
 ]
