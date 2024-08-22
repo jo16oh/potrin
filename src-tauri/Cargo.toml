@@ -12,12 +12,12 @@ name = "potrin_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
-tauri-build = { version = "=2.0.0-rc.3" ,features = ["config-toml"] }
+tauri-build = { version = "=2.0.0-rc.3", features = ["config-toml"] }
 
 [dependencies]
-tauri = { version = "=2.0.0-rc.3" ,features = ["config-toml"] }
+tauri = { version = "=2.0.0-rc.3", features = ["config-toml"] }
 tauri-plugin-store = "^2.0.0-rc"
-specta = "=2.0.0-rc.20"
+specta = { version = "=2.0.0-rc.20", features = ["uuid"] }
 specta-typescript = "0.0.7"
 tauri-specta = { version = "=2.0.0-rc.17", features = ["derive", "typescript"] }
 serde = { version = "^1", features = ["derive"] }
@@ -28,6 +28,13 @@ tantivy = "^0.22"
 unicode-normalization = "^0.1.20"
 cjk = "^0.2"
 diacritics = "^0.2"
-sqlx = {version = "^0.8", features = ["sqlite", "migrate", "time", "runtime-tokio"] }
-tokio = {version = "^1.39.3", features = ["full"] }
-
+sqlx = { version = "^0.8", features = [
+  "sqlite",
+  "runtime-tokio-native-tls",
+  "uuid",
+  "time",
+] }
+tokio = { version = "^1.39.3", features = ["full"] }
+datetime = "0.5.2"
+uuidv7 = "0.1.4"
+uuid = "1.10.0"
