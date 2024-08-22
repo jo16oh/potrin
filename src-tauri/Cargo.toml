@@ -14,6 +14,9 @@ crate-type = ["lib", "cdylib", "staticlib"]
 [build-dependencies]
 tauri-build = { version = "=2.0.0-rc.3", features = ["config-toml"] }
 
+[dev-dependencies]
+tokio = { version = "^1.39.3", features = ["full"] }
+
 [dependencies]
 tauri = { version = "=2.0.0-rc.3", features = ["config-toml"] }
 tauri-plugin-store = "2.0.0-rc"
@@ -34,7 +37,6 @@ sqlx = { version = "0.8", features = [
   "uuid",
   "chrono",
 ] }
-tokio = { version = "^1.39.3", features = ["full"] }
 uuidv7 = "0.1.4"
 uuid = "1.10.0"
 chrono = { version = "0.4.38", features = ["serde"] }
