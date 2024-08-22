@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::Serialize;
 use specta::Type;
 use sqlx::{migrate::Migrator, SqlitePool};
@@ -34,8 +34,8 @@ pub async fn init_sqlite() -> anyhow::Result<()> {
 #[macros::anyhow_to_string]
 pub async fn insert(text: &str) -> anyhow::Result<String> {
     let pool = get_once_lock(&POOL)?;
-    let id = uuidv7::create();
-    let now = Utc::now();
+    let id = uuidv7::create().to_string();
+    let now = Utc::now().timestamp_millis();
     sqlx::query!(
         "INSERT INTO outlines (id, parent, text, created_at, updated_at) VALUES (?, ?, ?, ?, ?);",
         id,
@@ -50,27 +50,23 @@ pub async fn insert(text: &str) -> anyhow::Result<String> {
     Ok(id)
 }
 
-#[derive(Serialize)]
-struct Outline {
-    id: uuid::Uuid,
-    parent: Option<uuid::Uuid>,
-    text: String,
-}
-
 #[derive(Serialize, Type)]
-pub struct Res {
-    parent: Option<uuid::Uuid>,
-    created_at: DateTime<Utc>,
+pub struct RawOutline {
+    id: String,
+    parent: Option<String>,
+    text: String,
+    created_at: i64,
+    updated_at: i64,
 }
 
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub async fn select(id: &str) -> anyhow::Result<Res> {
+pub async fn select(id: &str) -> anyhow::Result<RawOutline> {
     let pool = get_once_lock(&POOL)?;
     sqlx::query_as!(
-        Res,
-        r#"SELECT parent "parent?: uuid::Uuid", created_at "created_at!: DateTime<Utc>" FROM outlines WHERE id = ?;"#,
+        RawOutline,
+        r#"SELECT id, parent, text, created_at, updated_at FROM outlines WHERE id = ?;"#,
         id
     )
     .fetch_one(pool)

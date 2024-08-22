@@ -14,7 +14,7 @@ async initSqlite() : Promise<null> {
 async insert(text: string) : Promise<string> {
     return await TAURI_INVOKE("insert", { text });
 },
-async select(id: string) : Promise<Res> {
+async select(id: string) : Promise<RawOutline> {
     return await TAURI_INVOKE("select", { id });
 },
 async init() : Promise<null> {
@@ -39,7 +39,7 @@ async search(query: string, levenshteinDistance: number, limit: number) : Promis
 /** user-defined types **/
 
 export type IndexTarget = { id: string; doc_type: string; text: string }
-export type Res = { parent: string | null; created_at: string }
+export type RawOutline = { id: string; parent: string | null; text: string; created_at: number; updated_at: number }
 export type SearchResult = { id: string; doc_type: string }
 
 /** tauri-specta globals **/
