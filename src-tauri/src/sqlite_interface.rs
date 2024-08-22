@@ -2,9 +2,9 @@ use anyhow::anyhow;
 use chrono::Utc;
 use serde::Serialize;
 use specta::Type;
-use sqlx::{migrate::Migrator, SqlitePool};
-use std::sync::OnceLock;
-use uuid;
+use sqlx::migrate::{MigrateDatabase, Migrator};
+use sqlx::{Sqlite, SqlitePool};
+use std::{path::PathBuf, sync::OnceLock};
 use uuidv7;
 
 use crate::utils::{get_once_lock, set_once_lock};
@@ -12,17 +12,27 @@ use crate::utils::{get_once_lock, set_once_lock};
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 static POOL: OnceLock<SqlitePool> = OnceLock::new();
 
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
-pub async fn init_sqlite() -> anyhow::Result<()> {
+pub async fn init_sqlite(data_dir: Option<&PathBuf>) -> anyhow::Result<()> {
     if let Ok(_) = get_once_lock(&POOL) {
         return Ok(());
     }
 
-    let pool = SqlitePool::connect("sqlite::memory:")
-        .await
-        .map_err(|e| anyhow!(e.to_string()))?;
+    let pool = match data_dir {
+        Some(path) => {
+            let mut path = path.to_owned();
+            path.push("data.db");
+            let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
+
+            Sqlite::create_database(&url).await?;
+            SqlitePool::connect(&url)
+                .await
+                .map_err(|e| anyhow!(e.to_string()))?
+        }
+        None => SqlitePool::connect("sqlite::memory:")
+            .await
+            .map_err(|e| anyhow!(e.to_string()))?,
+    };
+
     MIGRATOR.run(&pool).await?;
     set_once_lock(&POOL, pool)?;
 
@@ -74,13 +84,27 @@ pub async fn select(id: &str) -> anyhow::Result<RawOutline> {
     .map_err(|e| anyhow!(e.to_string()))
 }
 
+#[tauri::command]
+#[specta::specta]
+#[macros::anyhow_to_string]
+pub async fn select_all() -> anyhow::Result<Vec<RawOutline>> {
+    let pool = get_once_lock(&POOL)?;
+    sqlx::query_as!(
+        RawOutline,
+        r#"SELECT id, parent, text, created_at, updated_at FROM outlines;"#,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| anyhow!(e.to_string()))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[tokio::test]
     async fn test_sqlite() {
-        assert!(init_sqlite().await.is_ok());
+        assert!(init_sqlite(None).await.is_ok());
 
         let id = insert("lorem ipsum").await.unwrap();
         let result = select(&id).await;

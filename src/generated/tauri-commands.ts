@@ -8,17 +8,14 @@ export const commands = {
 async greet(name: string) : Promise<string> {
     return await TAURI_INVOKE("greet", { name });
 },
-async initSqlite() : Promise<null> {
-    return await TAURI_INVOKE("init_sqlite");
-},
 async insert(text: string) : Promise<string> {
     return await TAURI_INVOKE("insert", { text });
 },
 async select(id: string) : Promise<RawOutline> {
     return await TAURI_INVOKE("select", { id });
 },
-async init() : Promise<null> {
-    return await TAURI_INVOKE("init");
+async selectAll() : Promise<RawOutline[]> {
+    return await TAURI_INVOKE("select_all");
 },
 async index(input: IndexTarget[]) : Promise<null> {
     return await TAURI_INVOKE("index", { input });

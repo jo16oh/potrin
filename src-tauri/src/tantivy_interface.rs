@@ -7,7 +7,7 @@ use diacritics::remove_diacritics;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tantivy::collector::TopDocs;
 use tantivy::directory::{ManagedDirectory, MmapDirectory};
@@ -16,7 +16,6 @@ use tantivy::tokenizer::{Language, LowerCaser, Stemmer};
 use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
-use tauri::{AppHandle, Manager};
 use unicode_normalization::UnicodeNormalization;
 
 #[cfg_attr(debug_assertions, derive(Type, Debug))]
@@ -44,14 +43,7 @@ static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
 static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
 static QUERY_PARSER: OnceLock<Mutex<QueryParser>> = OnceLock::new();
 
-#[tauri::command]
-#[specta::specta]
-pub async fn init(app_handle: AppHandle) -> Result<(), String> {
-    build_schema(Some(app_handle))
-}
-
-#[macros::anyhow_to_string]
-fn build_schema(app_handle: Option<AppHandle>) -> anyhow::Result<()> {
+pub async fn init_tantivy(path: Option<&PathBuf>) -> anyhow::Result<()> {
     if let Some(_) = INITIALIZED.get() {
         return Ok(());
     }
@@ -73,14 +65,12 @@ fn build_schema(app_handle: Option<AppHandle>) -> anyhow::Result<()> {
     let type_field = schema.get_field("type")?;
     let text_field = schema.get_field("text")?;
 
-    let index: Index = match app_handle {
-        Some(handle) => {
-            let app_dir = handle.path().app_data_dir()?;
-            let path = Path::join(&app_dir, "tantivy");
-            if !path.exists() {
-                fs::create_dir_all(path.clone())?;
+    let index: Index = match path {
+        Some(p) => {
+            if !p.exists() {
+                fs::create_dir_all(p)?;
             }
-            let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(path)?))?;
+            let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(p)?))?;
             Index::open_or_create(dir, schema)
         }
         None => Ok(Index::create_in_ram(schema)),
@@ -203,7 +193,7 @@ mod tests {
 
     #[tokio::test]
     async fn test() {
-        let _ = build_schema(None);
+        let _ = init_tantivy(None).await;
 
         let input = vec![
             IndexTarget {

@@ -2,7 +2,10 @@ mod sqlite_interface;
 mod tantivy_interface;
 pub mod utils;
 
+use std::sync::Arc;
+
 use specta_typescript::Typescript;
+use tauri::{async_runtime, Manager};
 use tauri_specta::{collect_commands, Builder};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -17,10 +20,9 @@ pub fn run() {
     let builder = Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             greet,
-            sqlite_interface::init_sqlite,
             sqlite_interface::insert,
             sqlite_interface::select,
-            tantivy_interface::init,
+            sqlite_interface::select_all,
             tantivy_interface::index,
             tantivy_interface::search
         ])
@@ -28,10 +30,30 @@ pub fn run() {
 
     #[cfg(debug_assertions)]
     builder
-        .export(Typescript::default(), "../src/generated/tauri-commands.ts")
+        .export(
+            Typescript::default().bigint(specta_typescript::BigIntExportBehavior::Number),
+            "../src/generated/tauri-commands.ts",
+        )
         .expect("Failed to export typescript bindings");
 
     tauri::Builder::default()
+        .setup(|app| {
+            let app_handle = app.handle();
+            let path = Arc::new(app_handle.path().app_data_dir()?);
+            let p1 = Arc::clone(&path);
+            let h1 =
+                async_runtime::spawn(
+                    async move { sqlite_interface::init_sqlite(Some(&*p1)).await },
+                );
+            let p = Arc::clone(&path);
+            let h2 =
+                async_runtime::spawn(
+                    async move { tantivy_interface::init_tantivy(Some(&*p)).await },
+                );
+            let _ = async_runtime::block_on(h1)??;
+            let _ = async_runtime::block_on(h2)??;
+            Ok(())
+        })
         .invoke_handler(builder.invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

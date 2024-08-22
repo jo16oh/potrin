@@ -5,12 +5,10 @@
   let name = "";
   let greetMsg = "";
 
-  invoke("init");
-
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     greetMsg = await invoke("greet", { name });
-    await testSQLite();
+    await testSQLite(name);
     await testTantivy();
   }
 
@@ -24,9 +22,20 @@
     console.log(res);
   }
 
-  async function testSQLite() {
-    await commands.initSqlite();
-    const id = await commands.insert("text");
+  async function testSQLite(text: string) {
+    const all = await commands.selectAll();
+    console.log(all.length);
+
+    console.time("insert");
+    const id = await commands.insert(text);
+    console.timeEnd("insert");
+
+    console.time("select");
+    const res = await commands.select(id);
+    console.timeEnd("select");
+    console.log(res);
+
+    console.log(new Date(res.created_at));
   }
 </script>
 
