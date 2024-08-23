@@ -67,15 +67,12 @@ pub async fn init_tantivy(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()>
 
     let index: Index = match data_dir_path {
         Some(p) => {
-            let tantivy_path = {
-                let mut path = p.to_path_buf();
-                path.push("tantivy");
-                path
-            };
-            if !tantivy_path.exists() {
-                fs::create_dir_all(&tantivy_path)?;
+            let mut path = p.to_path_buf();
+            path.push("tantivy");
+            if !path.exists() {
+                fs::create_dir_all(&path)?;
             }
-            let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(&tantivy_path)?))?;
+            let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(&path)?))?;
             Index::open_or_create(dir, schema)
         }
         None => Ok(Index::create_in_ram(schema)),

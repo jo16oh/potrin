@@ -20,18 +20,16 @@ pub async fn init_sqlite(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()> 
 
     let pool = match data_dir_path {
         Some(p) => {
-            let path = {
-                let mut path = p.to_owned();
-                path.push("sqlite");
-                if !path.exists() {
-                    fs::create_dir_all(&path)?;
-                }
-                path.push("data.db");
-                path
-            };
-            let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
+            let mut path = p.to_owned();
+            path.extend(["sqlite", "data.db"].iter());
 
+            if !path.parent().ok_or(anyhow!("unwrap failed"))?.exists() {
+                fs::create_dir_all(&path)?;
+            }
+
+            let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
             Sqlite::create_database(&url).await?;
+
             SqlitePool::connect(&url)
                 .await
                 .map_err(|e| anyhow!(e.to_string()))?
