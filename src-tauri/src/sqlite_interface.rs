@@ -4,6 +4,7 @@ use serde::Serialize;
 use specta::Type;
 use sqlx::migrate::{MigrateDatabase, Migrator};
 use sqlx::{Sqlite, SqlitePool};
+use std::fs;
 use std::{path::PathBuf, sync::OnceLock};
 use uuidv7;
 
@@ -12,15 +13,22 @@ use crate::utils::{get_once_lock, set_once_lock};
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 static POOL: OnceLock<SqlitePool> = OnceLock::new();
 
-pub async fn init_sqlite(data_dir: Option<&PathBuf>) -> anyhow::Result<()> {
+pub async fn init_sqlite(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()> {
     if let Ok(_) = get_once_lock(&POOL) {
         return Ok(());
     }
 
-    let pool = match data_dir {
-        Some(path) => {
-            let mut path = path.to_owned();
-            path.push("data.db");
+    let pool = match data_dir_path {
+        Some(p) => {
+            let path = {
+                let mut path = p.to_owned();
+                path.push("sqlite");
+                if !path.exists() {
+                    fs::create_dir_all(&path)?;
+                }
+                path.push("data.db");
+                path
+            };
             let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
 
             Sqlite::create_database(&url).await?;

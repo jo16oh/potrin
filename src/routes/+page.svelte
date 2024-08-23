@@ -34,8 +34,6 @@
     const res = await commands.select(id);
     console.timeEnd("select");
     console.log(res);
-
-    console.log(new Date(res.created_at));
   }
 </script>
 

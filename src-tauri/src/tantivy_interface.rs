@@ -43,7 +43,7 @@ static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
 static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
 static QUERY_PARSER: OnceLock<Mutex<QueryParser>> = OnceLock::new();
 
-pub async fn init_tantivy(path: Option<&PathBuf>) -> anyhow::Result<()> {
+pub async fn init_tantivy(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()> {
     if let Some(_) = INITIALIZED.get() {
         return Ok(());
     }
@@ -65,12 +65,17 @@ pub async fn init_tantivy(path: Option<&PathBuf>) -> anyhow::Result<()> {
     let type_field = schema.get_field("type")?;
     let text_field = schema.get_field("text")?;
 
-    let index: Index = match path {
+    let index: Index = match data_dir_path {
         Some(p) => {
-            if !p.exists() {
-                fs::create_dir_all(p)?;
+            let tantivy_path = {
+                let mut path = p.to_path_buf();
+                path.push("tantivy");
+                path
+            };
+            if !tantivy_path.exists() {
+                fs::create_dir_all(&tantivy_path)?;
             }
-            let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(p)?))?;
+            let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(&tantivy_path)?))?;
             Index::open_or_create(dir, schema)
         }
         None => Ok(Index::create_in_ram(schema)),
