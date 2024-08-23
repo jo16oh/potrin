@@ -6,7 +6,6 @@ use sqlx::migrate::{MigrateDatabase, Migrator};
 use sqlx::{Sqlite, SqlitePool};
 use std::fs;
 use std::{path::PathBuf, sync::OnceLock};
-use uuidv7;
 
 use crate::utils::{get_once_lock, set_once_lock};
 
@@ -14,7 +13,7 @@ static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 static POOL: OnceLock<SqlitePool> = OnceLock::new();
 
 pub async fn init_sqlite(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()> {
-    if let Ok(_) = get_once_lock(&POOL) {
+    if get_once_lock(&POOL).is_ok() {
         return Ok(());
     }
 
@@ -28,9 +27,9 @@ pub async fn init_sqlite(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()> 
             }
 
             let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
-            Sqlite::create_database(&url).await?;
+            Sqlite::create_database(url).await?;
 
-            SqlitePool::connect(&url)
+            SqlitePool::connect(url)
                 .await
                 .map_err(|e| anyhow!(e.to_string()))?
         }

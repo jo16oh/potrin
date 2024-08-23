@@ -130,11 +130,10 @@ impl<'a> CJKBigramIterator<'a> {
         let next_char = self.chars.peek();
         match next_char {
             Some((offset_to, char_to)) => {
-                if char_from.is_alphabetic() && !char_to.is_alphabetic() {
-                    Some((*offset_from, *offset_to))
-                } else if char_from.is_numeric() && !char_to.is_numeric() {
-                    Some((*offset_from, *offset_to))
-                } else if is_cjk_codepoint(*char_to) {
+                if (char_from.is_alphabetic() && !char_to.is_alphabetic())
+                    || (char_from.is_numeric() && !char_to.is_numeric())
+                    || is_cjk_codepoint(*char_to)
+                {
                     Some((*offset_from, *offset_to))
                 } else {
                     self.chars.next();
@@ -177,58 +176,58 @@ mod test {
         let text = "私は!「Haneda Airport」に,行きたい。route162 666mafia";
         let mut iterator = CJKBigramIterator::new(text, false);
 
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("私は", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("は", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("Haneda", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("Airport", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("に", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("行き", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("きた", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("たい", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("い", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("route", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("162", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("666", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("mafia", &text[from..to]);
-        assert!((&mut iterator).next().is_none());
+        assert!(iterator.next().is_none());
 
         let text = "で草";
         let mut iterator = CJKBigramIterator::new(text, true);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("で草", &text[from..to]);
-        assert!((&mut iterator).next().is_none());
+        assert!(iterator.next().is_none());
 
         let text = "で草";
         let mut iterator = CJKBigramIterator::new(text, false);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("で草", &text[from..to]);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("草", &text[from..to]);
-        assert!((&mut iterator).next().is_none());
+        assert!(iterator.next().is_none());
 
         let text = "草";
         let mut iterator = CJKBigramIterator::new(text, true);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("草", &text[from..to]);
-        assert!((&mut iterator).next().is_none());
+        assert!(iterator.next().is_none());
 
         let text = "草";
         let mut iterator = CJKBigramIterator::new(text, false);
-        let (from, to) = (&mut iterator).next().unwrap();
+        let (from, to) = iterator.next().unwrap();
         assert_eq!("草", &text[from..to]);
-        assert!((&mut iterator).next().is_none());
+        assert!(iterator.next().is_none());
     }
 }

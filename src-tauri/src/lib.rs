@@ -51,8 +51,8 @@ pub fn run() {
                 tantivy_interface::init_tantivy(Some(&*tantivy_path)).await
             });
 
-            let _ = async_runtime::block_on(sqlite_handle)??;
-            let _ = async_runtime::block_on(tantivy_handle)??;
+            async_runtime::block_on(sqlite_handle)??;
+            async_runtime::block_on(tantivy_handle)??;
 
             Ok(())
         })

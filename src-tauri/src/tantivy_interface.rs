@@ -44,7 +44,7 @@ static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
 static QUERY_PARSER: OnceLock<Mutex<QueryParser>> = OnceLock::new();
 
 pub async fn init_tantivy(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()> {
-    if let Some(_) = INITIALIZED.get() {
+    if INITIALIZED.get().is_some() {
         return Ok(());
     }
 
