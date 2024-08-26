@@ -95,7 +95,7 @@ impl<'a> CJKBigramIterator<'a> {
 
     fn get_cjk_bigram(&mut self, offset_from: &usize, char_from: &char) -> Option<(usize, usize)> {
         let next_char = self.chars.peek();
-        let offset_to = match next_char {
+        match next_char {
             Some((offset, char)) => {
                 if !char.is_alphanumeric() {
                     Some(*offset)
@@ -106,11 +106,9 @@ impl<'a> CJKBigramIterator<'a> {
                 }
             }
             None => None,
-        };
-
-        match offset_to {
-            Some(offset_to) => Some((*offset_from, offset_to)),
-            None => {
+        }
+        .map_or_else(
+            || {
                 // Return the end character of the CJK sentence,
                 // to index it for queries like the following:
                 // query: "草"
@@ -122,8 +120,9 @@ impl<'a> CJKBigramIterator<'a> {
                 } else {
                     Some((*offset_from, offset_from + char_from.len_utf8()))
                 }
-            }
-        }
+            },
+            |offset_to| Some((*offset_from, offset_to)),
+        )
     }
 
     fn get_word(&mut self, offset_from: &usize, char_from: &char) -> Option<(usize, usize)> {
