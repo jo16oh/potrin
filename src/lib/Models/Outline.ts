@@ -36,10 +36,6 @@ export class Outline {
 
   static treeFromArray(data: RawOutline[]): Outline[] {
     const roots: RawOutline[] = [];
-    for (const e of data) {
-      if (!e.parent) roots.push(e);
-    }
-
     const map = new Map<string, RawOutline[]>();
 
     for (const e of data) {
@@ -47,7 +43,10 @@ export class Outline {
     }
 
     for (const e of data) {
-      if (!e.parent) continue;
+      if (!e.parent) {
+        roots.push(e);
+        continue;
+      }
       map.get(e.parent)?.push(e);
     }
 
