@@ -2914,7 +2914,6 @@ dependencies = [
  "tantivy",
  "tauri",
  "tauri-build",
- "tauri-plugin-store",
  "tauri-specta",
  "tokio",
  "unicode-normalization",
@@ -4432,38 +4431,6 @@ dependencies = [
  "syn 2.0.72",
  "tauri-codegen",
  "tauri-utils",
-]
-
-[[package]]
-name = "tauri-plugin"
-version = "2.0.0-rc.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec01af01098a286d3e430c1fa947bfd77bc8011ecb209438af4444b02d82b29e"
-dependencies = [
- "anyhow",
- "glob",
- "plist",
- "schemars",
- "serde",
- "serde_json",
- "tauri-utils",
- "toml 0.8.2",
- "walkdir",
-]
-
-[[package]]
-name = "tauri-plugin-store"
-version = "2.0.0-rc.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb93dc0d2bb4d26e8b1738eb5030b9dd9fa79649e304cb2dc702b3f6042d72f3"
-dependencies = [
- "dunce",
- "log",
- "serde",
- "serde_json",
- "tauri",
- "tauri-plugin",
- "thiserror",
 ]
 
 [[package]]
