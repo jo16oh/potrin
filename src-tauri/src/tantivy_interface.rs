@@ -21,9 +21,9 @@ use unicode_normalization::UnicodeNormalization;
 #[cfg_attr(debug_assertions, derive(Type, Debug))]
 #[derive(Serialize, Deserialize)]
 pub struct IndexTarget {
-    id: String,
-    doc_type: String,
-    text: String,
+    pub id: String,
+    pub doc_type: String,
+    pub text: String,
 }
 
 #[cfg_attr(debug_assertions, derive(Type, Debug, PartialEq))]

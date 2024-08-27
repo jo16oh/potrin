@@ -23,15 +23,17 @@
   }
 
   async function testSQLite(text: string) {
-    const all = await commands.selectAll();
-    console.log(all.length);
-
     console.time("insert");
-    const id = await commands.insert(text);
+    const id = await commands.insertOutline(text, null);
     console.timeEnd("insert");
 
+    const decoder = new TextDecoder("utf-8");
+    const uint8Array = new Uint8Array(id);
+    const uuid = decoder.decode(uint8Array);
+    console.log(uuid);
+
     console.time("select");
-    const res = await commands.select(id);
+    const res = await commands.selectOutline(id);
     console.timeEnd("select");
     console.log(res);
   }

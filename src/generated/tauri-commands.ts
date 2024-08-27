@@ -8,14 +8,11 @@ export const commands = {
 async greet(name: string) : Promise<string> {
     return await TAURI_INVOKE("greet", { name });
 },
-async insert(text: string) : Promise<string> {
-    return await TAURI_INVOKE("insert", { text });
+async selectOutline(id: number[]) : Promise<RawOutline> {
+    return await TAURI_INVOKE("select_outline", { id });
 },
-async select(id: string) : Promise<RawOutline> {
-    return await TAURI_INVOKE("select", { id });
-},
-async selectAll() : Promise<RawOutline[]> {
-    return await TAURI_INVOKE("select_all");
+async insertOutline(text: string, parent: number[] | null) : Promise<number[]> {
+    return await TAURI_INVOKE("insert_outline", { text, parent });
 },
 async index(input: IndexTarget[]) : Promise<null> {
     return await TAURI_INVOKE("index", { input });

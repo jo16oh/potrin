@@ -1,6 +1,6 @@
 mod sqlite_interface;
 mod tantivy_interface;
-pub mod utils;
+mod utils;
 
 use std::sync::Arc;
 
@@ -20,9 +20,8 @@ pub fn run() {
     let builder = Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             greet,
-            sqlite_interface::insert,
-            sqlite_interface::select,
-            sqlite_interface::select_all,
+            sqlite_interface::query::select_outline,
+            sqlite_interface::query::insert_outline,
             tantivy_interface::index,
             tantivy_interface::search
         ])
