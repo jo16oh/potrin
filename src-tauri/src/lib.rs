@@ -2,10 +2,8 @@ mod sqlite_interface;
 mod tantivy_interface;
 mod utils;
 
-use std::sync::Arc;
-
 use specta_typescript::Typescript;
-use tauri::{async_runtime, Manager};
+use tauri::async_runtime;
 use tauri_specta::{collect_commands, Builder};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -38,17 +36,20 @@ pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
             let app_handle = app.handle();
-            let path = Arc::new(app_handle.path().app_data_dir()?);
 
-            let sqlite_path = Arc::clone(&path);
-            let sqlite_handle = async_runtime::spawn(async move {
-                sqlite_interface::init_sqlite(Some(&*sqlite_path)).await
-            });
+            let sqlite_handle = {
+                let app_handle = app_handle.clone();
+                async_runtime::spawn(async move {
+                    sqlite_interface::init_sqlite(Some(&app_handle)).await
+                })
+            };
 
-            let tantivy_path = Arc::clone(&path);
-            let tantivy_handle = async_runtime::spawn(async move {
-                tantivy_interface::init_tantivy(Some(&*tantivy_path)).await
-            });
+            let tantivy_handle = {
+                let app_handle = app_handle.clone();
+                async_runtime::spawn(async move {
+                    tantivy_interface::init_tantivy(Some(&app_handle)).await
+                })
+            };
 
             async_runtime::block_on(sqlite_handle)??;
             async_runtime::block_on(tantivy_handle)??;

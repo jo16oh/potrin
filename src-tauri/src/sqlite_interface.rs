@@ -5,19 +5,20 @@ use anyhow::anyhow;
 use sqlx::migrate::{MigrateDatabase, Migrator};
 use sqlx::{Sqlite, SqlitePool};
 use std::fs;
-use std::{path::PathBuf, sync::OnceLock};
+use std::sync::OnceLock;
+use tauri::{AppHandle, Manager};
 
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 static POOL: OnceLock<SqlitePool> = OnceLock::new();
 
-pub async fn init_sqlite(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()> {
+pub async fn init_sqlite(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
     if get_once_lock(&POOL).is_ok() {
         return Ok(());
     }
 
-    let pool = match data_dir_path {
-        Some(p) => {
-            let mut path = p.to_owned();
+    let pool = match app_handle {
+        Some(handle) => {
+            let mut path = handle.path().app_data_dir()?;
             path.extend(["sqlite", "data.db"].iter());
 
             if !path.parent().unwrap().exists() {

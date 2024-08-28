@@ -7,7 +7,6 @@ use diacritics::remove_diacritics;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::fs;
-use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tantivy::collector::TopDocs;
 use tantivy::directory::{ManagedDirectory, MmapDirectory};
@@ -16,6 +15,7 @@ use tantivy::tokenizer::{Language, LowerCaser, Stemmer};
 use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
+use tauri::{AppHandle, Manager};
 use unicode_normalization::UnicodeNormalization;
 
 #[cfg_attr(debug_assertions, derive(Type, Debug))]
@@ -43,7 +43,7 @@ static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
 static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
 static QUERY_PARSER: OnceLock<Mutex<QueryParser>> = OnceLock::new();
 
-pub async fn init_tantivy(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()> {
+pub async fn init_tantivy(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
     if INITIALIZED.get().is_some() {
         return Ok(());
     }
@@ -65,9 +65,9 @@ pub async fn init_tantivy(data_dir_path: Option<&PathBuf>) -> anyhow::Result<()>
     let type_field = schema.get_field("type")?;
     let text_field = schema.get_field("text")?;
 
-    let index: Index = match data_dir_path {
-        Some(p) => {
-            let mut path = p.to_path_buf();
+    let index: Index = match app_handle {
+        Some(handle) => {
+            let mut path = handle.path().app_data_dir()?;
             path.push("tantivy");
             if !path.exists() {
                 fs::create_dir_all(&path)?;
