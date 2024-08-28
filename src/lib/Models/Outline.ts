@@ -36,10 +36,10 @@ export class Outline {
 
   static treeFromArray(data: RawOutline[]): Outline[] {
     const roots: RawOutline[] = [];
-    const map = new Map<string, RawOutline[]>();
+    const childrenMap = new Map<string, RawOutline[]>();
 
     for (const e of data) {
-      map.set(e.id, []);
+      childrenMap.set(e.id, []);
     }
 
     for (const e of data) {
@@ -47,14 +47,16 @@ export class Outline {
         roots.push(e);
         continue;
       }
-      map.get(e.parent)?.push(e);
+      childrenMap.get(e.parent)?.push(e);
     }
 
     return roots.map((e) => createTree(e));
 
     function createTree(root: RawOutline, parent_ref?: Outline): Outline {
       const parent = new Outline(root, parent_ref);
-      const children = map.get(root.id)?.map((c) => createTree(c, parent));
+      const children = childrenMap
+        .get(root.id)
+        ?.map((c) => createTree(c, parent));
       if (children) parent.children = children;
 
       return parent;
