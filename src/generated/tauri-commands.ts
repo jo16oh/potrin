@@ -33,7 +33,7 @@ async search(query: string, levenshteinDistance: number, limit: number) : Promis
 /** user-defined types **/
 
 export type IndexTarget = { id: string; doc_type: string; text: string }
-export type RawOutline = { id: string; parent: string | null; text: string; created_at: number; updated_at: number }
+export type RawOutline = { id: string; parent: string | null; text: string | null; created_at: number; updated_at: number }
 export type SearchResult = { id: string; doc_type: string }
 
 /** tauri-specta globals **/

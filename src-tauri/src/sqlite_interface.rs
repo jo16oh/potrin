@@ -1,4 +1,5 @@
 pub mod query;
+mod sync;
 
 use crate::utils::{get_once_lock, set_once_lock};
 use anyhow::anyhow;
@@ -39,6 +40,8 @@ pub async fn init_sqlite(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
 
     MIGRATOR.run(&pool).await?;
     set_once_lock(&POOL, pool)?;
+
+    sync::start_sync(app_handle.unwrap());
 
     // let client = get_client_info().await?;
     // set_once_lock(&CLIENT_ID, client)?;
