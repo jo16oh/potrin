@@ -41,7 +41,9 @@ pub async fn init_sqlite(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
     MIGRATOR.run(&pool).await?;
     set_once_lock(&POOL, pool)?;
 
-    sync::start_sync(app_handle.unwrap());
+    if let Some(handle) = app_handle {
+        sync::start_sync(handle);
+    }
 
     // let client = get_client_info().await?;
     // set_once_lock(&CLIENT_ID, client)?;
