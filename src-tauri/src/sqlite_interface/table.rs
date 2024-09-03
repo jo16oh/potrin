@@ -67,11 +67,11 @@ pub struct SyncStatusTable {
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct OutlinesTable {
     pub id: Vec<u8>,
-    pub author: Vec<u8>,
+    pub author: Option<Vec<u8>>,
     pub pot_id: Option<Vec<u8>>,
-    pub parent_id: Vec<u8>,
+    pub parent_id: Option<Vec<u8>>,
     pub fractional_index: String,
-    pub text: String,
+    pub text: Option<String>,
     pub last_materialized_hash: Option<Vec<u8>>,
     pub created_at: i64,
     pub updated_at: i64,

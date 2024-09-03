@@ -4,7 +4,7 @@ CREATE TABLE outlines (
   pot_id BLOB REFERENCES pots(id) ON DELETE CASCADE, -- NOT NULL
   parent_id BLOB REFERENCES outlines(id) ON DELETE CASCADE,
   fractional_index TEXT NOT NULL,
-  text TEXT NOT NULL,
+  text TEXT,
   last_materialized_hash BLOB,
   created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),

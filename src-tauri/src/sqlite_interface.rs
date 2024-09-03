@@ -100,25 +100,31 @@ mod test {
 
     #[tokio::test]
     async fn test_init_sqlite() {
-        let _ = init_sqlite(None).await;
-        let id = insert_outline("text", None).await.unwrap();
+        let app = tauri::test::mock_app();
+        let app_handle = app.app_handle();
 
-        let oplog = select_oplog(id.clone()).await.unwrap();
+        let _ = init_sqlite(None).await;
+        let outline = insert_outline(app_handle.clone(), Some("text"), None)
+            .await
+            .unwrap();
+
+        let oplog = select_oplog(outline.id.clone()).await.unwrap();
         let blob = oplog.status.unwrap();
         let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
         dbg!(&json);
 
-        let id = insert_outline("text", None).await.unwrap();
-        let oplog = select_oplog(id.clone()).await.unwrap();
+        let outline = insert_outline(app_handle.clone(), Some("text"), None)
+            .await
+            .unwrap();
+        let oplog = select_oplog(outline.id.clone()).await.unwrap();
         let blob = oplog.status.unwrap();
         let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
         dbg!(&json);
         assert!(json.is_conflicting);
 
-        let app = tauri::test::mock_app();
-        let app_handle = app.app_handle();
-
-        let card = insert_card(app_handle, "text", Some(id)).await.unwrap();
+        let card = insert_card(app_handle.clone(), "text", Some(outline.id))
+            .await
+            .unwrap();
 
         let ids: Vec<Vec<u8>> = vec![card.id];
         let results = select_cards(ids).await.unwrap();

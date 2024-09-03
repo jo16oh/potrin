@@ -4,13 +4,13 @@ use super::insert_outline;
 use crate::utils::get_once_lock;
 use anyhow::anyhow;
 use tauri::AppHandle;
-use tauri_specta::Event;
+// use tauri_specta::Event;
 
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
 pub async fn insert_card<R: tauri::Runtime>(
-    app_handle: &AppHandle<R>,
+    app_handle: AppHandle<R>,
     text: &str,
     outline_id: Option<Vec<u8>>,
 ) -> anyhow::Result<CardsTable> {
@@ -19,9 +19,12 @@ pub async fn insert_card<R: tauri::Runtime>(
 
     let outline_id = match outline_id {
         Some(id) => id,
-        None => insert_outline("", None)
-            .await
-            .map_err(|e| anyhow!(e.to_string()))?,
+        None => {
+            let outline = insert_outline(app_handle, None, None)
+                .await
+                .map_err(|e| anyhow!(e.to_string()))?;
+            outline.id
+        }
     };
 
     let card = sqlx::query_as!(

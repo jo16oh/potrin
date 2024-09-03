@@ -19,7 +19,9 @@ pub fn run() {
         .commands(collect_commands![
             greet,
             sqlite_interface::query::select_outline,
-            sqlite_interface::query::insert_outline,
+            sqlite_interface::query::insert_outline::<tauri::Wry>,
+            sqlite_interface::query::select_cards,
+            sqlite_interface::query::insert_card::<tauri::Wry>,
             tantivy_interface::index,
             tantivy_interface::search
         ])
