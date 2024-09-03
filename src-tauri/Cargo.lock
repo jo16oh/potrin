@@ -2908,6 +2908,7 @@ dependencies = [
  "macros",
  "serde",
  "serde_json",
+ "serde_sqlite_jsonb",
  "specta",
  "specta-typescript",
  "sqlx",
@@ -3498,6 +3499,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79e674e01f999af37c49f70a6ede167a8a60b2503e56c5599532a65baa5969a0"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "serde_sqlite_jsonb"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28eb962d30138aa087a29ea05a791232bac2987c854d9b06c91de0dc61e69e7c"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

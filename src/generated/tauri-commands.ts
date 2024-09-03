@@ -25,6 +25,11 @@ async search(query: string, levenshteinDistance: number, limit: number) : Promis
 /** user-defined events **/
 
 
+export const events = __makeEvents__<{
+cardsTableChangeEvent: CardsTableChangeEvent
+}>({
+cardsTableChangeEvent: "cards-table-change-event"
+})
 
 /** user-defined constants **/
 
@@ -32,7 +37,10 @@ async search(query: string, levenshteinDistance: number, limit: number) : Promis
 
 /** user-defined types **/
 
+export type CardsTable = { id: number[]; author: number[] | null; outline_id: number[]; fractional_index: string; text: string; last_materialized_hash: number[] | null; created_at: number; updated_at: number; is_deleted: number; from_remote: number }
+export type CardsTableChangeEvent = { operation: Operation; rows_changed: CardsTable[] }
 export type IndexTarget = { id: string; doc_type: string; text: string }
+export type Operation = "insert" | "update" | "delete"
 export type RawOutline = { id: string; parent: string | null; text: string | null; created_at: number; updated_at: number }
 export type SearchResult = { id: string; doc_type: string }
 

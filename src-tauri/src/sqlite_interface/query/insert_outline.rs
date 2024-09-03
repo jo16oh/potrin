@@ -42,22 +42,19 @@ impl TryFrom<QueryResult> for RawOutline {
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub async fn insert_outline(
-    app_handle: AppHandle,
-    text: &str,
-    parent: Option<Vec<u8>>,
-) -> anyhow::Result<Vec<u8>> {
+pub async fn insert_outline(text: &str, parent: Option<Vec<u8>>) -> anyhow::Result<Vec<u8>> {
     let pool = get_once_lock(&POOL)?;
     let id = uuidv7::create().into_bytes();
 
     let row: RawOutline = sqlx::query_as!(
         QueryResult,
         r#"
-            INSERT INTO outlines (id, parent_id, text, from_remote)
-            VALUES (?, ?, ?, ?) 
+            INSERT INTO outlines (id, parent_id, fractional_index, text, from_remote)
+            VALUES (?, ?, ?, ?, ?) 
             RETURNING id, parent_id, fractional_index, text, created_at, updated_at;"#,
         id,
         parent,
+        "",
         text,
         1
     )
@@ -65,7 +62,7 @@ pub async fn insert_outline(
     .await?
     .try_into()?;
 
-    app_handle.emit("data_change", row)?;
+    // app_handle.emit("data_change", row)?;
 
     Ok(id)
 }

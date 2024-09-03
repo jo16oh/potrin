@@ -6,11 +6,15 @@ use specta::Type;
 
 #[derive(Deserialize, Serialize, Type, Clone, Debug)]
 pub struct RawOutline {
-    id: String,
-    parent: Option<String>,
-    text: Option<String>,
-    created_at: i64,
-    updated_at: i64,
+    pub id: String,
+    pub parent: Option<String>,
+    pub text: Option<String>,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+struct Raw {
+    pub id: String,
 }
 
 struct QueryResult {

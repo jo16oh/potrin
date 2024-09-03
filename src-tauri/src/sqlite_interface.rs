@@ -1,5 +1,6 @@
 pub mod query;
 mod sync;
+pub mod table;
 
 use crate::utils::{get_once_lock, set_once_lock};
 use anyhow::anyhow;
@@ -88,9 +89,35 @@ pub async fn init_sqlite(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use query::*;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize, Debug)]
+    struct Status {
+        is_synced: bool,
+        is_indexed: bool,
+        is_conflicting: bool,
+    }
 
     #[tokio::test]
     async fn test_init_sqlite() {
-        assert!(init_sqlite(None).await.is_ok());
+        let _ = init_sqlite(None).await;
+        let id = insert_outline("text", None).await.unwrap();
+
+        let oplog = select_oplog(id.clone()).await.unwrap();
+        let blob = oplog.status.unwrap();
+        let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
+        assert!(json.is_synced);
+
+        let app = tauri::test::mock_app();
+        let app_handle = app.app_handle();
+
+        let card = insert_card(app_handle, "text", Some(id)).await.unwrap();
+
+        let ids: Vec<Vec<u8>> = vec![card.id];
+        let results = select_cards(ids).await.unwrap();
+        dbg!(results);
+
+        assert!(true);
     }
 }

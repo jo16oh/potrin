@@ -13,6 +13,7 @@ pub fn anyhow_to_string(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let vis = &input.vis;
     let asyncness = &sig.asyncness;
     let name = &sig.ident;
+    let generics = &sig.generics;
     let inputs = &sig.inputs;
     let block = &input.block;
 
@@ -50,7 +51,7 @@ pub fn anyhow_to_string(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 // 条件を満たしている場合は元の関数をラップして新しい関数を生成
                 let gen = match asyncness {
                     Some(_) => quote! {
-                        #vis async fn #name(#inputs) #new_output {
+                        #vis async fn #name #generics(#inputs) #new_output {
                             let result: anyhow::Result<#inner_ty> = async { #block }.await;
                             match result {
                                 Ok(val) => Ok(val),
@@ -59,7 +60,7 @@ pub fn anyhow_to_string(_attr: TokenStream, item: TokenStream) -> TokenStream {
                         }
                     },
                     None => quote! {
-                        #vis fn #name(#inputs) #new_output {
+                        #vis fn #name #generics(#inputs) #new_output {
                             let result: anyhow::Result<#inner_ty> = (|| #block)();
                             match result {
                                 Ok(val) => Ok(val),

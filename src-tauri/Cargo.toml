@@ -18,7 +18,7 @@ tauri-build = { version = "=2.0.0-rc.3", features = ["config-toml"] }
 tokio = { version = "^1.39.3", features = ["full"] }
 
 [dependencies]
-tauri = { version = "=2.0.0-rc.3", features = ["config-toml"] }
+tauri = { version = "=2.0.0-rc.3", features = ["config-toml", "test"] }
 specta = { version = "=2.0.0-rc.20", features = ["uuid", "chrono"] }
 specta-typescript = "0.0.7"
 tauri-specta = { version = "=2.0.0-rc.17", features = ["derive", "typescript"] }
@@ -39,3 +39,4 @@ sqlx = { version = "0.8", features = [
 uuidv7 = "0.1.4"
 uuid = "1.10.0"
 chrono = { version = "0.4.38", features = ["serde"] }
+serde_sqlite_jsonb = { version = "0.1.0" }

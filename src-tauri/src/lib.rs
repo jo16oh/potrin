@@ -4,7 +4,7 @@ mod utils;
 
 use specta_typescript::Typescript;
 use tauri::async_runtime;
-use tauri_specta::{collect_commands, Builder};
+use tauri_specta::{collect_commands, collect_events, Builder, Event};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -23,6 +23,9 @@ pub fn run() {
             tantivy_interface::index,
             tantivy_interface::search
         ])
+        .events(collect_events![
+            sqlite_interface::table::CardsTableChangeEvent,
+        ])
         .error_handling(tauri_specta::ErrorHandlingMode::Throw);
 
     #[cfg(debug_assertions)]
@@ -34,7 +37,9 @@ pub fn run() {
         .expect("Failed to export typescript bindings");
 
     tauri::Builder::default()
-        .setup(|app| {
+        .invoke_handler(builder.invoke_handler())
+        .setup(move |app| {
+            builder.mount_events(app);
             let app_handle = app.handle();
 
             let sqlite_handle = {
@@ -56,7 +61,6 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(builder.invoke_handler())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
