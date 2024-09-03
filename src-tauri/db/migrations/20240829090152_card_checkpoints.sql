@@ -1,0 +1,4 @@
+-- CREATE TABLE qu (
+--   from BLOB REFERENCES cards(id),
+--   to BLOB REFERENCES cards(id),
+-- ) STRICT;
