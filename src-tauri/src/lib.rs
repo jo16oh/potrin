@@ -24,7 +24,7 @@ pub fn run() {
             tantivy_interface::search
         ])
         .events(collect_events![
-            sqlite_interface::table::CardsTableChangeEvent,
+            sqlite_interface::table::TableChangeEvent<sqlite_interface::table::CardsTable>,
         ])
         .error_handling(tauri_specta::ErrorHandlingMode::Throw);
 
@@ -58,6 +58,10 @@ pub fn run() {
 
             async_runtime::block_on(sqlite_handle)??;
             async_runtime::block_on(tantivy_handle)??;
+
+            sqlite_interface::table::TableChangeEvent::<sqlite_interface::table::CardsTable>::listen(app_handle, |e| {
+                dbg!(e.payload);
+            });
 
             Ok(())
         })

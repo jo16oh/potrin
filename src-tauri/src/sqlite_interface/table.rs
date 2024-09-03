@@ -1,4 +1,3 @@
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::FromRow;
@@ -12,7 +11,22 @@ pub enum Operation {
     Delete,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type, Event)]
+#[derive(Serialize, Deserialize, Debug, Clone, Type, Event)]
+pub struct TableChangeEvent<T: Type + Clone> {
+    operation: Operation,
+    rows_changed: Vec<T>,
+}
+
+impl<T: Type + Clone> TableChangeEvent<T> {
+    pub fn new(operation: Operation, rows: &[T]) -> Self {
+        TableChangeEvent {
+            operation,
+            rows_changed: rows.to_vec(),
+        }
+    }
+}
+
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct OplogTable {
     pub rowid: i64,
     pub primary_key: Vec<u8>,
@@ -23,7 +37,7 @@ pub struct OplogTable {
     pub status: Option<Vec<u8>>,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type, Event)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct UsersTable {
     pub id: Vec<u8>,
     pub name: String,
@@ -31,7 +45,7 @@ pub struct UsersTable {
     pub updated_at: i64,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type, Event)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct PotsTable {
     pub id: Vec<u8>,
     pub name: String,
@@ -41,7 +55,7 @@ pub struct PotsTable {
     pub updated_at: i64,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type, Event)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct SyncStatusTable {
     pub pot_id: Vec<u8>,
     pub tablename: String,
@@ -50,7 +64,7 @@ pub struct SyncStatusTable {
     pub last_sent_timestamp: Option<i64>,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type, Event)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct OutlinesTable {
     pub id: Vec<u8>,
     pub author: Vec<u8>,
@@ -65,7 +79,7 @@ pub struct OutlinesTable {
     pub from_remote: bool,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type, Event)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct OutlineYUpdatesTable {
     pub id: Vec<u8>,
     pub outline_id: Vec<u8>,
@@ -86,25 +100,9 @@ pub struct CardsTable {
     pub created_at: i64,
     pub updated_at: i64,
     pub is_deleted: i64,
-    pub from_remote: i64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Event)]
-pub struct CardsTableChangeEvent {
-    pub operation: Operation,
-    pub rows_changed: Vec<CardsTable>,
-}
-
-impl CardsTableChangeEvent {
-    pub fn new(operation: Operation, rows: &[CardsTable]) -> Self {
-        Self {
-            operation,
-            rows_changed: rows.to_vec(),
-        }
-    }
-}
-
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type, Event)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct CardYUpdatesTable {
     pub id: Vec<u8>,
     pub card_id: Vec<u8>,

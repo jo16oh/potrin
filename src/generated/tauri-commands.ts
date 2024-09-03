@@ -26,9 +26,9 @@ async search(query: string, levenshteinDistance: number, limit: number) : Promis
 
 
 export const events = __makeEvents__<{
-cardsTableChangeEvent: CardsTableChangeEvent
+tableChangeEvent: TableChangeEvent<CardsTable>
 }>({
-cardsTableChangeEvent: "cards-table-change-event"
+tableChangeEvent: "table-change-event"
 })
 
 /** user-defined constants **/
@@ -38,11 +38,11 @@ cardsTableChangeEvent: "cards-table-change-event"
 /** user-defined types **/
 
 export type CardsTable = { id: number[]; author: number[] | null; outline_id: number[]; fractional_index: string; text: string; last_materialized_hash: number[] | null; created_at: number; updated_at: number; is_deleted: number; from_remote: number }
-export type CardsTableChangeEvent = { operation: Operation; rows_changed: CardsTable[] }
 export type IndexTarget = { id: string; doc_type: string; text: string }
 export type Operation = "insert" | "update" | "delete"
 export type RawOutline = { id: string; parent: string | null; text: string | null; created_at: number; updated_at: number }
 export type SearchResult = { id: string; doc_type: string }
+export type TableChangeEvent<T> = { operation: Operation; rows_changed: T[] }
 
 /** tauri-specta globals **/
 

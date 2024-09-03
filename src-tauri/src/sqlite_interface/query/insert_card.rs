@@ -1,4 +1,4 @@
-use super::super::table::{CardsTable, CardsTableChangeEvent, Operation};
+use super::super::table::{CardsTable, Operation, TableChangeEvent};
 use super::super::POOL;
 use super::insert_outline;
 use crate::utils::get_once_lock;
@@ -27,23 +27,20 @@ pub async fn insert_card<R: tauri::Runtime>(
     let card = sqlx::query_as!(
         CardsTable,
         r#"
-            INSERT INTO cards (id, outline_id, fractional_index, text, from_remote)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO cards (id, outline_id, fractional_index, text)
+            VALUES (?, ?, ?, ?)
             RETURNING *;
         "#,
         id,
         outline_id,
         "",
         text,
-        1
     )
     .fetch_one(pool)
     .await
     .map_err(|e| anyhow!(e.to_string()))?;
 
-    let event = CardsTableChangeEvent::new(Operation::Insert, &[card.clone(), card.clone()]);
-
-    event.emit(app_handle)?;
+    // TableChangeEvent::<CardsTable>::new(Operation::Insert, &[card.clone()]).emit(app_handle)?;
 
     Ok(card)
 }
