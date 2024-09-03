@@ -50,7 +50,7 @@ pub struct PotsTable {
     pub id: Vec<u8>,
     pub name: String,
     pub owner: Option<i64>,
-    pub sync: bool,
+    pub sync: i64,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -75,7 +75,7 @@ pub struct OutlinesTable {
     pub last_materialized_hash: Option<Vec<u8>>,
     pub created_at: i64,
     pub updated_at: i64,
-    pub is_deleted: bool,
+    pub is_deleted: i64,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
@@ -84,8 +84,8 @@ pub struct OutlineYUpdatesTable {
     pub outline_id: Vec<u8>,
     pub data: Vec<u8>,
     pub updated_at: i64,
-    pub is_checkpoint: bool,
-    pub from_remote: bool,
+    pub is_checkpoint: i64,
+    pub from_remote: i64,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
@@ -107,6 +107,6 @@ pub struct CardYUpdatesTable {
     pub card_id: Vec<u8>,
     pub data: Vec<u8>,
     pub updated_at: i64,
-    pub is_checkpoint: bool,
-    pub from_remote: bool,
+    pub is_checkpoint: i64,
+    pub from_remote: i64,
 }
