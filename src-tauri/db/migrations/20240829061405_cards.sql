@@ -7,8 +7,7 @@ CREATE TABLE cards (
   last_materialized_hash BLOB,
   created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
-  is_deleted INTEGER NOT NULL DEFAULT 0,
-  from_remote INTEGER NOT NULL
+  is_deleted INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
 CREATE INDEX cards_outline_id_idx ON cards(outline_id);
@@ -25,12 +24,6 @@ BEGIN
     NEW.updated_at,
     0,
     jsonb_object(
-      'is_synced', (
-        CASE 
-          WHEN NEW.from_remote = 0 THEN jsonb('false')
-          ELSE jsonb('true')
-        END
-      ),
       'is_indexed', jsonb('false')
     )
   );
@@ -47,12 +40,6 @@ BEGIN
     NEW.updated_at,
     0,
     jsonb_object(
-      'is_synced', (
-        CASE 
-          WHEN NEW.from_remote = 0 THEN jsonb('false')
-          ELSE jsonb('true')
-        END
-      ),
       'is_indexed', jsonb('false')
     )
   );
@@ -69,12 +56,6 @@ BEGIN
     unixepoch('now', 'subsec') * 1000,
     1, 
     jsonb_object(
-      'is_synced', (
-        CASE 
-          WHEN NEW.from_remote = 0 THEN jsonb('false')
-          ELSE jsonb('true')
-        END
-      ),
       'is_indexed', jsonb('false')
     )
   );

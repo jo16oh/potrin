@@ -8,8 +8,7 @@ CREATE TABLE outlines (
   last_materialized_hash BLOB,
   created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
-  is_deleted INTEGER NOT NULL DEFAULT 0,
-  from_remote INTEGER NOT NULL
+  is_deleted INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
 CREATE INDEX outlines_parent_id_idx ON outlines(parent_id);
@@ -27,12 +26,6 @@ BEGIN
       NEW.updated_at,
       0,
       jsonb_object(
-        'is_synced', (
-          CASE 
-            WHEN NEW.from_remote = 0 THEN jsonb('false')
-            ELSE jsonb('true')
-          END
-        ),
         'is_indexed', jsonb('false'),
         'is_conflicting', (
           CASE 
@@ -40,6 +33,8 @@ BEGIN
               SELECT 1 FROM outlines
               WHERE 
                 text = NEW.text 
+                AND id != NEW.id
+                AND is_deleted = 0
                 AND (parent_id = NEW.parent_id OR (parent_id IS NULL AND NEW.parent_id IS NULL))
             ) THEN jsonb('true')
             ELSE jsonb('false')
@@ -60,12 +55,6 @@ BEGIN
     NEW.updated_at,
     0,
     jsonb_object(
-      'is_synced', (
-        CASE 
-          WHEN NEW.from_remote = 0 THEN jsonb('false')
-          ELSE jsonb('true')
-        END
-      ),
       'is_indexed', jsonb('false'),
       'is_conflicting', (
         CASE 
@@ -73,6 +62,8 @@ BEGIN
             SELECT 1 FROM outlines
             WHERE 
               text = NEW.text 
+              AND id != NEW.id
+              AND is_deleted = 0
               AND (parent_id = NEW.parent_id OR (parent_id IS NULL AND NEW.parent_id IS NULL))
           ) THEN jsonb('true')
           ELSE jsonb('false')
@@ -93,21 +84,18 @@ BEGIN
     unixepoch('now', 'subsec') * 1000,
     1, 
     jsonb_object(
-      'is_synced', (
-        CASE 
-          WHEN NEW.from_remote = 0 THEN jsonb('false')
-          ELSE jsonb('true')
-        END
-      ),
       'is_indexed', jsonb('false'),
       'is_conflicting', (
         CASE 
-          WHEN EXISTS (
-            SELECT 1 FROM outlines
+          WHEN (
+            SELECT COUNT(*)
+            FROM outlines
             WHERE 
-              text = NEW.text 
-              AND (parent_id = NEW.parent_id OR (parent_id IS NULL AND NEW.parent_id IS NULL))
-          ) THEN jsonb('true')
+              text = OLD.text 
+              AND id != OLD.id
+              AND is_deleted = 0
+          ) >= 2
+          THEN jsonb('true')
           ELSE jsonb('false')
         END
       )

@@ -76,7 +76,6 @@ pub struct OutlinesTable {
     pub created_at: i64,
     pub updated_at: i64,
     pub is_deleted: bool,
-    pub from_remote: bool,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]

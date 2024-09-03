@@ -49,14 +49,13 @@ pub async fn insert_outline(text: &str, parent: Option<Vec<u8>>) -> anyhow::Resu
     let row: RawOutline = sqlx::query_as!(
         QueryResult,
         r#"
-            INSERT INTO outlines (id, parent_id, fractional_index, text, from_remote)
-            VALUES (?, ?, ?, ?, ?) 
+            INSERT INTO outlines (id, parent_id, fractional_index, text)
+            VALUES (?, ?, ?, ?) 
             RETURNING id, parent_id, fractional_index, text, created_at, updated_at;"#,
         id,
         parent,
         "",
         text,
-        1
     )
     .fetch_one(pool)
     .await?

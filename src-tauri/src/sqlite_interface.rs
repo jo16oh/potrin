@@ -94,7 +94,6 @@ mod test {
 
     #[derive(Serialize, Deserialize, Debug)]
     struct Status {
-        is_synced: bool,
         is_indexed: bool,
         is_conflicting: bool,
     }
@@ -107,7 +106,14 @@ mod test {
         let oplog = select_oplog(id.clone()).await.unwrap();
         let blob = oplog.status.unwrap();
         let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
-        assert!(json.is_synced);
+        dbg!(&json);
+
+        let id = insert_outline("text", None).await.unwrap();
+        let oplog = select_oplog(id.clone()).await.unwrap();
+        let blob = oplog.status.unwrap();
+        let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
+        dbg!(&json);
+        assert!(json.is_conflicting);
 
         let app = tauri::test::mock_app();
         let app_handle = app.app_handle();
