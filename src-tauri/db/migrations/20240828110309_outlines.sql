@@ -26,6 +26,7 @@ BEGIN
       NEW.updated_at,
       0,
       jsonb_object(
+        'is_synced', jsonb('false'),
         'is_indexed', jsonb('false'),
         'is_conflicting', (
           CASE 
@@ -55,6 +56,7 @@ BEGIN
     NEW.updated_at,
     0,
     jsonb_object(
+      'is_synced', jsonb('false'),
       'is_indexed', jsonb('false'),
       'is_conflicting', (
         CASE 
@@ -84,21 +86,9 @@ BEGIN
     unixepoch('now', 'subsec') * 1000,
     1, 
     jsonb_object(
+      'is_synced', jsonb('false'),
       'is_indexed', jsonb('false'),
-      'is_conflicting', (
-        CASE 
-          WHEN (
-            SELECT COUNT(*)
-            FROM outlines
-            WHERE 
-              text = OLD.text 
-              AND id != OLD.id
-              AND is_deleted = 0
-          ) >= 2
-          THEN jsonb('true')
-          ELSE jsonb('false')
-        END
-      )
+      'is_conflicting', jsonb('false')
     )
   );
 END;
