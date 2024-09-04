@@ -24,6 +24,7 @@ BEGIN
     NEW.updated_at,
     0,
     jsonb_object(
+      'is_synced', jsonb('false'),
       'is_indexed', jsonb('false')
     )
   );
@@ -40,6 +41,7 @@ BEGIN
     NEW.updated_at,
     0,
     jsonb_object(
+      'is_synced', jsonb('false'),
       'is_indexed', jsonb('false')
     )
   );
@@ -56,6 +58,7 @@ BEGIN
     unixepoch('now', 'subsec') * 1000,
     1, 
     jsonb_object(
+      'is_synced', jsonb('false'),
       'is_indexed', jsonb('false')
     )
   );
