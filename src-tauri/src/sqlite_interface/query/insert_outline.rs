@@ -1,6 +1,5 @@
-use super::super::table::OutlinesTable;
+use super::super::table::{Operation::*, OutlinesTable, OutlinesTableChangeEvent};
 use super::super::POOL;
-use crate::sqlite_interface::table::{Operation, TableChangeEvent};
 use crate::utils::get_once_lock;
 use tauri::AppHandle;
 use tauri_specta::Event;
@@ -30,8 +29,7 @@ pub async fn insert_outline<R: tauri::Runtime>(
     .fetch_one(pool)
     .await?;
 
-    TableChangeEvent::<OutlinesTable>::new(Operation::Insert, &[outline.clone()])
-        .emit(&app_handle)?;
+    OutlinesTableChangeEvent::new(Insert, &[outline.clone()]).emit(&app_handle)?;
 
     Ok(outline)
 }

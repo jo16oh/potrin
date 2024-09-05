@@ -11,21 +11,6 @@ pub enum Operation {
     Delete,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Type, Event)]
-pub struct TableChangeEvent<T: Type + Clone> {
-    operation: Operation,
-    rows_changed: Vec<T>,
-}
-
-impl<T: Type + Clone> TableChangeEvent<T> {
-    pub fn new(operation: Operation, rows: &[T]) -> Self {
-        TableChangeEvent {
-            operation,
-            rows_changed: rows.to_vec(),
-        }
-    }
-}
-
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct OplogTable {
     pub rowid: i64,
@@ -64,6 +49,7 @@ pub struct SyncStatusTable {
     pub last_sent_timestamp: Option<i64>,
 }
 
+#[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct OutlinesTable {
     pub id: Vec<u8>,
@@ -78,6 +64,7 @@ pub struct OutlinesTable {
     pub is_deleted: i64,
 }
 
+#[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct OutlineYUpdatesTable {
     pub id: Vec<u8>,
@@ -88,6 +75,7 @@ pub struct OutlineYUpdatesTable {
     pub from_remote: i64,
 }
 
+#[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct CardsTable {
     pub id: Vec<u8>,
@@ -101,6 +89,7 @@ pub struct CardsTable {
     pub is_deleted: i64,
 }
 
+#[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
 pub struct CardYUpdatesTable {
     pub id: Vec<u8>,

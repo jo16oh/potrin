@@ -1,10 +1,10 @@
-use super::super::table::CardsTable;
+use super::super::table::{CardsTable, CardsTableChangeEvent, Operation::*};
 use super::super::POOL;
 use super::insert_outline;
 use crate::utils::get_once_lock;
 use anyhow::anyhow;
 use tauri::AppHandle;
-// use tauri_specta::Event;
+use tauri_specta::Event;
 
 #[tauri::command]
 #[specta::specta]
@@ -43,7 +43,7 @@ pub async fn insert_card<R: tauri::Runtime>(
     .await
     .map_err(|e| anyhow!(e.to_string()))?;
 
-    // TableChangeEvent::<CardsTable>::new(Operation::Insert, &[card.clone()]).emit(&app_handle)?;
+    CardsTableChangeEvent::new(Insert, &[card.clone()]).emit(&app_handle)?;
 
     Ok(card)
 }

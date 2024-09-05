@@ -1,20 +1,25 @@
 mod sqlite_interface;
 mod tantivy_interface;
 mod utils;
-use serde::{Deserialize, Serialize};
-use specta::Type;
-use specta_typescript::Typescript;
-use tauri::{async_runtime, App, Runtime};
-use tauri_specta::{collect_commands, collect_events, Event, Events};
 
-#[derive(Serialize, Deserialize, Debug, Clone, Type, Event)]
-pub struct DemoEvent(pub String);
+use specta_typescript::Typescript;
+use sqlite_interface::table::*;
+use tauri::{async_runtime, App, Runtime};
+use tauri_specta::{collect_commands, collect_events, Events};
+use Env::*;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 #[specta::specta]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[allow(dead_code)]
+#[derive(Clone)]
+enum Env {
+    Build,
+    Test,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -42,21 +47,17 @@ pub fn run() {
 
     tauri::Builder::default()
         .invoke_handler(specta_builder.invoke_handler())
-        .setup(move |app| setup(specta_builder, app, Env::Build))
+        .setup(move |app| setup(specta_builder, app, Build))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-#[derive(Clone)]
-enum Env {
-    Test,
-    Build,
-}
-
 fn events() -> Events {
     collect_events![
-        sqlite_interface::table::TableChangeEvent<sqlite_interface::table::OutlinesTable>,
-        DemoEvent,
+        OutlinesTableChangeEvent,
+        OutlineYUpdatesTableChangeEvent,
+        CardsTableChangeEvent,
+        CardYUpdatesTableChangeEvent,
     ]
 }
 
@@ -73,8 +74,8 @@ fn setup<R: Runtime>(
         let env = env.clone();
         async_runtime::spawn(async move {
             sqlite_interface::init_sqlite(match env {
-                Env::Build => Some(&app_handle),
-                Env::Test => None,
+                Build => Some(&app_handle),
+                Test => None,
             })
             .await
         })
@@ -85,22 +86,20 @@ fn setup<R: Runtime>(
         let env = env.clone();
         async_runtime::spawn(async move {
             tantivy_interface::init_tantivy(match env {
-                Env::Build => Some(&app_handle),
-                Env::Test => None,
+                Build => Some(&app_handle),
+                Test => None,
             })
             .await
         })
     };
 
+    // set event listners here
+    // OutlinesTableChangeEvent::listen(app_handle, |e| {
+    //     dbg!(e.payload);
+    // });
+
     async_runtime::block_on(sqlite_handle)??;
     async_runtime::block_on(tantivy_handle)??;
-
-    sqlite_interface::table::TableChangeEvent::<sqlite_interface::table::OutlinesTable>::listen(
-        app_handle,
-        |e| {
-            dbg!(e.payload);
-        },
-    );
 
     Ok(())
 }
@@ -122,7 +121,7 @@ pub mod test {
         let specta_builder = tauri_specta::Builder::<MockRuntime>::new().events(events());
         mock_builder()
             .invoke_handler(specta_builder.invoke_handler())
-            .setup(move |app| setup(specta_builder, app, Env::Test))
+            .setup(move |app| setup(specta_builder, app, Test))
             .build(mock_context(noop_assets()))
             .unwrap()
     }

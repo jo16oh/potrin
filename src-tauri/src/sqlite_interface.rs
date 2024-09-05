@@ -92,8 +92,6 @@ mod test {
     use crate::test::*;
     use query::*;
     use serde::{Deserialize, Serialize};
-    use table::{OutlinesTable, TableChangeEvent};
-    use tauri_specta::Event;
 
     #[derive(Serialize, Deserialize, Debug)]
     struct Status {
@@ -106,10 +104,6 @@ mod test {
     fn test_init_sqlite() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
             println!("test running!");
-
-            TableChangeEvent::<OutlinesTable>::listen(app_handle, |e| {
-                dbg!(e.payload);
-            });
 
             let outline = insert_outline(app_handle.clone(), Some("text"), None)
                 .await
