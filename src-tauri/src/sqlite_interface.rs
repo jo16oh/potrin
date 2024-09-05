@@ -91,18 +91,17 @@ mod test {
     use super::super::test::*;
     use super::*;
     use crate::run_in_mock_app;
-    // use query::*;
+    use query::*;
     use serde::{Deserialize, Serialize};
     use std::panic;
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
     use std::sync::Arc;
     use std::thread;
-    // use table::{CardsTable, OutlinesTable, TableChangeEvent};
+    use table::{OutlinesTable, TableChangeEvent};
     use tauri::async_runtime;
-    // use tauri::{test::MockRuntime, Emitter, Listener, State};
     use tauri::test::MockRuntime;
-    // use tauri_specta::Event;
+    use tauri_specta::Event;
 
     #[derive(Serialize, Deserialize, Debug)]
     struct Status {
@@ -116,35 +115,35 @@ mod test {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
             println!("test running!");
 
-            // TableChangeEvent::<OutlinesTable>::listen(app_handle, |e| {
-            //     dbg!(e.payload);
-            // });
+            TableChangeEvent::<OutlinesTable>::listen(app_handle, |e| {
+                dbg!(e.payload);
+            });
 
-            // let outline = insert_outline(app_handle.clone(), Some("text"), None)
-            //     .await
-            //     .unwrap();
+            let outline = insert_outline(app_handle.clone(), Some("text"), None)
+                .await
+                .unwrap();
 
-            // let oplog = select_oplog(outline.id.clone()).await.unwrap();
-            // let blob = oplog.status.unwrap();
-            // let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
-            // dbg!(&json);
+            let oplog = select_oplog(outline.id.clone()).await.unwrap();
+            let blob = oplog.status.unwrap();
+            let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
+            dbg!(&json);
 
-            // let outline = insert_outline(app_handle.clone(), Some("text"), None)
-            //     .await
-            //     .unwrap();
-            // let oplog = select_oplog(outline.id.clone()).await.unwrap();
-            // let blob = oplog.status.unwrap();
-            // let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
-            // dbg!(&json);
-            // assert!(json.is_conflicting);
+            let outline = insert_outline(app_handle.clone(), Some("text"), None)
+                .await
+                .unwrap();
+            let oplog = select_oplog(outline.id.clone()).await.unwrap();
+            let blob = oplog.status.unwrap();
+            let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
+            dbg!(&json);
+            assert!(json.is_conflicting);
 
-            // let card = insert_card(app_handle.clone(), "text", Some(outline.id))
-            //     .await
-            //     .unwrap();
+            let card = insert_card(app_handle.clone(), "text", Some(outline.id))
+                .await
+                .unwrap();
 
-            // let ids: Vec<Vec<u8>> = vec![card.id];
-            // let results = select_cards(ids).await.unwrap();
-            // dbg!(results);
+            let ids: Vec<Vec<u8>> = vec![card.id];
+            let results = select_cards(ids).await.unwrap();
+            dbg!(results);
         });
     }
 }

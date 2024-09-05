@@ -108,6 +108,7 @@ fn setup<R: Runtime>(
 #[cfg(test)]
 pub mod test {
     use super::*;
+    pub use crate::run_in_mock_app;
     use tauri::{
         test::{mock_builder, mock_context, noop_assets, MockRuntime},
         App,
@@ -125,10 +126,12 @@ pub mod test {
     #[macro_export]
     macro_rules! run_in_mock_app {
         (|$arg:ident: $arg_type:ty| async $closure:block) => {{
+
+            panic::set_hook(Box::new(|_| {}));
+
             let is_successfull = Arc::new(AtomicBool::new(false));
 
             let flag_clone = is_successfull.clone();
-
             let handle = thread::spawn(|| {
                 println!("thread running");
                 panic::catch_unwind(|| {
@@ -145,9 +148,7 @@ pub mod test {
 
             let _ = handle.join();
 
-            if !is_successfull.load(Ordering::SeqCst) {
-                panic!("test failed");
-            };
+            assert!(is_successfull.load(Ordering::SeqCst));
         }};
     }
 }
