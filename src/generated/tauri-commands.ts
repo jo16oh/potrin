@@ -11,8 +11,14 @@ async greet(name: string) : Promise<string> {
 async selectOutline(id: number[]) : Promise<RawOutline> {
     return await TAURI_INVOKE("select_outline", { id });
 },
-async insertOutline(text: string, parent: number[] | null) : Promise<number[]> {
+async insertOutline(text: string | null, parent: number[] | null) : Promise<OutlinesTable> {
     return await TAURI_INVOKE("insert_outline", { text, parent });
+},
+async selectCards(ids: number[][]) : Promise<RawCard[]> {
+    return await TAURI_INVOKE("select_cards", { ids });
+},
+async insertCard(text: string, outlineId: number[] | null) : Promise<CardsTable> {
+    return await TAURI_INVOKE("insert_card", { text, outlineId });
 },
 async index(input: IndexTarget[]) : Promise<null> {
     return await TAURI_INVOKE("index", { input });
@@ -26,8 +32,10 @@ async search(query: string, levenshteinDistance: number, limit: number) : Promis
 
 
 export const events = __makeEvents__<{
-tableChangeEvent: TableChangeEvent<CardsTable>
+demoEvent: DemoEvent,
+tableChangeEvent: TableChangeEvent<OutlinesTable>
 }>({
+demoEvent: "demo-event",
 tableChangeEvent: "table-change-event"
 })
 
@@ -37,9 +45,12 @@ tableChangeEvent: "table-change-event"
 
 /** user-defined types **/
 
-export type CardsTable = { id: number[]; author: number[] | null; outline_id: number[]; fractional_index: string; text: string; last_materialized_hash: number[] | null; created_at: number; updated_at: number; is_deleted: number; from_remote: number }
+export type CardsTable = { id: number[]; author: number[] | null; outline_id: number[]; fractional_index: string; text: string; last_materialized_hash: number[] | null; created_at: number; updated_at: number; is_deleted: number }
+export type DemoEvent = string
 export type IndexTarget = { id: string; doc_type: string; text: string }
 export type Operation = "insert" | "update" | "delete"
+export type OutlinesTable = { id: number[]; author: number[] | null; pot_id: number[] | null; parent_id: number[] | null; fractional_index: string; text: string | null; last_materialized_hash: number[] | null; created_at: number; updated_at: number; is_deleted: number }
+export type RawCard = { id: string; outline_id: string; text: string; fractional_index: string; created_at: number; updated_at: number }
 export type RawOutline = { id: string; parent: string | null; text: string | null; created_at: number; updated_at: number }
 export type SearchResult = { id: string; doc_type: string }
 export type TableChangeEvent<T> = { operation: Operation; rows_changed: T[] }

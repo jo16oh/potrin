@@ -1,6 +1,5 @@
 use super::super::POOL;
 use crate::utils::get_once_lock;
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::{FromRow, QueryBuilder, Sqlite};
@@ -58,7 +57,7 @@ pub async fn select_cards(ids: Vec<Vec<u8>>) -> anyhow::Result<Vec<RawCard>> {
     }
     separated.push_unseparated(")");
 
-    dbg!(query_builder.sql());
+    // dbg!(query_builder.sql());
 
     query_builder
         .build_query_as::<QueryResult>()

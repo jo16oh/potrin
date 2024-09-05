@@ -1,4 +1,4 @@
-use super::super::table::{CardsTable, Operation, TableChangeEvent};
+use super::super::table::CardsTable;
 use super::super::POOL;
 use super::insert_outline;
 use crate::utils::get_once_lock;
@@ -20,7 +20,7 @@ pub async fn insert_card<R: tauri::Runtime>(
     let outline_id = match outline_id {
         Some(id) => id,
         None => {
-            let outline = insert_outline(app_handle, None, None)
+            let outline = insert_outline(app_handle.clone(), None, None)
                 .await
                 .map_err(|e| anyhow!(e.to_string()))?;
             outline.id
@@ -43,7 +43,7 @@ pub async fn insert_card<R: tauri::Runtime>(
     .await
     .map_err(|e| anyhow!(e.to_string()))?;
 
-    // TableChangeEvent::<CardsTable>::new(Operation::Insert, &[card.clone()]).emit(app_handle)?;
+    // TableChangeEvent::<CardsTable>::new(Operation::Insert, &[card.clone()]).emit(&app_handle)?;
 
     Ok(card)
 }

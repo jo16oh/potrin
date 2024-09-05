@@ -31,10 +31,10 @@ unicode-normalization = "0.1.20"
 cjk = "0.2"
 diacritics = "0.2"
 sqlx = { version = "0.8", features = [
-  "sqlite",
-  "runtime-tokio-native-tls",
-  "uuid",
-  "chrono",
+    "sqlite",
+    "runtime-tokio-native-tls",
+    "uuid",
+    "chrono",
 ] }
 uuidv7 = "0.1.4"
 uuid = "1.10.0"

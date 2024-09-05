@@ -13,10 +13,6 @@ pub struct RawOutline {
     pub updated_at: i64,
 }
 
-struct Raw {
-    pub id: String,
-}
-
 struct QueryResult {
     id: Vec<u8>,
     parent_id: Option<Vec<u8>>,

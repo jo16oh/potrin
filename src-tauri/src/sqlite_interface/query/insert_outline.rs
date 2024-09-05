@@ -1,7 +1,6 @@
-use super::super::table::{Operation, OutlinesTable, TableChangeEvent};
+use super::super::table::OutlinesTable;
 use super::super::POOL;
 use crate::utils::get_once_lock;
-use anyhow::anyhow;
 use tauri::AppHandle;
 // use tauri_specta::Event;
 
@@ -20,7 +19,7 @@ pub async fn insert_outline<R: tauri::Runtime>(
         OutlinesTable,
         r#"
             INSERT INTO outlines (id, parent_id, fractional_index, text)
-            VALUES (?, ?, ?, ?) 
+            VALUES (?, ?, ?, ?)
             RETURNING *;"#,
         id,
         parent,
@@ -30,7 +29,7 @@ pub async fn insert_outline<R: tauri::Runtime>(
     .fetch_one(pool)
     .await?;
 
-    // TableChangeEvent::<OutlinesTable>::new(Operation::Insert, &[outline.clone()]).emit(app_handle);
+    // TableChangeEvent::<OutlinesTable>::new(Operation::Insert, &[outline.clone()]).emit(&app_handle);
 
     Ok(outline)
 }

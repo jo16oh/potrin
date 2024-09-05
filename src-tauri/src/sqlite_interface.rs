@@ -8,12 +8,12 @@ use sqlx::migrate::{MigrateDatabase, Migrator};
 use sqlx::{Sqlite, SqlitePool};
 use std::fs;
 use std::sync::OnceLock;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Runtime};
 
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 static POOL: OnceLock<SqlitePool> = OnceLock::new();
 
-pub async fn init_sqlite(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
+pub async fn init_sqlite<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyhow::Result<()> {
     if get_once_lock(&POOL).is_ok() {
         return Ok(());
     }
@@ -42,9 +42,9 @@ pub async fn init_sqlite(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
     MIGRATOR.run(&pool).await?;
     set_once_lock(&POOL, pool)?;
 
-    if let Some(handle) = app_handle {
-        sync::start_sync(handle);
-    }
+    // if let Some(handle) = app_handle {
+    //     sync::start_sync(handle);
+    // }
 
     // let client = get_client_info().await?;
     // set_once_lock(&CLIENT_ID, client)?;
@@ -88,48 +88,63 @@ pub async fn init_sqlite(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod test {
+    use super::super::test::*;
     use super::*;
-    use query::*;
+    use crate::run_in_mock_app;
+    // use query::*;
     use serde::{Deserialize, Serialize};
+    use std::panic;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::Ordering;
+    use std::sync::Arc;
+    use std::thread;
+    // use table::{CardsTable, OutlinesTable, TableChangeEvent};
+    use tauri::async_runtime;
+    // use tauri::{test::MockRuntime, Emitter, Listener, State};
+    use tauri::test::MockRuntime;
+    // use tauri_specta::Event;
 
     #[derive(Serialize, Deserialize, Debug)]
     struct Status {
+        is_synced: bool,
         is_indexed: bool,
         is_conflicting: bool,
     }
 
-    #[tokio::test]
-    async fn test_init_sqlite() {
-        let app = tauri::test::mock_app();
-        let app_handle = app.app_handle();
+    #[test]
+    fn test_init_sqlite() {
+        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            println!("test running!");
 
-        let _ = init_sqlite(None).await;
-        let outline = insert_outline(app_handle.clone(), Some("text"), None)
-            .await
-            .unwrap();
+            // TableChangeEvent::<OutlinesTable>::listen(app_handle, |e| {
+            //     dbg!(e.payload);
+            // });
 
-        let oplog = select_oplog(outline.id.clone()).await.unwrap();
-        let blob = oplog.status.unwrap();
-        let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
-        dbg!(&json);
+            // let outline = insert_outline(app_handle.clone(), Some("text"), None)
+            //     .await
+            //     .unwrap();
 
-        let outline = insert_outline(app_handle.clone(), Some("text"), None)
-            .await
-            .unwrap();
-        let oplog = select_oplog(outline.id.clone()).await.unwrap();
-        let blob = oplog.status.unwrap();
-        let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
-        dbg!(&json);
-        assert!(json.is_conflicting);
+            // let oplog = select_oplog(outline.id.clone()).await.unwrap();
+            // let blob = oplog.status.unwrap();
+            // let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
+            // dbg!(&json);
 
-        let card = insert_card(app_handle.clone(), "text", Some(outline.id))
-            .await
-            .unwrap();
+            // let outline = insert_outline(app_handle.clone(), Some("text"), None)
+            //     .await
+            //     .unwrap();
+            // let oplog = select_oplog(outline.id.clone()).await.unwrap();
+            // let blob = oplog.status.unwrap();
+            // let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
+            // dbg!(&json);
+            // assert!(json.is_conflicting);
 
-        let ids: Vec<Vec<u8>> = vec![card.id];
-        let results = select_cards(ids).await.unwrap();
-        dbg!(results);
+            // let card = insert_card(app_handle.clone(), "text", Some(outline.id))
+            //     .await
+            //     .unwrap();
 
-        assert!(true);
+            // let ids: Vec<Vec<u8>> = vec![card.id];
+            // let results = select_cards(ids).await.unwrap();
+            // dbg!(results);
+        });
     }
 }

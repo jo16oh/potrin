@@ -15,7 +15,7 @@ use tantivy::tokenizer::{Language, LowerCaser, Stemmer};
 use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Runtime};
 use unicode_normalization::UnicodeNormalization;
 
 #[cfg_attr(debug_assertions, derive(Type, Debug))]
@@ -43,7 +43,7 @@ static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
 static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
 static QUERY_PARSER: OnceLock<Mutex<QueryParser>> = OnceLock::new();
 
-pub async fn init_tantivy(app_handle: Option<&AppHandle>) -> anyhow::Result<()> {
+pub async fn init_tantivy<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyhow::Result<()> {
     if INITIALIZED.get().is_some() {
         return Ok(());
     }
@@ -192,10 +192,11 @@ pub async fn search(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tauri::test::MockRuntime;
 
     #[tokio::test]
     async fn test() {
-        let _ = init_tantivy(None).await;
+        let _ = init_tantivy::<MockRuntime>(None).await;
 
         let input = vec![
             IndexTarget {
