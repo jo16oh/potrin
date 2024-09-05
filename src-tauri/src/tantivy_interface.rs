@@ -100,15 +100,15 @@ pub async fn init_tantivy<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyh
         tokenizer_manager_for_query,
     ));
 
-    set_once_lock(&INDEX, index)?;
-    set_once_lock(&READER, reader)?;
-    set_once_lock(&WRITER, Mutex::new(writer))?;
-    set_once_lock(&ID_FIELD, id_field)?;
-    set_once_lock(&TYPE_FIELD, type_field)?;
-    set_once_lock(&TEXT_FIELD, text_field)?;
-    set_once_lock(&QUERY_PARSER, query_parser)?;
+    let _ = set_once_lock(&INDEX, index);
+    let _ = set_once_lock(&READER, reader);
+    let _ = set_once_lock(&WRITER, Mutex::new(writer));
+    let _ = set_once_lock(&ID_FIELD, id_field);
+    let _ = set_once_lock(&TYPE_FIELD, type_field);
+    let _ = set_once_lock(&TEXT_FIELD, text_field);
+    let _ = set_once_lock(&QUERY_PARSER, query_parser);
 
-    set_once_lock(&INITIALIZED, ())?;
+    let _ = set_once_lock(&INITIALIZED, ());
     Ok(())
 }
 

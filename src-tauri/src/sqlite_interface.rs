@@ -40,7 +40,7 @@ pub async fn init_sqlite<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyho
     };
 
     MIGRATOR.run(&pool).await?;
-    set_once_lock(&POOL, pool)?;
+    let _ = set_once_lock(&POOL, pool);
 
     // if let Some(handle) = app_handle {
     //     sync::start_sync(handle);
