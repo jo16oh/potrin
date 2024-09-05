@@ -88,19 +88,11 @@ pub async fn init_sqlite<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyho
 
 #[cfg(test)]
 mod test {
-    use super::super::test::*;
     use super::*;
-    use crate::run_in_mock_app;
+    use crate::test::*;
     use query::*;
     use serde::{Deserialize, Serialize};
-    use std::panic;
-    use std::sync::atomic::AtomicBool;
-    use std::sync::atomic::Ordering;
-    use std::sync::Arc;
-    use std::thread;
     use table::{OutlinesTable, TableChangeEvent};
-    use tauri::async_runtime;
-    use tauri::test::MockRuntime;
     use tauri_specta::Event;
 
     #[derive(Serialize, Deserialize, Debug)]

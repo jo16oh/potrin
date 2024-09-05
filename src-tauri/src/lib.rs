@@ -109,10 +109,14 @@ fn setup<R: Runtime>(
 pub mod test {
     use super::*;
     pub use crate::run_in_mock_app;
-    use tauri::{
-        test::{mock_builder, mock_context, noop_assets, MockRuntime},
-        App,
-    };
+    pub use std::boxed::Box;
+    pub use std::panic;
+    pub use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
+    pub use std::sync::Arc;
+    pub use std::thread;
+    pub use tauri::test::MockRuntime;
+    use tauri::test::{mock_builder, mock_context, noop_assets};
+    pub use tauri::{async_runtime, App};
 
     pub fn mock_app() -> App<MockRuntime> {
         let specta_builder = tauri_specta::Builder::<MockRuntime>::new().events(events());
@@ -125,30 +129,30 @@ pub mod test {
 
     #[macro_export]
     macro_rules! run_in_mock_app {
-        (|$arg:ident: $arg_type:ty| async $closure:block) => {{
+            (|$arg:ident: $arg_type:ty| async $closure:block) => {{
 
-            panic::set_hook(Box::new(|_| {}));
+                panic::set_hook(Box::new(|_| {}));
 
-            let is_successfull = Arc::new(AtomicBool::new(false));
+                let is_successfull = Arc::new(AtomicBool::new(false));
 
-            let flag_clone = is_successfull.clone();
-            let handle = thread::spawn(|| {
-                println!("thread running");
-                panic::catch_unwind(|| {
-                    let mock_app = mock_app();
-                    mock_app.run(move |$arg: $arg_type, _event| {
-                        async_runtime::block_on(async {
-                            $closure
-                            flag_clone.store(true, Ordering::SeqCst);
-                        });
-                        $arg.exit(1);
+                let flag_clone = is_successfull.clone();
+                let handle = thread::spawn(|| {
+                    println!("thread running");
+                    std::panic::catch_unwind(|| {
+                        let mock_app = mock_app();
+                        mock_app.run(move |$arg: $arg_type, _event| {
+                            async_runtime::block_on(async {
+                                $closure
+                                flag_clone.store(true, SeqCst);
+                            });
+                            $arg.exit(1);
+                        })
                     })
-                })
-            });
+                });
 
-            let _ = handle.join();
+                let _ = handle.join();
 
-            assert!(is_successfull.load(Ordering::SeqCst));
-        }};
-    }
+                assert!(is_successfull.load(SeqCst));
+            }};
+        }
 }
