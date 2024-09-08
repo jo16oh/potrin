@@ -2,8 +2,11 @@ mod sqlite_interface;
 mod tantivy_interface;
 mod utils;
 
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use specta_typescript::Typescript;
 use sqlite_interface::table::*;
+use sqlx::prelude::FromRow;
 use tauri::{async_runtime, App, Runtime};
 use tauri_specta::{collect_commands, collect_events, Events};
 use Env::*;
@@ -13,6 +16,15 @@ use Env::*;
 #[specta::specta]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+struct BaseN(String);
+
+#[tauri::command]
+#[specta::specta]
+fn test_tuple(name: &str) -> BaseN {
+    BaseN(format!("Hello, {}! You've been greeted from Rust!", name))
 }
 
 #[allow(dead_code)]
@@ -27,6 +39,7 @@ pub fn run() {
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             greet,
+            test_tuple,
             sqlite_interface::query::select_outline,
             sqlite_interface::query::insert_outline::<tauri::Wry>,
             sqlite_interface::query::select_cards,

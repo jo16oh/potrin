@@ -90,6 +90,7 @@ pub async fn init_sqlite<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyho
 mod test {
     use super::*;
     use crate::test::*;
+    use crate::{sqlite_interface::table::types::Origin::*, types::NullableBase64String};
     use query::*;
     use serde::{Deserialize, Serialize};
 
@@ -105,29 +106,44 @@ mod test {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
             println!("test running!");
 
-            let outline = insert_outline(app_handle.clone(), Some("text"), None)
-                .await
-                .unwrap();
+            let outline = insert_outline(
+                app_handle.clone(),
+                Some("text"),
+                NullableBase64String::none(),
+                Local,
+            )
+            .await
+            .unwrap();
 
-            let oplog = select_oplog(outline.id.clone()).await.unwrap();
-            let blob = oplog.status.unwrap();
-            let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
+            let oplog = select_oplog(outline.id.to_bytes().unwrap()).await.unwrap();
+            let blob = oplog.status.as_ref().unwrap();
+            let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_bytes()).unwrap();
             dbg!(&json);
 
-            let outline = insert_outline(app_handle.clone(), Some("text"), None)
-                .await
-                .unwrap();
-            let oplog = select_oplog(outline.id.clone()).await.unwrap();
-            let blob = oplog.status.unwrap();
-            let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_slice()).unwrap();
+            let outline = insert_outline(
+                app_handle.clone(),
+                Some("text"),
+                NullableBase64String::none(),
+                Local,
+            )
+            .await
+            .unwrap();
+            let oplog = select_oplog(outline.id.to_bytes().unwrap()).await.unwrap();
+            let blob = oplog.status.as_ref().unwrap();
+            let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_bytes()).unwrap();
             dbg!(&json);
             assert!(json.is_conflicting);
 
-            let card = insert_card(app_handle.clone(), "text", Some(outline.id))
-                .await
-                .unwrap();
+            let card = insert_card(
+                app_handle.clone(),
+                "text",
+                Some(outline.id.to_bytes().unwrap()),
+                Local,
+            )
+            .await
+            .unwrap();
 
-            let ids: Vec<Vec<u8>> = vec![card.id];
+            let ids: Vec<Vec<u8>> = vec![card.id.to_bytes().unwrap()];
             let results = select_cards(ids).await.unwrap();
             dbg!(results);
         });

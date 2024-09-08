@@ -1,5 +1,9 @@
-use super::super::table::{Operation::*, OutlinesTable, OutlinesTableChangeEvent};
+use super::super::table::{
+    types::Base64String, types::Operation::*, types::Origin, OutlinesTable,
+    OutlinesTableChangeEvent,
+};
 use super::super::POOL;
+use crate::types::NullableBase64String;
 use crate::utils::get_once_lock;
 use tauri::AppHandle;
 use tauri_specta::Event;
@@ -10,10 +14,11 @@ use tauri_specta::Event;
 pub async fn insert_outline<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     text: Option<&str>,
-    parent: Option<Vec<u8>>,
+    parent: NullableBase64String,
+    origin: Origin,
 ) -> anyhow::Result<OutlinesTable> {
     let pool = get_once_lock(&POOL)?;
-    let id = uuidv7::create().into_bytes();
+    let id = Base64String::from_bytes(uuidv7::create().into_bytes());
 
     let outline: OutlinesTable = sqlx::query_as!(
         OutlinesTable,
@@ -29,7 +34,7 @@ pub async fn insert_outline<R: tauri::Runtime>(
     .fetch_one(pool)
     .await?;
 
-    OutlinesTableChangeEvent::new(Insert, &[outline.clone()]).emit(&app_handle)?;
+    OutlinesTableChangeEvent::new(Insert, origin, &[outline.clone()]).emit(&app_handle)?;
 
     Ok(outline)
 }

@@ -1,7 +1,7 @@
 CREATE TABLE pots (
   id BLOB PRIMARY KEY,
   name TEXT NOT NULL,
-  owner INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  owner BLOB REFERENCES users(id) ON DELETE SET NULL,
   sync INTEGER NOT NULL,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL

@@ -1,38 +1,33 @@
+pub mod types;
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::FromRow;
 use tauri_specta::Event;
+use types::*;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Type)]
-#[serde(rename_all = "lowercase")]
-pub enum Operation {
-    Insert,
-    Update,
-    Delete,
-}
-
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OplogTable {
     pub rowid: i64,
-    pub primary_key: Vec<u8>,
+    pub primary_key: Base64String,
     pub tablename: String,
     pub updated_at: i64,
     pub counter: i64,
     pub is_deleted: i64,
-    pub status: Option<Vec<u8>>,
+    pub status: NullableBase64String,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct UsersTable {
-    pub id: Vec<u8>,
+    pub id: Base64String,
     pub name: String,
     pub created_at: i64,
     pub updated_at: i64,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct PotsTable {
-    pub id: Vec<u8>,
+    pub id: Base64String,
     pub name: String,
     pub owner: Option<i64>,
     pub sync: i64,
@@ -40,9 +35,9 @@ pub struct PotsTable {
     pub updated_at: i64,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct SyncStatusTable {
-    pub pot_id: Vec<u8>,
+    pub pot_id: Base64String,
     pub tablename: String,
     pub shape_id: Option<String>,
     pub offset: Option<String>,
@@ -50,51 +45,51 @@ pub struct SyncStatusTable {
 }
 
 #[macros::table_change_event]
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OutlinesTable {
-    pub id: Vec<u8>,
-    pub author: Option<Vec<u8>>,
-    pub pot_id: Option<Vec<u8>>,
-    pub parent_id: Option<Vec<u8>>,
+    pub id: Base64String,
+    pub author: NullableBase64String,
+    pub pot_id: NullableBase64String,
+    pub parent_id: NullableBase64String,
     pub fractional_index: String,
     pub text: Option<String>,
-    pub last_materialized_hash: Option<Vec<u8>>,
+    pub last_materialized_hash: NullableBase64String,
     pub created_at: i64,
     pub updated_at: i64,
     pub is_deleted: i64,
 }
 
 #[macros::table_change_event]
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OutlineYUpdatesTable {
-    pub id: Vec<u8>,
-    pub outline_id: Vec<u8>,
-    pub data: Vec<u8>,
+    pub id: Base64String,
+    pub outline_id: Base64String,
+    pub data: Base64String,
     pub updated_at: i64,
     pub is_checkpoint: i64,
     pub from_remote: i64,
 }
 
 #[macros::table_change_event]
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct CardsTable {
-    pub id: Vec<u8>,
-    pub author: Option<Vec<u8>>,
-    pub outline_id: Vec<u8>,
+    pub id: Base64String,
+    pub author: NullableBase64String,
+    pub outline_id: Base64String,
     pub fractional_index: String,
     pub text: String,
-    pub last_materialized_hash: Option<Vec<u8>>,
+    pub last_materialized_hash: NullableBase64String,
     pub created_at: i64,
     pub updated_at: i64,
     pub is_deleted: i64,
 }
 
 #[macros::table_change_event]
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct CardYUpdatesTable {
-    pub id: Vec<u8>,
-    pub card_id: Vec<u8>,
-    pub data: Vec<u8>,
+    pub id: Base64String,
+    pub card_id: Base64String,
+    pub data: Base64String,
     pub updated_at: i64,
     pub is_checkpoint: i64,
     pub from_remote: i64,

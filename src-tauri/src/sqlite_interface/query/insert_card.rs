@@ -1,6 +1,7 @@
-use super::super::table::{CardsTable, CardsTableChangeEvent, Operation::*};
+use super::super::table::{types::Operation::*, types::Origin, CardsTable, CardsTableChangeEvent};
 use super::super::POOL;
 use super::insert_outline;
+use crate::types::NullableBase64String;
 use crate::utils::get_once_lock;
 use anyhow::anyhow;
 use tauri::AppHandle;
@@ -13,6 +14,7 @@ pub async fn insert_card<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     text: &str,
     outline_id: Option<Vec<u8>>,
+    origin: Origin,
 ) -> anyhow::Result<CardsTable> {
     let pool = get_once_lock(&POOL)?;
     let id = uuidv7::create().into_bytes();
@@ -20,10 +22,15 @@ pub async fn insert_card<R: tauri::Runtime>(
     let outline_id = match outline_id {
         Some(id) => id,
         None => {
-            let outline = insert_outline(app_handle.clone(), None, None)
-                .await
-                .map_err(|e| anyhow!(e.to_string()))?;
-            outline.id
+            let outline = insert_outline(
+                app_handle.clone(),
+                None,
+                NullableBase64String::none(),
+                origin.clone(),
+            )
+            .await
+            .map_err(|e| anyhow!(e.to_string()))?;
+            outline.id.to_bytes()?
         }
     };
 
@@ -43,7 +50,7 @@ pub async fn insert_card<R: tauri::Runtime>(
     .await
     .map_err(|e| anyhow!(e.to_string()))?;
 
-    CardsTableChangeEvent::new(Insert, &[card.clone()]).emit(&app_handle)?;
+    CardsTableChangeEvent::new(Insert, origin, &[card.clone()]).emit(&app_handle)?;
 
     Ok(card)
 }

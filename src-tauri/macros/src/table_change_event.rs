@@ -13,17 +13,20 @@ pub fn table_change_event_impl(item: TokenStream) -> TokenStream {
         #[derive(Serialize, Deserialize, Debug, Clone, Type, Event)]
         pub struct #event_name {
             operation: Operation,
+            origin: Origin,
             rows_changed: Vec<#table_name>,
         }
 
         impl #event_name {
-            pub fn new(operation: Operation, rows: &[#table_name]) -> Self {
+            pub fn new(operation: Operation, origin: Origin, rows: &[#table_name]) -> Self {
                 #event_name {
                     operation,
+                    origin,
                     rows_changed: rows.to_vec(),
                 }
             }
         }
+
     }
     .into()
 }
