@@ -12,16 +12,16 @@ name = "potrin_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [build-dependencies]
-tauri-build = { version = "=2.0.0-rc.7", features = ["config-toml"] }
+tauri-build = { version = "=2.0.0-rc.9", features = ["config-toml"] }
 
 [dev-dependencies]
 tokio = { version = "^1.39.3", features = ["full"] }
 
 [dependencies]
-tauri = { version = "=2.0.0-rc.8", features = ["config-toml", "test"] }
+tauri = { version = "=2.0.0-rc.10", features = ["config-toml", "test"] }
 specta = { version = "=2.0.0-rc.20" }
 specta-typescript = "0.0.7"
-tauri-specta = { version = "=2.0.0-rc.18", features = ["derive", "typescript"] }
+tauri-specta = { version = "=2.0.0-rc.19", features = ["derive", "typescript"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0"
