@@ -12,9 +12,9 @@ pub fn table_change_event_impl(item: TokenStream) -> TokenStream {
 
         #[derive(Serialize, Deserialize, Debug, Clone, Type, Event)]
         pub struct #event_name {
-            operation: Operation,
-            origin: Origin,
-            rows_changed: Vec<#table_name>,
+            pub operation: Operation,
+            pub origin: Origin,
+            pub rows_changed: Vec<#table_name>,
         }
 
         impl #event_name {
