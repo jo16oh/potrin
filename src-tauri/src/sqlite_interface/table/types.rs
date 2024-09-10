@@ -1,11 +1,11 @@
 use base64::prelude::*;
+use derive_more::derive::Deref;
 use serde::{Deserialize, Serialize};
 use sqlx::{
     encode::IsNull,
     sqlite::{SqliteTypeInfo, SqliteValueRef},
     Database, Decode, Encode, Sqlite,
 };
-use std::ops::Deref;
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "lowercase")]
@@ -22,7 +22,7 @@ pub enum Operation {
     Delete,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, specta::Type, Deref)]
 pub struct Base64String(String);
 
 impl Base64String {
@@ -35,14 +35,6 @@ impl Base64String {
         let mut buffer = Vec::<u8>::new();
         BASE64_STANDARD.decode_vec(string, &mut buffer)?;
         Ok(buffer)
-    }
-}
-
-impl Deref for Base64String {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
@@ -80,20 +72,12 @@ impl From<Vec<u8>> for Base64String {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, specta::Type, Deref)]
 pub struct NullableBase64String(Option<Base64String>);
 
 impl NullableBase64String {
     pub fn none() -> Self {
         NullableBase64String(None)
-    }
-}
-
-impl Deref for NullableBase64String {
-    type Target = Option<Base64String>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 
