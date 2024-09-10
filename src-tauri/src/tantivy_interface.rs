@@ -7,6 +7,7 @@ use diacritics::remove_diacritics;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::fs;
+use std::sync::Mutex;
 use std::sync::OnceLock;
 use tantivy::collector::TopDocs;
 use tantivy::directory::{ManagedDirectory, MmapDirectory};
@@ -16,7 +17,6 @@ use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
 use tauri::{AppHandle, Manager, Runtime};
-use tokio::sync::Mutex;
 use unicode_normalization::UnicodeNormalization;
 
 #[cfg_attr(debug_assertions, derive(Type, Debug))]
@@ -117,7 +117,9 @@ pub async fn init_tantivy<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyh
 #[specta::specta]
 #[macros::anyhow_to_string]
 pub async fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
-    let mut writer = get_once_lock(&WRITER)?.lock().await;
+    let mut writer = get_once_lock(&WRITER)?
+        .lock()
+        .map_err(|e| anyhow!(e.to_string()))?;
     let id_field = get_once_lock(&ID_FIELD)?;
     let type_field = get_once_lock(&TYPE_FIELD)?;
     let text_field = get_once_lock(&TEXT_FIELD)?;
@@ -155,7 +157,9 @@ pub async fn search(
     let type_field = get_once_lock(&TYPE_FIELD)?;
     let text_field = get_once_lock(&TEXT_FIELD)?;
 
-    let mut query_parser = get_once_lock(&QUERY_PARSER)?.lock().await;
+    let mut query_parser = get_once_lock(&QUERY_PARSER)?
+        .lock()
+        .map_err(|e| anyhow!(e.to_string()))?;
     query_parser.set_field_fuzzy(*text_field, true, levenshtein_distance, true);
     query_parser.set_conjunction_by_default();
 
