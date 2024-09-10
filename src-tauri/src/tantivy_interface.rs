@@ -7,7 +7,7 @@ use diacritics::remove_diacritics;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::fs;
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 use tantivy::collector::TopDocs;
 use tantivy::directory::{ManagedDirectory, MmapDirectory};
 use tantivy::query::QueryParser;
@@ -16,6 +16,7 @@ use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
 use tauri::{AppHandle, Manager, Runtime};
+use tokio::sync::Mutex;
 use unicode_normalization::UnicodeNormalization;
 
 #[cfg_attr(debug_assertions, derive(Type, Debug))]
@@ -116,9 +117,7 @@ pub async fn init_tantivy<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyh
 #[specta::specta]
 #[macros::anyhow_to_string]
 pub async fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
-    let mut writer = get_once_lock(&WRITER)?
-        .lock()
-        .map_err(|e| anyhow!(e.to_string()))?;
+    let mut writer = get_once_lock(&WRITER)?.lock().await;
     let id_field = get_once_lock(&ID_FIELD)?;
     let type_field = get_once_lock(&TYPE_FIELD)?;
     let text_field = get_once_lock(&TEXT_FIELD)?;
@@ -156,9 +155,7 @@ pub async fn search(
     let type_field = get_once_lock(&TYPE_FIELD)?;
     let text_field = get_once_lock(&TEXT_FIELD)?;
 
-    let mut query_parser = get_once_lock(&QUERY_PARSER)?
-        .lock()
-        .map_err(|e| anyhow!(e.to_string()))?;
+    let mut query_parser = get_once_lock(&QUERY_PARSER)?.lock().await;
     query_parser.set_field_fuzzy(*text_field, true, levenshtein_distance, true);
     query_parser.set_conjunction_by_default();
 
@@ -191,129 +188,131 @@ pub async fn search(
 
 #[cfg(test)]
 mod tests {
+    use crate::test::*;
+
     use super::*;
     use tauri::test::MockRuntime;
 
-    #[tokio::test]
-    async fn test() {
-        let _ = init_tantivy::<MockRuntime>(None).await;
+    #[test]
+    fn test() {
+        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            let input = vec![
+                IndexTarget {
+                    id: String::from("1"),
+                    doc_type: String::from("card"),
+                    text: String::from("content brûlée connection"),
+                },
+                IndexTarget {
+                    id: String::from("2"),
+                    doc_type: String::from("thread"),
+                    text: String::from("東京国際空港（とうきょうこくさいくうこう、英語: Tokyo International Airport）は、東京都大田区にある日本最大の空港。通称は羽田空港（はねだくうこう、英語: Haneda Airport）であり、単に「羽田」と呼ばれる場合もある。空港コードはHND。"),
+                },
+                IndexTarget {
+                    id: String::from("3"),
+                    doc_type: String::from("thread"),
+                    text: String::from("股份有限公司"),
+                },
+                IndexTarget {
+                    id: String::from("4"),
+                    doc_type: String::from("card"),
+                    text: String::from("デカすぎで草"),
+                },
+            ];
 
-        let input = vec![
-            IndexTarget {
-                id: String::from("1"),
-                doc_type: String::from("card"),
-                text: String::from("content brûlée connection"),
-            },
-            IndexTarget {
-                id: String::from("2"),
-                doc_type: String::from("thread"),
-                text: String::from("東京国際空港（とうきょうこくさいくうこう、英語: Tokyo International Airport）は、東京都大田区にある日本最大の空港。通称は羽田空港（はねだくうこう、英語: Haneda Airport）であり、単に「羽田」と呼ばれる場合もある。空港コードはHND。"),
-            },
-            IndexTarget {
-                id: String::from("3"),
-                doc_type: String::from("thread"),
-                text: String::from("股份有限公司"),
-            },
-            IndexTarget {
-                id: String::from("4"),
-                doc_type: String::from("card"),
-                text: String::from("デカすぎで草"),
-            },
-        ];
+            let _ = index(input).await;
+            READER.get().unwrap().reload().unwrap();
 
-        let _ = index(input).await;
-        READER.get().unwrap().reload().unwrap();
+            // prefix search
+            assert_eq!(
+                search("c", 0, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("1"),
+                    doc_type: String::from("card")
+                },]
+            );
 
-        // prefix search
-        assert_eq!(
-            search("c", 0, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("1"),
-                doc_type: String::from("card")
-            },]
-        );
+            // remove diacritics
+            assert_eq!(
+                search("brulee", 0, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("1"),
+                    doc_type: String::from("card")
+                },]
+            );
 
-        // remove diacritics
-        assert_eq!(
-            search("brulee", 0, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("1"),
-                doc_type: String::from("card")
-            },]
-        );
+            // NFC normalization
+            assert_eq!(
+                search("brûlée".nfd().collect::<String>().as_str(), 0, 100)
+                    .await
+                    .unwrap(),
+                vec![SearchResult {
+                    id: String::from("1"),
+                    doc_type: String::from("card")
+                },]
+            );
 
-        // NFC normalization
-        assert_eq!(
-            search("brûlée".nfd().collect::<String>().as_str(), 0, 100)
-                .await
-                .unwrap(),
-            vec![SearchResult {
-                id: String::from("1"),
-                doc_type: String::from("card")
-            },]
-        );
+            // english stemming
+            assert_eq!(
+                search("connected", 0, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("1"),
+                    doc_type: String::from("card")
+                },]
+            );
 
-        // english stemming
-        assert_eq!(
-            search("connected", 0, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("1"),
-                doc_type: String::from("card")
-            },]
-        );
+            // fuzzy search
+            assert_eq!(
+                search("cantnt", 2, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("1"),
+                    doc_type: String::from("card")
+                },]
+            );
 
-        // fuzzy search
-        assert_eq!(
-            search("cantnt", 2, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("1"),
-                doc_type: String::from("card")
-            },]
-        );
+            // japanese bigram
+            assert_eq!(
+                search("はねだ", 0, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("2"),
+                    doc_type: String::from("thread")
+                },]
+            );
 
-        // japanese bigram
-        assert_eq!(
-            search("はねだ", 0, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("2"),
-                doc_type: String::from("thread")
-            },]
-        );
+            // english and japanese compound
+            assert_eq!(
+                search("羽田Airport", 0, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("2"),
+                    doc_type: String::from("thread")
+                },]
+            );
 
-        // english and japanese compound
-        assert_eq!(
-            search("羽田Airport", 0, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("2"),
-                doc_type: String::from("thread")
-            },]
-        );
+            // lowercase
+            assert_eq!(
+                search("hnd", 0, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("2"),
+                    doc_type: String::from("thread")
+                },]
+            );
 
-        // lowercase
-        assert_eq!(
-            search("hnd", 0, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("2"),
-                doc_type: String::from("thread")
-            },]
-        );
+            // chinese bigram
+            assert_eq!(
+                search("份有", 0, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("3"),
+                    doc_type: String::from("thread")
+                },]
+            );
 
-        // chinese bigram
-        assert_eq!(
-            search("份有", 0, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("3"),
-                doc_type: String::from("thread")
-            },]
-        );
-
-        // search one character word on the end of the sentence
-        assert_eq!(
-            search("草", 0, 100).await.unwrap(),
-            vec![SearchResult {
-                id: String::from("4"),
-                doc_type: String::from("card")
-            },]
-        );
+            // search one character word on the end of the sentence
+            assert_eq!(
+                search("草", 0, 100).await.unwrap(),
+                vec![SearchResult {
+                    id: String::from("4"),
+                    doc_type: String::from("card")
+                },]
+            );
+        });
     }
 }

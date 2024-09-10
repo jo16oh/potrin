@@ -14,10 +14,8 @@ crate-type = ["lib", "cdylib", "staticlib"]
 [build-dependencies]
 tauri-build = { version = "=2.0.0-rc.9", features = ["config-toml"] }
 
-[dev-dependencies]
-tokio = { version = "^1.39.3", features = ["full"] }
-
 [dependencies]
+tokio = { version = "^1.39.3", features = ["sync"] }
 tauri = { version = "=2.0.0-rc.10", features = ["config-toml", "test"] }
 specta = { version = "=2.0.0-rc.20" }
 specta-typescript = "0.0.7"
