@@ -122,9 +122,9 @@ pub mod test {
                             }
 
                             if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
-                                println!("{s:?}");
+                                println!("{}", s);
                             } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
-                                println!("{s:?}");
+                                println!("{}", s);
                             } else {
                                 println!("panic occurred");
                             }
