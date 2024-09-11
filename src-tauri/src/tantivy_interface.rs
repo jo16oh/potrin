@@ -6,6 +6,7 @@ use cjk_bigram_tokenizer::CJKBigramTokenizer;
 use diacritics::remove_diacritics;
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::any::TypeId;
 use std::fs;
 use std::sync::Mutex;
 use std::sync::OnceLock;
@@ -16,6 +17,7 @@ use tantivy::tokenizer::{Language, LowerCaser, Stemmer};
 use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
+use tauri::test::MockRuntime;
 use tauri::{AppHandle, Manager, Runtime};
 use unicode_normalization::UnicodeNormalization;
 
@@ -44,7 +46,7 @@ static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
 static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
 static QUERY_PARSER: OnceLock<Mutex<QueryParser>> = OnceLock::new();
 
-pub async fn init_tantivy<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyhow::Result<()> {
+pub async fn init_tantivy<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
     if INITIALIZED.get().is_some() {
         return Ok(());
     }
@@ -66,17 +68,16 @@ pub async fn init_tantivy<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyh
     let type_field = schema.get_field("type")?;
     let text_field = schema.get_field("text")?;
 
-    let index: Index = match app_handle {
-        Some(handle) => {
-            let mut path = handle.path().app_data_dir()?;
-            path.push("tantivy");
-            if !path.exists() {
-                fs::create_dir_all(&path)?;
-            }
-            let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(&path)?))?;
-            Index::open_or_create(dir, schema)
+    let index: Index = if TypeId::of::<R>() == TypeId::of::<MockRuntime>() {
+        Ok(Index::create_in_ram(schema))
+    } else {
+        let mut path = app_handle.path().app_data_dir()?;
+        path.push("tantivy");
+        if !path.exists() {
+            fs::create_dir_all(&path)?;
         }
-        None => Ok(Index::create_in_ram(schema)),
+        let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(&path)?))?;
+        Index::open_or_create(dir, schema)
     }?;
 
     let reader = index.reader()?;

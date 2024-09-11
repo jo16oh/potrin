@@ -71,26 +71,12 @@ fn setup<R: Runtime>(
 
     let sqlite_handle = {
         let app_handle = app_handle.clone();
-        let env = env.clone();
-        async_runtime::spawn(async move {
-            sqlite_interface::init_sqlite(match env {
-                Build => Some(&app_handle),
-                Test => None,
-            })
-            .await
-        })
+        async_runtime::spawn(async move { sqlite_interface::init_sqlite(&app_handle).await })
     };
 
     let tantivy_handle = {
         let app_handle = app_handle.clone();
-        let env = env.clone();
-        async_runtime::spawn(async move {
-            tantivy_interface::init_tantivy(match env {
-                Build => Some(&app_handle),
-                Test => None,
-            })
-            .await
-        })
+        async_runtime::spawn(async move { tantivy_interface::init_tantivy(&app_handle).await })
     };
 
     // set event listners here

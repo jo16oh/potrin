@@ -6,37 +6,38 @@ use crate::utils::{get_once_lock, set_once_lock};
 use anyhow::anyhow;
 use sqlx::migrate::{MigrateDatabase, Migrator};
 use sqlx::{Sqlite, SqlitePool};
+use std::any::TypeId;
 use std::fs;
 use std::sync::OnceLock;
+use tauri::test::MockRuntime;
 use tauri::{AppHandle, Manager, Runtime};
 
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 static POOL: OnceLock<SqlitePool> = OnceLock::new();
 
-pub async fn init_sqlite<R: Runtime>(app_handle: Option<&AppHandle<R>>) -> anyhow::Result<()> {
+pub async fn init_sqlite<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
     if get_once_lock(&POOL).is_ok() {
         return Ok(());
     }
 
-    let pool = match app_handle {
-        Some(handle) => {
-            let mut path = handle.path().app_data_dir()?;
-            path.extend(["sqlite", "data.db"].iter());
-
-            if !path.parent().unwrap().exists() {
-                fs::create_dir_all(path.parent().unwrap())?;
-            }
-
-            let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
-            Sqlite::create_database(url).await?;
-
-            SqlitePool::connect(url)
-                .await
-                .map_err(|e| anyhow!(e.to_string()))?
-        }
-        None => SqlitePool::connect("sqlite::memory:")
+    let pool = if TypeId::of::<R>() == TypeId::of::<MockRuntime>() {
+        SqlitePool::connect("sqlite::memory:")
             .await
-            .map_err(|e| anyhow!(e.to_string()))?,
+            .map_err(|e| anyhow!(e.to_string()))?
+    } else {
+        let mut path = app_handle.path().app_data_dir()?;
+        path.extend(["sqlite", "data.db"].iter());
+
+        if !path.parent().unwrap().exists() {
+            fs::create_dir_all(path.parent().unwrap())?;
+        }
+
+        let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
+        Sqlite::create_database(url).await?;
+
+        SqlitePool::connect(url)
+            .await
+            .map_err(|e| anyhow!(e.to_string()))?
     };
 
     MIGRATOR.run(&pool).await?;
