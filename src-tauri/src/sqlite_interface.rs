@@ -90,10 +90,13 @@ pub async fn init_sqlite<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Resul
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test::*;
+    use crate::types::Base64String;
     use crate::{sqlite_interface::table::types::Origin::*, types::NullableBase64String};
+    use crate::{test::*, OutlinesTableChangeEvent};
     use query::*;
     use serde::{Deserialize, Serialize};
+    use tauri::Listener;
+    use tauri_specta::Event;
 
     #[derive(Serialize, Deserialize, Debug)]
     struct Status {
@@ -105,7 +108,16 @@ mod test {
     #[test]
     fn test_init_sqlite() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            println!("test running!");
+            let handle_clone = app_handle.clone();
+            OutlinesTableChangeEvent::listen(app_handle, move |event| {
+                println!("unlisten");
+                handle_clone.unlisten(event.id);
+            });
+
+            OutlinesTableChangeEvent::listen(app_handle, move |event| {
+                println!("outline changed!");
+                println!("{:?}", event.payload.rows_changed);
+            });
 
             let outline = insert_outline(
                 app_handle.clone(),
@@ -118,8 +130,9 @@ mod test {
 
             let oplog = select_oplog(outline.id.to_bytes().unwrap()).await.unwrap();
             let blob = oplog.status.as_ref().unwrap();
-            let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_bytes()).unwrap();
-            dbg!(&json);
+            let json =
+                serde_sqlite_jsonb::from_slice::<Status>(blob.to_bytes().unwrap().as_slice());
+            // dbg!(&json);
 
             let outline = insert_outline(
                 app_handle.clone(),
@@ -131,8 +144,10 @@ mod test {
             .unwrap();
             let oplog = select_oplog(outline.id.to_bytes().unwrap()).await.unwrap();
             let blob = oplog.status.as_ref().unwrap();
-            let json = serde_sqlite_jsonb::from_slice::<Status>(blob.as_bytes()).unwrap();
-            dbg!(&json);
+            let base64 = Base64String::from(blob.to_bytes().unwrap());
+            let blob = base64.to_bytes().unwrap();
+            let json = serde_sqlite_jsonb::from_slice::<Status>(&blob).unwrap();
+            // dbg!(&json);
             assert!(json.is_conflicting);
 
             let card = insert_card(
@@ -146,7 +161,7 @@ mod test {
 
             let ids: Vec<Vec<u8>> = vec![card.id.to_bytes().unwrap()];
             let results = select_cards(ids).await.unwrap();
-            dbg!(results);
+            // dbg!(results);
         });
     }
 }
