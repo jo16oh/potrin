@@ -6,20 +6,12 @@ use specta_typescript::Typescript;
 use sqlite_interface::table::*;
 use tauri::{async_runtime, App, Runtime};
 use tauri_specta::{collect_commands, collect_events, Events};
-use Env::*;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 #[specta::specta]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
-#[allow(dead_code)]
-#[derive(Clone)]
-enum Env {
-    Build,
-    Test,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -47,7 +39,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .invoke_handler(specta_builder.invoke_handler())
-        .setup(move |app| setup(specta_builder, app, Build))
+        .setup(move |app| setup(specta_builder, app))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -64,7 +56,6 @@ fn events() -> Events {
 fn setup<R: Runtime>(
     builder: tauri_specta::Builder<R>,
     app: &mut App<R>,
-    env: Env,
 ) -> Result<(), std::boxed::Box<(dyn std::error::Error + 'static)>> {
     builder.mount_events(app);
     let app_handle = app.handle();
@@ -107,7 +98,7 @@ pub mod test {
         let specta_builder = tauri_specta::Builder::<MockRuntime>::new().events(events());
         mock_builder()
             .invoke_handler(specta_builder.invoke_handler())
-            .setup(move |app| setup(specta_builder, app, Test))
+            .setup(move |app| setup(specta_builder, app))
             .build(mock_context(noop_assets()))
             .unwrap()
     }
