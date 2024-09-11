@@ -10,6 +10,7 @@ use std::any::TypeId;
 use std::fs;
 use std::sync::Mutex;
 use std::sync::OnceLock;
+use std::sync::RwLock;
 use tantivy::collector::TopDocs;
 use tantivy::directory::{ManagedDirectory, MmapDirectory};
 use tantivy::query::BooleanQuery;
@@ -40,8 +41,6 @@ pub struct SearchResult {
     doc_type: String,
 }
 
-static INITIALIZED: OnceLock<()> = OnceLock::new();
-
 static INDEX: OnceLock<Index> = OnceLock::new();
 static READER: OnceLock<IndexReader> = OnceLock::new();
 static WRITER: OnceLock<Mutex<IndexWriter>> = OnceLock::new();
@@ -49,11 +48,14 @@ static ID_FIELD: OnceLock<Field> = OnceLock::new();
 static POT_ID_FIELD: OnceLock<Field> = OnceLock::new();
 static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
 static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
-static QUERY_PARSER: OnceLock<Mutex<QueryParser>> = OnceLock::new();
+static QUERY_PARSER: OnceLock<RwLock<QueryParser>> = OnceLock::new();
 
-pub async fn init_tantivy<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
-    if INITIALIZED.get().is_some() {
-        return Ok(());
+pub async fn init_tantivy<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    levenshtein_distance: u8,
+) -> anyhow::Result<()> {
+    if levenshtein_distance != 0 && levenshtein_distance != 1 && levenshtein_distance != 2 {
+        return Err(anyhow!("Levenstein distance must be between 0 and 2"));
     }
 
     let mut schema_builder = Schema::builder();
@@ -103,11 +105,13 @@ pub async fn init_tantivy<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Resu
         .build();
     tokenizer_manager_for_query.register("cjkbigram", tokenizer_for_query);
 
-    let query_parser = Mutex::new(QueryParser::new(
+    let mut query_parser = QueryParser::new(
         index.schema(),
         vec![text_field],
         tokenizer_manager_for_query,
-    ));
+    );
+    query_parser.set_field_fuzzy(text_field, true, levenshtein_distance, true);
+    query_parser.set_conjunction_by_default();
 
     let _ = set_once_lock(&INDEX, index);
     let _ = set_once_lock(&READER, reader);
@@ -116,9 +120,26 @@ pub async fn init_tantivy<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Resu
     let _ = set_once_lock(&POT_ID_FIELD, pot_id_field);
     let _ = set_once_lock(&TYPE_FIELD, type_field);
     let _ = set_once_lock(&TEXT_FIELD, text_field);
-    let _ = set_once_lock(&QUERY_PARSER, query_parser);
+    let _ = set_once_lock(&QUERY_PARSER, RwLock::new(query_parser));
 
-    let _ = set_once_lock(&INITIALIZED, ());
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+#[macros::anyhow_to_string]
+pub async fn set_levenstein_distance(levenshtein_distance: u8) -> anyhow::Result<()> {
+    if levenshtein_distance != 0 && levenshtein_distance != 1 && levenshtein_distance != 2 {
+        return Err(anyhow!("Levenstein distance must be between 0 and 2"));
+    }
+
+    let text_field = get_once_lock(&TEXT_FIELD)?;
+    let mut query_parser = get_once_lock(&QUERY_PARSER)?
+        .write()
+        .map_err(|e| anyhow!(e.to_string()))?;
+    query_parser.set_field_fuzzy(*text_field, true, levenshtein_distance, true);
+    query_parser.set_conjunction_by_default();
+
     Ok(())
 }
 
@@ -155,12 +176,7 @@ pub async fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub async fn search(
-    query: &str,
-    pot_id: &str,
-    levenshtein_distance: u8,
-    limit: u8,
-) -> anyhow::Result<Vec<SearchResult>> {
+pub async fn search(query: &str, pot_id: &str, limit: u8) -> anyhow::Result<Vec<SearchResult>> {
     let mut results: Vec<SearchResult> = vec![];
     let query = remove_diacritics(query.nfc().collect::<String>().as_str());
 
@@ -168,13 +184,10 @@ pub async fn search(
     let id_field = get_once_lock(&ID_FIELD)?;
     let pot_id_field = get_once_lock(&POT_ID_FIELD)?;
     let type_field = get_once_lock(&TYPE_FIELD)?;
-    let text_field = get_once_lock(&TEXT_FIELD)?;
 
-    let mut query_parser = get_once_lock(&QUERY_PARSER)?
-        .lock()
+    let query_parser = get_once_lock(&QUERY_PARSER)?
+        .read()
         .map_err(|e| anyhow!(e.to_string()))?;
-    query_parser.set_field_fuzzy(*text_field, true, levenshtein_distance, true);
-    query_parser.set_conjunction_by_default();
 
     let parsed_query = query_parser.parse_query(&query)?;
 
@@ -261,7 +274,7 @@ mod tests {
 
             // prefix search
             assert_eq!(
-                search("c", "1", 0, 100).await.unwrap(),
+                search("c", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("1"),
                     doc_type: String::from("card")
@@ -270,7 +283,7 @@ mod tests {
 
             // remove diacritics
             assert_eq!(
-                search("brulee", "1", 0, 100).await.unwrap(),
+                search("brulee", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("1"),
                     doc_type: String::from("card")
@@ -279,7 +292,7 @@ mod tests {
 
             // NFC normalization
             assert_eq!(
-                search("brûlée".nfd().collect::<String>().as_str(), "1", 0, 100)
+                search("brûlée".nfd().collect::<String>().as_str(), "1", 100)
                     .await
                     .unwrap(),
                 vec![SearchResult {
@@ -290,25 +303,27 @@ mod tests {
 
             // english stemming
             assert_eq!(
-                search("connected", "1", 0, 100).await.unwrap(),
+                search("connected", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("1"),
                     doc_type: String::from("card")
                 },]
             );
 
+            set_levenstein_distance(2).await.unwrap();
             // fuzzy search
             assert_eq!(
-                search("cantnt", "1", 2, 100).await.unwrap(),
+                search("cantnt", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("1"),
                     doc_type: String::from("card")
                 },]
             );
+            set_levenstein_distance(0).await.unwrap();
 
             // japanese bigram
             assert_eq!(
-                search("はねだ", "1", 0, 100).await.unwrap(),
+                search("はねだ", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("2"),
                     doc_type: String::from("thread")
@@ -317,7 +332,7 @@ mod tests {
 
             // english and japanese compound
             assert_eq!(
-                search("羽田Airport", "1", 0, 100).await.unwrap(),
+                search("羽田Airport", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("2"),
                     doc_type: String::from("thread")
@@ -326,7 +341,7 @@ mod tests {
 
             // lowercase
             assert_eq!(
-                search("hnd", "1", 0, 100).await.unwrap(),
+                search("hnd", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("2"),
                     doc_type: String::from("thread")
@@ -335,7 +350,7 @@ mod tests {
 
             // chinese bigram
             assert_eq!(
-                search("份有", "1", 0, 100).await.unwrap(),
+                search("份有", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("3"),
                     doc_type: String::from("thread")
@@ -344,7 +359,7 @@ mod tests {
 
             // search one character word on the end of the sentence
             assert_eq!(
-                search("草", "1", 0, 100).await.unwrap(),
+                search("草", "1", 100).await.unwrap(),
                 vec![SearchResult {
                     id: String::from("4"),
                     doc_type: String::from("card")

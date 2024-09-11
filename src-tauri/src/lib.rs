@@ -67,7 +67,7 @@ fn setup<R: Runtime>(
 
     let tantivy_handle = {
         let app_handle = app_handle.clone();
-        async_runtime::spawn(async move { tantivy_interface::init_tantivy(&app_handle).await })
+        async_runtime::spawn(async move { tantivy_interface::init_tantivy(&app_handle, 0).await })
     };
 
     // set event listners here
