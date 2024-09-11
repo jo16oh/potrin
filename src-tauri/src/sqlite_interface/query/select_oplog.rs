@@ -1,13 +1,20 @@
 use super::super::table::OplogTable;
-use super::super::POOL;
-use crate::utils::get_once_lock;
 use anyhow::anyhow;
+use sqlx::SqlitePool;
+use tauri::{AppHandle, Manager, Runtime};
 
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub async fn select_oplog(id: Vec<u8>) -> anyhow::Result<OplogTable> {
-    let pool = get_once_lock(&POOL)?;
+pub async fn select_oplog<R: Runtime>(
+    app_handle: AppHandle<R>,
+    id: Vec<u8>,
+) -> anyhow::Result<OplogTable> {
+    let pool = app_handle
+        .try_state::<SqlitePool>()
+        .ok_or(anyhow!("failed to get SqlitePool"))?
+        .inner();
+
     sqlx::query_as!(
         OplogTable,
         r#"SELECT * FROM oplog WHERE primary_key = ?;"#,

@@ -1,8 +1,8 @@
-use super::super::POOL;
-use crate::utils::get_once_lock;
+use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use sqlx::{FromRow, QueryBuilder, Sqlite};
+use sqlx::{FromRow, QueryBuilder, Sqlite, SqlitePool};
+use tauri::{AppHandle, Manager, Runtime};
 
 #[derive(Deserialize, Serialize, Type, Clone, Debug)]
 pub struct RawCard {
@@ -45,8 +45,14 @@ impl TryFrom<QueryResult> for RawCard {
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub async fn select_cards(ids: Vec<Vec<u8>>) -> anyhow::Result<Vec<RawCard>> {
-    let pool = get_once_lock(&POOL)?;
+pub async fn select_cards<R: Runtime>(
+    app_handle: AppHandle<R>,
+    ids: Vec<Vec<u8>>,
+) -> anyhow::Result<Vec<RawCard>> {
+    let pool = app_handle
+        .try_state::<SqlitePool>()
+        .ok_or(anyhow!("failed to get SqlitePool"))?
+        .inner();
 
     let mut query_builder: QueryBuilder<Sqlite> =
         QueryBuilder::new("SELECT id, outline_id, fractional_index, text, created_at, updated_at FROM cards WHERE id IN (");

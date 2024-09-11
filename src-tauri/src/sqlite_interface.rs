@@ -8,18 +8,12 @@ use sqlx::migrate::{MigrateDatabase, Migrator};
 use sqlx::{Sqlite, SqlitePool};
 use std::any::TypeId;
 use std::fs;
-use std::sync::OnceLock;
 use tauri::test::MockRuntime;
 use tauri::{AppHandle, Manager, Runtime};
 
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
-static POOL: OnceLock<SqlitePool> = OnceLock::new();
 
 pub async fn init_sqlite<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
-    if get_once_lock(&POOL).is_ok() {
-        return Ok(());
-    }
-
     let pool = if TypeId::of::<R>() == TypeId::of::<MockRuntime>() {
         SqlitePool::connect("sqlite::memory:")
             .await
@@ -41,7 +35,7 @@ pub async fn init_sqlite<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Resul
     };
 
     MIGRATOR.run(&pool).await?;
-    let _ = set_once_lock(&POOL, pool);
+    app_handle.manage::<SqlitePool>(pool);
 
     // if let Some(handle) = app_handle {
     //     sync::start_sync(handle);
@@ -128,11 +122,13 @@ mod test {
             .await
             .unwrap();
 
-            let oplog = select_oplog(outline.id.to_bytes().unwrap()).await.unwrap();
+            let oplog = select_oplog(app_handle.clone(), outline.id.to_bytes().unwrap())
+                .await
+                .unwrap();
             let blob = oplog.status.as_ref().unwrap();
             let json =
                 serde_sqlite_jsonb::from_slice::<Status>(blob.to_bytes().unwrap().as_slice());
-            // dbg!(&json);
+            assert!(json.is_ok());
 
             let outline = insert_outline(
                 app_handle.clone(),
@@ -142,12 +138,13 @@ mod test {
             )
             .await
             .unwrap();
-            let oplog = select_oplog(outline.id.to_bytes().unwrap()).await.unwrap();
+            let oplog = select_oplog(app_handle.clone(), outline.id.to_bytes().unwrap())
+                .await
+                .unwrap();
             let blob = oplog.status.as_ref().unwrap();
             let base64 = Base64String::from(blob.to_bytes().unwrap());
             let blob = base64.to_bytes().unwrap();
             let json = serde_sqlite_jsonb::from_slice::<Status>(&blob).unwrap();
-            // dbg!(&json);
             assert!(json.is_conflicting);
 
             let card = insert_card(
@@ -160,8 +157,8 @@ mod test {
             .unwrap();
 
             let ids: Vec<Vec<u8>> = vec![card.id.to_bytes().unwrap()];
-            let results = select_cards(ids).await.unwrap();
-            // dbg!(results);
+            let results = select_cards(app_handle.clone(), ids).await.unwrap();
+            assert!(!results.is_empty());
         });
     }
 }

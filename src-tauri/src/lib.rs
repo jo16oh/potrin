@@ -19,9 +19,9 @@ pub fn run() {
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             greet,
-            sqlite_interface::query::select_outline,
+            sqlite_interface::query::select_outline::<tauri::Wry>,
             sqlite_interface::query::insert_outline::<tauri::Wry>,
-            sqlite_interface::query::select_cards,
+            sqlite_interface::query::select_cards::<tauri::Wry>,
             sqlite_interface::query::insert_card::<tauri::Wry>,
             tantivy_interface::index,
             tantivy_interface::search

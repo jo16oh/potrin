@@ -1,10 +1,9 @@
 use super::super::table::{types::Operation::*, types::Origin, CardsTable, CardsTableChangeEvent};
-use super::super::POOL;
 use super::insert_outline;
 use crate::types::NullableBase64String;
-use crate::utils::get_once_lock;
 use anyhow::anyhow;
-use tauri::AppHandle;
+use sqlx::SqlitePool;
+use tauri::{AppHandle, Manager};
 use tauri_specta::Event;
 
 #[tauri::command]
@@ -16,7 +15,10 @@ pub async fn insert_card<R: tauri::Runtime>(
     outline_id: Option<Vec<u8>>,
     origin: Origin,
 ) -> anyhow::Result<CardsTable> {
-    let pool = get_once_lock(&POOL)?;
+    let pool = app_handle
+        .try_state::<SqlitePool>()
+        .ok_or(anyhow!("failed to get SqlitePool"))?
+        .inner();
     let id = uuidv7::create().into_bytes();
 
     let outline_id = match outline_id {
