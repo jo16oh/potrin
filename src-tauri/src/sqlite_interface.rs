@@ -2,7 +2,6 @@ pub mod query;
 mod sync;
 pub mod table;
 
-use crate::utils::{get_once_lock, set_once_lock};
 use anyhow::anyhow;
 use sqlx::migrate::{MigrateDatabase, Migrator};
 use sqlx::{Sqlite, SqlitePool};
@@ -138,6 +137,7 @@ mod test {
             )
             .await
             .unwrap();
+
             let oplog = select_oplog(app_handle.clone(), outline.id.to_bytes().unwrap())
                 .await
                 .unwrap();
@@ -150,13 +150,13 @@ mod test {
             let card = insert_card(
                 app_handle.clone(),
                 "text",
-                Some(outline.id.to_bytes().unwrap()),
+                NullableBase64String::from(outline.id),
                 Local,
             )
             .await
             .unwrap();
 
-            let ids: Vec<Vec<u8>> = vec![card.id.to_bytes().unwrap()];
+            let ids: Vec<Base64String> = vec![card.id];
             let results = select_cards(app_handle.clone(), ids).await.unwrap();
             assert!(!results.is_empty());
         });

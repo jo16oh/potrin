@@ -73,7 +73,7 @@ impl From<Vec<u8>> for Base64String {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, specta::Type, Deref)]
-pub struct NullableBase64String(Option<Base64String>);
+pub struct NullableBase64String(pub Option<Base64String>);
 
 impl NullableBase64String {
     pub fn none() -> Self {
@@ -113,5 +113,11 @@ impl From<Option<Vec<u8>>> for NullableBase64String {
     fn from(opt: Option<Vec<u8>>) -> Self {
         let base64 = opt.map(Base64String::from_bytes);
         NullableBase64String(base64)
+    }
+}
+
+impl From<Base64String> for NullableBase64String {
+    fn from(base64: Base64String) -> Self {
+        NullableBase64String(Some(base64))
     }
 }

@@ -12,7 +12,7 @@ use tauri_specta::Event;
 pub async fn insert_card<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     text: &str,
-    outline_id: Option<Vec<u8>>,
+    outline_id: NullableBase64String,
     origin: Origin,
 ) -> anyhow::Result<CardsTable> {
     let pool = app_handle
@@ -21,18 +21,18 @@ pub async fn insert_card<R: tauri::Runtime>(
         .inner();
     let id = uuidv7::create().into_bytes();
 
-    let outline_id = match outline_id {
+    let outline_id = match outline_id.0 {
         Some(id) => id,
         None => {
-            let outline = insert_outline(
+            insert_outline(
                 app_handle.clone(),
                 None,
                 NullableBase64String::none(),
                 origin.clone(),
             )
             .await
-            .map_err(|e| anyhow!(e.to_string()))?;
-            outline.id.to_bytes()?
+            .map_err(|e| anyhow!(e.to_string()))?
+            .id
         }
     };
 
