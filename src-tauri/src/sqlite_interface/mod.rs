@@ -1,6 +1,7 @@
 pub mod query;
 mod sync;
 pub mod table;
+pub mod types;
 
 use anyhow::anyhow;
 use sqlx::migrate::{MigrateDatabase, Migrator};
@@ -83,8 +84,7 @@ pub async fn init_sqlite<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Resul
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::types::Base64String;
-    use crate::{sqlite_interface::table::types::Origin::*, types::NullableBase64String};
+    use crate::sqlite_interface::types::{Base64String, NullableBase64String, Origin::*};
     use crate::{test::*, OutlinesTableChangeEvent};
     use query::*;
     use serde::{Deserialize, Serialize};

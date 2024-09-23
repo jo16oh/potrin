@@ -1,8 +1,5 @@
-use super::super::table::{
-    types::Base64String, types::Operation::*, types::Origin, OutlinesTable,
-    OutlinesTableChangeEvent,
-};
-use crate::types::NullableBase64String;
+use super::super::table::{OutlinesTable, OutlinesTableChangeEvent};
+use crate::sqlite_interface::types::{Base64String, NullableBase64String, Operation::*, Origin};
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};

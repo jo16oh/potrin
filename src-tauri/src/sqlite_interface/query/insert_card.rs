@@ -1,6 +1,6 @@
-use super::super::table::{types::Operation::*, types::Origin, CardsTable, CardsTableChangeEvent};
+use super::super::table::{CardsTable, CardsTableChangeEvent};
+use super::super::types::{NullableBase64String, Operation::*, Origin};
 use super::insert_outline;
-use crate::types::NullableBase64String;
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};

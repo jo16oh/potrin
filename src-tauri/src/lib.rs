@@ -3,7 +3,10 @@ mod tantivy_interface;
 mod utils;
 
 use specta_typescript::Typescript;
-use sqlite_interface::table::*;
+use sqlite_interface::table::{
+    CardYUpdatesTableChangeEvent, CardsTableChangeEvent, OutlineYUpdatesTableChangeEvent,
+    OutlinesTableChangeEvent,
+};
 use tauri::{async_runtime, App, Runtime};
 use tauri_specta::{collect_commands, collect_events, Events};
 

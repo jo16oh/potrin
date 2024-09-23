@@ -1,10 +1,8 @@
-pub mod types;
-
+use super::types::*;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::FromRow;
 use tauri_specta::Event;
-use types::*;
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OplogTable {
