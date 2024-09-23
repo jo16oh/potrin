@@ -63,15 +63,15 @@ fn setup<R: Runtime>(
     builder.mount_events(app);
     let app_handle = app.handle();
 
-    let sqlite_handle = {
+    let sqlite_handle = async_runtime::spawn({
         let app_handle = app_handle.clone();
-        async_runtime::spawn(async move { sqlite_interface::init_sqlite(&app_handle).await })
-    };
+        async move { sqlite_interface::init_sqlite(&app_handle).await }
+    });
 
-    let tantivy_handle = {
+    let tantivy_handle = async_runtime::spawn({
         let app_handle = app_handle.clone();
-        async_runtime::spawn(async move { tantivy_interface::init_tantivy(&app_handle, 0).await })
-    };
+        async move { tantivy_interface::init_tantivy(&app_handle, 0).await }
+    });
 
     // set event listners here
     // OutlinesTableChangeEvent::listen(app_handle, |e| {
