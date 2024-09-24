@@ -34,3 +34,4 @@ chrono = { version = "0.4.38", features = ["serde"] }
 serde_sqlite_jsonb = { version = "0.1.0" }
 base64 = "0.22.1"
 derive_more = { version = "1.0.0", features = ["deref"] }
+polodb_core = "5.1.1"

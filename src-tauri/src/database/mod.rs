@@ -47,40 +47,6 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
     Ok(())
 }
 
-// static CLIENT_ID: OnceLock<String> = OnceLock::new();
-//
-// async fn get_client_info() -> anyhow::Result<String> {
-//     struct Result {
-//         value: String,
-//     }
-//
-//     let pool = get_once_lock(&POOL)?;
-//     let result = sqlx::query_as!(
-//         Result,
-//         r#"
-//             SELECT value FROM store WHERE key = "client_id";
-//         "#,
-//     )
-//     .fetch_one(pool)
-//     .await;
-//
-//     match result {
-//         Ok(r) => Ok(r.value),
-//         Err(_) => {
-//             let id = uuidv7::create();
-//             sqlx::query!(
-//                 "INSERT INTO store (key, value) VALUES (?, ?);",
-//                 "client_id",
-//                 id
-//             )
-//             .execute(pool)
-//             .await?;
-//
-//             Ok(id)
-//         }
-//     }
-// }
-
 #[cfg(test)]
 mod test {
     use super::*;

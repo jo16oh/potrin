@@ -1,5 +1,6 @@
 mod database;
 mod search_engine;
+mod state;
 mod utils;
 
 use database::table::{
@@ -63,23 +64,25 @@ fn setup<R: Runtime>(
     builder.mount_events(app);
     let app_handle = app.handle();
 
-    let sqlite_handle = async_runtime::spawn({
+    let handle = async_runtime::spawn({
         let app_handle = app_handle.clone();
         async move { database::init(&app_handle).await }
     });
 
-    let tantivy_handle = async_runtime::spawn({
+    let handle2 = async_runtime::spawn({
         let app_handle = app_handle.clone();
         async move { search_engine::init(&app_handle, 0).await }
     });
+
+    state::init(app_handle.clone())?;
 
     // set event listners here
     // OutlinesTableChangeEvent::listen(app_handle, |e| {
     //     dbg!(e.payload);
     // });
 
-    async_runtime::block_on(sqlite_handle)??;
-    async_runtime::block_on(tantivy_handle)??;
+    async_runtime::block_on(handle)??;
+    async_runtime::block_on(handle2)??;
 
     Ok(())
 }
