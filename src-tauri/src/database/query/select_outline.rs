@@ -1,5 +1,5 @@
-use crate::sqlite_interface::table::OutlinesTable;
-use crate::sqlite_interface::types::Base64String;
+use crate::database::table::OutlinesTable;
+use crate::database::types::Base64String;
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};

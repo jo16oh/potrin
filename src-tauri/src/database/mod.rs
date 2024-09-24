@@ -13,7 +13,7 @@ use tauri::{AppHandle, Manager, Runtime};
 
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 
-pub async fn init_sqlite<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
+pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
     let pool = if TypeId::of::<R>() == TypeId::of::<MockRuntime>() {
         SqlitePool::connect("sqlite::memory:")
             .await
@@ -84,7 +84,7 @@ pub async fn init_sqlite<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Resul
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::sqlite_interface::types::{Base64String, NullableBase64String, Origin::*};
+    use crate::database::types::{Base64String, NullableBase64String, Origin::*};
     use crate::{test::*, OutlinesTableChangeEvent};
     use query::*;
     use serde::{Deserialize, Serialize};

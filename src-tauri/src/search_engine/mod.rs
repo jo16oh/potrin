@@ -50,7 +50,7 @@ static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
 static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
 static QUERY_PARSER: OnceLock<RwLock<QueryParser>> = OnceLock::new();
 
-pub async fn init_tantivy<R: Runtime>(
+pub async fn init<R: Runtime>(
     app_handle: &AppHandle<R>,
     levenshtein_distance: u8,
 ) -> anyhow::Result<()> {

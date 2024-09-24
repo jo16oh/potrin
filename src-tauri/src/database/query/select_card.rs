@@ -1,5 +1,5 @@
-use crate::sqlite_interface::table::CardsTable;
-use crate::sqlite_interface::types::Base64String;
+use crate::database::table::CardsTable;
+use crate::database::types::Base64String;
 use anyhow::anyhow;
 use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 use tauri::{AppHandle, Manager, Runtime};

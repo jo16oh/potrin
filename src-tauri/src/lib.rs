@@ -1,12 +1,12 @@
-mod sqlite_interface;
-mod tantivy_interface;
+mod database;
+mod search_engine;
 mod utils;
 
-use specta_typescript::Typescript;
-use sqlite_interface::table::{
+use database::table::{
     CardYUpdatesTableChangeEvent, CardsTableChangeEvent, OutlineYUpdatesTableChangeEvent,
     OutlinesTableChangeEvent,
 };
+use specta_typescript::Typescript;
 use tauri::{async_runtime, App, Runtime};
 use tauri_specta::{collect_commands, collect_events, Events};
 
@@ -22,12 +22,12 @@ pub fn run() {
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             greet,
-            sqlite_interface::query::select_outline::<tauri::Wry>,
-            sqlite_interface::query::insert_outline::<tauri::Wry>,
-            sqlite_interface::query::select_cards::<tauri::Wry>,
-            sqlite_interface::query::insert_card::<tauri::Wry>,
-            tantivy_interface::index,
-            tantivy_interface::search
+            database::query::select_outline::<tauri::Wry>,
+            database::query::insert_outline::<tauri::Wry>,
+            database::query::select_cards::<tauri::Wry>,
+            database::query::insert_card::<tauri::Wry>,
+            search_engine::index,
+            search_engine::search
         ])
         .events(events())
         .error_handling(tauri_specta::ErrorHandlingMode::Throw);
@@ -65,12 +65,12 @@ fn setup<R: Runtime>(
 
     let sqlite_handle = async_runtime::spawn({
         let app_handle = app_handle.clone();
-        async move { sqlite_interface::init_sqlite(&app_handle).await }
+        async move { database::init(&app_handle).await }
     });
 
     let tantivy_handle = async_runtime::spawn({
         let app_handle = app_handle.clone();
-        async move { tantivy_interface::init_tantivy(&app_handle, 0).await }
+        async move { search_engine::init(&app_handle, 0).await }
     });
 
     // set event listners here
