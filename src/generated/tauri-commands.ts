@@ -8,26 +8,23 @@ export const commands = {
 async greet(name: string) : Promise<string> {
     return await TAURI_INVOKE("greet", { name });
 },
-async testTuple(name: string) : Promise<BaseN> {
-    return await TAURI_INVOKE("test_tuple", { name });
-},
-async selectOutline(id: number[]) : Promise<OutlinesTable> {
+async selectOutline(id: Base64String) : Promise<OutlinesTable> {
     return await TAURI_INVOKE("select_outline", { id });
 },
 async insertOutline(text: string | null, parent: NullableBase64String, origin: Origin) : Promise<OutlinesTable> {
     return await TAURI_INVOKE("insert_outline", { text, parent, origin });
 },
-async selectCards(ids: number[][]) : Promise<RawCard[]> {
+async selectCards(ids: Base64String[]) : Promise<CardsTable[]> {
     return await TAURI_INVOKE("select_cards", { ids });
 },
-async insertCard(text: string, outlineId: number[] | null, origin: Origin) : Promise<CardsTable> {
+async insertCard(text: string, outlineId: NullableBase64String, origin: Origin) : Promise<CardsTable> {
     return await TAURI_INVOKE("insert_card", { text, outlineId, origin });
 },
 async index(input: IndexTarget[]) : Promise<null> {
     return await TAURI_INVOKE("index", { input });
 },
-async search(query: string, levenshteinDistance: number, limit: number) : Promise<SearchResult[]> {
-    return await TAURI_INVOKE("search", { query, levenshteinDistance, limit });
+async search(query: string, potId: string, limit: number) : Promise<SearchResult[]> {
+    return await TAURI_INVOKE("search", { query, potId, limit });
 }
 }
 
@@ -53,12 +50,11 @@ outlinesTableChangeEvent: "outlines-table-change-event"
 /** user-defined types **/
 
 export type Base64String = string
-export type BaseN = string
 export type CardYUpdatesTable = { id: Base64String; card_id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number; from_remote: number }
 export type CardYUpdatesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardYUpdatesTable[] }
 export type CardsTable = { id: Base64String; author: NullableBase64String; outline_id: Base64String; fractional_index: string; text: string; last_materialized_hash: NullableBase64String; created_at: number; updated_at: number; is_deleted: number }
 export type CardsTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardsTable[] }
-export type IndexTarget = { id: string; doc_type: string; text: string }
+export type IndexTarget = { id: string; pot_id: string; doc_type: string; text: string }
 export type NullableBase64String = Base64String | null
 export type Operation = "insert" | "update" | "delete"
 export type Origin = "local" | "remote"
@@ -66,7 +62,6 @@ export type OutlineYUpdatesTable = { id: Base64String; outline_id: Base64String;
 export type OutlineYUpdatesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: OutlineYUpdatesTable[] }
 export type OutlinesTable = { id: Base64String; author: NullableBase64String; pot_id: NullableBase64String; parent_id: NullableBase64String; fractional_index: string; text: string | null; last_materialized_hash: NullableBase64String; created_at: number; updated_at: number; is_deleted: number }
 export type OutlinesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: OutlinesTable[] }
-export type RawCard = { id: string; outline_id: string; text: string; fractional_index: string; created_at: number; updated_at: number }
 export type SearchResult = { id: string; doc_type: string }
 
 /** tauri-specta globals **/
@@ -85,7 +80,7 @@ type __EventObj__<T> = {
 	once: (
 		cb: TAURI_API_EVENT.EventCallback<T>,
 	) => ReturnType<typeof TAURI_API_EVENT.once<T>>;
-	emit: T extends null
+	emit: null extends T
 		? (payload?: T) => ReturnType<typeof TAURI_API_EVENT.emit>
 		: (payload: T) => ReturnType<typeof TAURI_API_EVENT.emit>;
 };

@@ -8,14 +8,14 @@ use sqlx::{
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 pub enum Origin {
     Local,
     Remote,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 pub enum Operation {
     Insert,
     Update,
