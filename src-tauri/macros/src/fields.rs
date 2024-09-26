@@ -46,6 +46,14 @@ pub fn fields_impl(input: TokenStream) -> TokenStream {
                 }
             }
         }
+
+        impl #struct_name {
+            pub fn apply(&mut self, state: #enum_name) {
+                match state {
+                    #(#enum_name::#pascal_case_field_names(value) => self.#field_names = value),*
+                };
+            }
+        }
     }
     .into()
 }
