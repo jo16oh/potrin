@@ -323,18 +323,27 @@ mod test {
     #[test]
     fn test_user_state() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            let collection = get_once_lock(&USER_STATE_COL).unwrap();
+
             let user = UserState {
                 id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
                 name: "name".to_string(),
             };
 
             set_user_state(app_handle.clone(), user.clone()).unwrap();
-            let collection = get_once_lock(&USER_STATE_COL).unwrap();
 
             assert_eq!(
                 collection.find_one(doc! {}).unwrap().unwrap().name,
                 user.name
             );
+
+            let value = UserStateFields::Name("updated".to_string());
+            update_user_state(app_handle.clone(), value).unwrap();
+
+            let result = collection.find_one(doc! {}).unwrap().unwrap();
+
+            assert_eq!(result.name, "updated".to_string());
+            assert_eq!(result.id.to_string(), user.id.to_string());
         });
     }
 
