@@ -3,11 +3,13 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, Ident, ItemStruct};
 
-pub fn keys_impl(input: TokenStream) -> TokenStream {
+pub fn fields_impl(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
     let struct_name = &input.ident;
-    let enum_name = format_ident!("{}Keys", struct_name);
+    let enum_name = format_ident!("{}Fields", struct_name);
     let fields = &input.fields;
+
+    let field_names = fields.iter().map(|f| &f.ident);
 
     let pascal_case_field_names: Vec<Ident> = fields
         .iter()

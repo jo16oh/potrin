@@ -12,33 +12,33 @@ pub struct AppState {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Bson)]
-#[macros::keys]
+#[macros::fields]
 pub struct ClientState {
     pub id: Base64String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Bson)]
-#[macros::keys]
+#[macros::fields]
 pub struct UserState {
     pub id: Base64String,
     pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Bson)]
-#[macros::keys]
+#[macros::fields]
 pub struct PotState {
     pub id: Base64String,
     pub sync: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Bson)]
+#[macros::fields]
 pub struct WorkspaceState {
     pub tabs: Vec<TabState>,
     pub focused_tab_idx: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Bson)]
-#[macros::keys]
+#[derive(Serialize, Deserialize, Clone, Debug, Bson, specta::Type)]
 pub struct TabState {
     pub id: Base64String,
     pub view: String,

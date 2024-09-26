@@ -1,13 +1,13 @@
 extern crate proc_macro;
 
 mod anyhow_to_string;
+mod fields;
 mod into_bson;
-mod keys;
 mod table_change_event;
 
 use anyhow_to_string::anyhow_to_string_impl;
+use fields::fields_impl;
 use into_bson::into_bson_impl;
-use keys::keys_impl;
 use proc_macro::TokenStream;
 use table_change_event::table_change_event_impl;
 
@@ -22,8 +22,8 @@ pub fn table_change_event(_attr: TokenStream, item: TokenStream) -> TokenStream 
 }
 
 #[proc_macro_attribute]
-pub fn keys(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    keys_impl(item)
+pub fn fields(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    fields_impl(item)
 }
 
 #[proc_macro_derive(Bson)]
