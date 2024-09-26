@@ -116,6 +116,36 @@ pub fn set_user_state<R: Runtime>(app_handle: AppHandle<R>, user: UserState) -> 
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
+pub fn update_user_state<R: Runtime>(
+    app_handle: AppHandle<R>,
+    value: UserStateFields,
+) -> anyhow::Result<()> {
+    let user_state_col = get_once_lock(&USER_STATE_COL)?;
+
+    let lock = app_handle
+        .try_state::<RwLock<AppState>>()
+        .ok_or(anyhow!("failed to get state"))?;
+    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+
+    if let Some(ref mut user) = app_state.user {
+        user_state_col.update_one(
+            doc! {},
+            doc! {
+                "$set": &value
+            },
+        )?;
+
+        user.apply(value);
+
+        Ok(())
+    } else {
+        Err(anyhow!("user state is not set"))
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+#[macros::anyhow_to_string]
 pub fn set_pot_state<R: Runtime>(
     app_handle: AppHandle<R>,
     pot: PotState,
@@ -145,9 +175,50 @@ pub fn set_pot_state<R: Runtime>(
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub fn set_tab_state<R: Runtime>(
+pub fn update_pot_state<R: Runtime>(
     app_handle: AppHandle<R>,
-    tabs: Vec<TabState>,
+    value: PotStateFields,
+) -> anyhow::Result<Option<WorkspaceState>> {
+    let pot_state_col = get_once_lock(&POT_STATE_COL)?;
+    let workspace_state_col = get_once_lock(&WS_STATE_COL)?;
+
+    let lock = app_handle
+        .try_state::<RwLock<AppState>>()
+        .ok_or(anyhow!("failed to get state"))?;
+    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+
+    if app_state.pot.is_some() {
+        let res = if let PotStateFields::Id(ref id) = value {
+            let workspace = workspace_state_col.find_one(doc! {"_id": id})?;
+            app_state.workspace = workspace.clone();
+            workspace
+        } else {
+            None
+        };
+
+        if let Some(ref mut pot) = app_state.pot {
+            pot_state_col.update_one(
+                doc! {},
+                doc! {
+                    "$set": &value
+                },
+            )?;
+
+            pot.apply(value);
+        }
+
+        Ok(res)
+    } else {
+        Err(anyhow!("pot state is not set"))
+    }
+}
+
+#[tauri::command]
+#[specta::specta]
+#[macros::anyhow_to_string]
+pub fn set_workspace_state<R: Runtime>(
+    app_handle: AppHandle<R>,
+    workspace: WorkspaceState,
 ) -> anyhow::Result<()> {
     let lock = app_handle
         .try_state::<RwLock<AppState>>()
@@ -163,22 +234,12 @@ pub fn set_tab_state<R: Runtime>(
     workspace_state_col.update_one_with_options(
         doc! {"_id": pot_id},
         doc! {
-            "$set": {
-                "tabs": &tabs
-            }
+            "$set": &workspace
         },
         UpdateOptions::builder().upsert(true).build(),
     )?;
 
-    match &mut app_state.workspace {
-        Some(ref mut workspace) => workspace.tabs = tabs,
-        None => {
-            app_state.workspace = Some(WorkspaceState {
-                tabs,
-                focused_tab_idx: None,
-            })
-        }
-    }
+    app_state.workspace = Some(workspace);
 
     Ok(())
 }
@@ -186,10 +247,12 @@ pub fn set_tab_state<R: Runtime>(
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub fn set_focused_tab_state<R: Runtime>(
+pub fn update_workspace_state<R: Runtime>(
     app_handle: AppHandle<R>,
-    idx: Option<i64>,
+    value: WorkspaceStateFields,
 ) -> anyhow::Result<()> {
+    let workspace_state_col = get_once_lock(&WS_STATE_COL)?;
+
     let lock = app_handle
         .try_state::<RwLock<AppState>>()
         .ok_or(anyhow!("failed to get state"))?;
@@ -200,28 +263,22 @@ pub fn set_focused_tab_state<R: Runtime>(
         None => Err(anyhow!("pot state is not set")),
     }?;
 
-    let workspace_state_col = get_once_lock(&WS_STATE_COL)?;
-    workspace_state_col.update_one_with_options(
-        doc! {"_id": pot_id},
-        doc! {
-            "$set": {
-                "focused_tab_idx": &idx
-            }
-        },
-        UpdateOptions::builder().upsert(true).build(),
-    )?;
+    if app_state.workspace.is_some() {
+        workspace_state_col.update_one(
+            doc! {"_id": pot_id},
+            doc! {
+                "$set": &value
+            },
+        )?;
 
-    match &mut app_state.workspace {
-        Some(ref mut workspace) => workspace.focused_tab_idx = idx,
-        None => {
-            app_state.workspace = Some(WorkspaceState {
-                tabs: vec![],
-                focused_tab_idx: idx,
-            })
-        }
+        if let Some(ref mut workspace) = app_state.workspace {
+            workspace.apply(value);
+        };
+
+        Ok(())
+    } else {
+        Err(anyhow!("workspace state is not set"))
     }
-
-    Ok(())
 }
 
 #[tauri::command]
