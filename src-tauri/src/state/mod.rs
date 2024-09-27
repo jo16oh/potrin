@@ -331,36 +331,72 @@ mod test {
             };
 
             set_user_state(app_handle.clone(), user.clone()).unwrap();
+            let result = collection.find_one(doc! {}).unwrap().unwrap();
 
-            assert_eq!(
-                collection.find_one(doc! {}).unwrap().unwrap().name,
-                user.name
-            );
+            assert_eq!(result.name, user.name);
 
             let value = UserStateFields::Name("updated".to_string());
             update_user_state(app_handle.clone(), value).unwrap();
 
             let result = collection.find_one(doc! {}).unwrap().unwrap();
 
+            // partial update
             assert_eq!(result.name, "updated".to_string());
             assert_eq!(result.id.to_string(), user.id.to_string());
         });
     }
 
     #[test]
-    fn test_pot_state() {
+    fn test_pot_and_workspace_state() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
             let pot = PotState {
                 id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
                 sync: true,
             };
             set_pot_state(app_handle.clone(), pot.clone()).unwrap();
-            let collection = get_once_lock(&POT_STATE_COL).unwrap();
 
-            assert_eq!(
-                collection.find_one(doc! {}).unwrap().unwrap().sync,
-                pot.sync
-            );
+            let pot_col = get_once_lock(&POT_STATE_COL).unwrap();
+            let result = pot_col.find_one(doc! {}).unwrap().unwrap();
+            assert_eq!(result.sync, pot.sync);
+
+            let workspace = WorkspaceState {
+                tabs: vec![TabState {
+                    id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
+                    view: "view".to_string(),
+                    scroll_pos: 32,
+                }],
+                focused_tab_idx: Some(1),
+            };
+            set_workspace_state(app_handle.clone(), workspace).unwrap();
+
+            update_workspace_state(
+                app_handle.clone(),
+                WorkspaceStateFields::FocusedTabIdx(Some(2)),
+            )
+            .unwrap();
+            let ws_col = get_once_lock(&WS_STATE_COL).unwrap();
+            let result = ws_col.find_one(doc! {"_id": &pot.id}).unwrap().unwrap();
+
+            // partial update workspace
+            assert_eq!(result.focused_tab_idx, Some(2));
+
+            let pot = PotState {
+                id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
+                sync: true,
+            };
+            set_pot_state(app_handle.clone(), pot.clone()).unwrap();
+
+            let lock = app_handle.state::<RwLock<AppState>>();
+            let app_state = lock.read().unwrap();
+
+            // is workspace state updated after pot state changed?
+            assert!(app_state.workspace.is_none());
+
+            update_pot_state(app_handle.clone(), PotStateFields::Sync(false)).unwrap();
+            let result = pot_col.find_one(doc! {}).unwrap().unwrap();
+
+            // partial update pot
+            assert!(!result.sync);
         });
     }
 }
