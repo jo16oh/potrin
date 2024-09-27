@@ -94,6 +94,17 @@ pub fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
+pub fn get_app_state<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<AppState> {
+    let lock = app_handle
+        .try_state::<RwLock<AppState>>()
+        .ok_or(anyhow!("failed to get state"))?;
+    let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
+    Ok(app_state.clone())
+}
+
+#[tauri::command]
+#[specta::specta]
+#[macros::anyhow_to_string]
 pub fn set_user_state<R: Runtime>(app_handle: AppHandle<R>, user: UserState) -> anyhow::Result<()> {
     let collection = get_once_lock(&USER_STATE_COL)?;
     collection.update_one_with_options(

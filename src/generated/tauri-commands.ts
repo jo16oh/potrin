@@ -25,6 +25,30 @@ async index(input: IndexTarget[]) : Promise<null> {
 },
 async search(query: string, potId: string, limit: number) : Promise<SearchResult[]> {
     return await TAURI_INVOKE("search", { query, potId, limit });
+},
+async getAppState() : Promise<AppState> {
+    return await TAURI_INVOKE("get_app_state");
+},
+async setUserState(user: UserState) : Promise<null> {
+    return await TAURI_INVOKE("set_user_state", { user });
+},
+async updateUserState(value: UserStateFields) : Promise<null> {
+    return await TAURI_INVOKE("update_user_state", { value });
+},
+async setPotState(pot: PotState) : Promise<WorkspaceState | null> {
+    return await TAURI_INVOKE("set_pot_state", { pot });
+},
+async updatePotState(value: PotStateFields) : Promise<WorkspaceState | null> {
+    return await TAURI_INVOKE("update_pot_state", { value });
+},
+async setWorkspaceState(workspace: WorkspaceState) : Promise<null> {
+    return await TAURI_INVOKE("set_workspace_state", { workspace });
+},
+async updateWorkspaceState(value: WorkspaceStateFields) : Promise<null> {
+    return await TAURI_INVOKE("update_workspace_state", { value });
+},
+async setSettingState(setting: SettingState) : Promise<null> {
+    return await TAURI_INVOKE("set_setting_state", { setting });
 }
 }
 
@@ -49,11 +73,13 @@ outlinesTableChangeEvent: "outlines-table-change-event"
 
 /** user-defined types **/
 
+export type AppState = { client: ClientState; user: UserState | null; pot: PotState | null; workspace: WorkspaceState | null; setting: SettingState }
 export type Base64String = string
 export type CardYUpdatesTable = { id: Base64String; card_id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number; from_remote: number }
 export type CardYUpdatesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardYUpdatesTable[] }
 export type CardsTable = { id: Base64String; author: NullableBase64String; outline_id: Base64String; fractional_index: string; text: string; last_materialized_hash: NullableBase64String; created_at: number; updated_at: number; is_deleted: number }
 export type CardsTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardsTable[] }
+export type ClientState = { id: Base64String }
 export type IndexTarget = { id: string; pot_id: string; doc_type: string; text: string }
 export type NullableBase64String = Base64String | null
 export type Operation = "insert" | "update" | "delete"
@@ -62,7 +88,15 @@ export type OutlineYUpdatesTable = { id: Base64String; outline_id: Base64String;
 export type OutlineYUpdatesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: OutlineYUpdatesTable[] }
 export type OutlinesTable = { id: Base64String; author: NullableBase64String; pot_id: NullableBase64String; parent_id: NullableBase64String; fractional_index: string; text: string | null; last_materialized_hash: NullableBase64String; created_at: number; updated_at: number; is_deleted: number }
 export type OutlinesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: OutlinesTable[] }
+export type PotState = { id: Base64String; sync: boolean }
+export type PotStateFields = { Id: Base64String } | { Sync: boolean }
 export type SearchResult = { id: string; doc_type: string }
+export type SettingState = Record<string, never>
+export type TabState = { id: Base64String; view: string; scroll_pos: number }
+export type UserState = { id: Base64String; name: string }
+export type UserStateFields = { Id: Base64String } | { Name: string }
+export type WorkspaceState = { tabs: TabState[]; focused_tab_idx: number | null }
+export type WorkspaceStateFields = { Tabs: TabState[] } | { FocusedTabIdx: number | null }
 
 /** tauri-specta globals **/
 

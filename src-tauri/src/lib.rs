@@ -28,7 +28,15 @@ pub fn run() {
             database::query::select_cards::<tauri::Wry>,
             database::query::insert_card::<tauri::Wry>,
             search_engine::index,
-            search_engine::search
+            search_engine::search,
+            state::get_app_state::<tauri::Wry>,
+            state::set_user_state::<tauri::Wry>,
+            state::update_user_state::<tauri::Wry>,
+            state::set_pot_state::<tauri::Wry>,
+            state::update_pot_state::<tauri::Wry>,
+            state::set_workspace_state::<tauri::Wry>,
+            state::update_workspace_state::<tauri::Wry>,
+            state::set_setting_state::<tauri::Wry>,
         ])
         .events(events())
         .error_handling(tauri_specta::ErrorHandlingMode::Throw);
