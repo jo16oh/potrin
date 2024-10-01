@@ -16,7 +16,7 @@ tauri-build = { version = "=2.0.0-rc.9", features = ["config-toml"] }
 
 [dependencies]
 tauri = { version = "=2.0.0-rc.10", features = ["config-toml", "test"] }
-specta = { version = "=2.0.0-rc.20" }
+specta = { version = "=2.0.0-rc.20", features = ["chrono"] }
 specta-typescript = "0.0.7"
 tauri-specta = { version = "=2.0.0-rc.19", features = ["derive", "typescript"] }
 serde = { version = "1", features = ["derive"] }

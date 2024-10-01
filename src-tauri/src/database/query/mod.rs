@@ -1,4 +1,5 @@
 mod fetch_breadcrumbs;
+mod fetch_timeline;
 mod fetch_tree;
 mod insert_card;
 mod insert_outline;
@@ -7,6 +8,7 @@ mod select_oplog;
 mod select_outline;
 
 pub use fetch_breadcrumbs::fetch_breadcrumbs;
+pub use fetch_timeline::*;
 pub use fetch_tree::*;
 pub use insert_card::*;
 pub use insert_outline::*;
