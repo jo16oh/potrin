@@ -27,6 +27,7 @@ pub fn run() {
             database::query::insert_outline::<tauri::Wry>,
             database::query::select_cards::<tauri::Wry>,
             database::query::insert_card::<tauri::Wry>,
+            database::query::fetch_tree::<tauri::Wry>,
             search_engine::index,
             search_engine::search,
             state::get_app_state::<tauri::Wry>,

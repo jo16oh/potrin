@@ -20,6 +20,12 @@ async selectCards(ids: Base64String[]) : Promise<CardsTable[]> {
 async insertCard(text: string, outlineId: NullableBase64String, origin: Origin) : Promise<CardsTable> {
     return await TAURI_INVOKE("insert_card", { text, outlineId, origin });
 },
+async fetchTree(id: Base64String, depth: number | null) : Promise<[OutlinesTable[], Breadcrumb[], CardsTable[]]> {
+    return await TAURI_INVOKE("fetch_tree", { id, depth });
+},
+async fetchTimeline(from: string, option: TlOption) : Promise<[OutlinesTable[], CardsTable[], Breadcrumb[]]> {
+    return await TAURI_INVOKE("fetch_timeline", { from, option });
+},
 async index(input: IndexTarget[]) : Promise<null> {
     return await TAURI_INVOKE("index", { input });
 },
@@ -75,6 +81,7 @@ outlinesTableChangeEvent: "outlines-table-change-event"
 
 export type AppState = { client: ClientState; user: UserState | null; pot: PotState | null; workspace: WorkspaceState | null; setting: SettingState }
 export type Base64String = string
+export type Breadcrumb = { id: Base64String; parent_id: NullableBase64String; text: string | null }
 export type CardYUpdatesTable = { id: Base64String; card_id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number; from_remote: number }
 export type CardYUpdatesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardYUpdatesTable[] }
 export type CardsTable = { id: Base64String; author: NullableBase64String; outline_id: Base64String; fractional_index: string; text: string; last_materialized_hash: NullableBase64String; created_at: number; updated_at: number; is_deleted: number }
@@ -93,6 +100,7 @@ export type PotStateFields = { Id: Base64String } | { Sync: boolean }
 export type SearchResult = { id: string; doc_type: string }
 export type SettingState = Record<string, never>
 export type TabState = { id: Base64String; view: string; scroll_pos: number }
+export type TlOption = "CreatedAt" | "UpdatedAt" | "Both"
 export type UserState = { id: Base64String; name: string }
 export type UserStateFields = { Id: Base64String } | { Name: string }
 export type WorkspaceState = { tabs: TabState[]; focused_tab_idx: number | null }
