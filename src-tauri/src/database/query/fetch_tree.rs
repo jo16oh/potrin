@@ -23,12 +23,15 @@ pub async fn fetch_tree<R: Runtime>(
 
     let outlines = fetch_outline_tree(&id, depth, pool).await?;
 
-    let parent_ids = outlines
+    let root = outlines
         .iter()
-        .filter_map(|o| o.parent_id.as_ref())
-        .collect::<Vec<&Base64String>>();
+        .find(|o| o.id == id)
+        .ok_or(anyhow!("failed to find root outline"))?;
 
-    let breadcrumbs = fetch_breadcrumbs(parent_ids, pool).await?;
+    let breadcrumbs = match root.parent_id.0 {
+        Some(ref id) => fetch_breadcrumbs(vec![id], pool).await?,
+        None => vec![],
+    };
 
     let cards = {
         let query = format!(

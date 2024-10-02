@@ -22,7 +22,7 @@ pub enum Operation {
     Delete,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, specta::Type, Deref)]
+#[derive(Serialize, Deserialize, Clone, Debug, specta::Type, Deref, PartialEq)]
 pub struct Base64String(String);
 
 impl Base64String {
