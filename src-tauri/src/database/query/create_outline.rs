@@ -1,5 +1,5 @@
 use super::super::table::{OutlinesTable, OutlinesTableChangeEvent};
-use crate::database::types::{Base64String, NullableBase64String, Operation::*, Origin};
+use crate::database::types::{Base64String, Operation::*, Origin};
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
@@ -8,10 +8,9 @@ use tauri_specta::Event;
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub async fn insert_outline<R: Runtime>(
+pub async fn create_outline<R: Runtime>(
     app_handle: AppHandle<R>,
-    text: Option<&str>,
-    parent: NullableBase64String,
+    parent: Option<Base64String>,
     origin: Origin,
 ) -> anyhow::Result<OutlinesTable> {
     let pool = app_handle
@@ -24,13 +23,12 @@ pub async fn insert_outline<R: Runtime>(
     let outline: OutlinesTable = sqlx::query_as!(
         OutlinesTable,
         r#"
-            INSERT INTO outlines (id, parent_id, fractional_index, text)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO outlines (id, parent_id, fractional_index)
+            VALUES (?, ?, ?)
             RETURNING *;"#,
         id,
         parent,
         "",
-        text,
     )
     .fetch_one(pool)
     .await?;

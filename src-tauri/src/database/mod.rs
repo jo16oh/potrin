@@ -49,34 +49,29 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod test {
-    use crate::database::query::{insert_card, insert_outline};
+    use crate::database::query::{create_card, create_outline};
     use crate::database::table::OutlinesTable;
-    use crate::database::types::{NullableBase64String, Origin};
+    use crate::database::types::{Base64String, Origin};
     use tauri::{test::MockRuntime, AppHandle};
 
     pub async fn create_tree(
         app_handle: &AppHandle<MockRuntime>,
-        parent_id: NullableBase64String,
+        parent_id: Option<Base64String>,
         limit: u8,
         current: u8,
     ) -> OutlinesTable {
-        let outline = insert_outline(app_handle.clone(), None, parent_id, Origin::Local)
+        let outline = create_outline(app_handle.clone(), parent_id, Origin::Local)
             .await
             .unwrap();
 
-        insert_card(
-            app_handle.clone(),
-            "",
-            NullableBase64String::from(outline.id.clone()),
-            Origin::Local,
-        )
-        .await
-        .unwrap();
+        create_card(app_handle.clone(), Some(outline.id.clone()), Origin::Local)
+            .await
+            .unwrap();
 
         if current < limit {
             Box::pin(create_tree(
                 app_handle,
-                NullableBase64String::from(outline.id.clone()),
+                Some(outline.id.clone()),
                 limit,
                 current + 1,
             ))

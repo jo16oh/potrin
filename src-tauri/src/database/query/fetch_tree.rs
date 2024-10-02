@@ -28,8 +28,8 @@ pub async fn fetch_tree<R: Runtime>(
         .find(|o| o.id == id)
         .ok_or(anyhow!("failed to find root outline"))?;
 
-    let breadcrumbs = match root.parent_id.0 {
-        Some(ref id) => fetch_breadcrumbs(vec![id], pool).await?,
+    let breadcrumbs = match root.parent_id.inner() {
+        Some(id) => fetch_breadcrumbs(vec![id], pool).await?,
         None => vec![],
     };
 
@@ -111,7 +111,6 @@ async fn fetch_outline_tree(
 mod test {
     use super::*;
     use crate::database::test::create_tree;
-    use crate::database::types::NullableBase64String;
     use crate::test::*;
 
     #[test]
@@ -122,7 +121,7 @@ mod test {
     }
 
     async fn test(app_handle: &AppHandle<MockRuntime>) {
-        let outline = create_tree(app_handle, NullableBase64String::none(), 2, 0).await;
+        let outline = create_tree(app_handle, None, 2, 0).await;
 
         let (outlines, cards, breadcrumbs) = fetch_tree(app_handle.clone(), outline.id, None)
             .await

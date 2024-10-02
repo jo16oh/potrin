@@ -1,6 +1,8 @@
+use crate::database::types::Base64String;
+
 use super::super::table::{CardsTable, CardsTableChangeEvent};
-use super::super::types::{NullableBase64String, Operation::*, Origin};
-use super::insert_outline;
+use super::super::types::{Operation::*, Origin};
+use super::create_outline;
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};
@@ -9,10 +11,9 @@ use tauri_specta::Event;
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub async fn insert_card<R: tauri::Runtime>(
+pub async fn create_card<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
-    text: &str,
-    outline_id: NullableBase64String,
+    outline_id: Option<Base64String>,
     origin: Origin,
 ) -> anyhow::Result<CardsTable> {
     let pool = app_handle
@@ -21,18 +22,13 @@ pub async fn insert_card<R: tauri::Runtime>(
         .inner();
     let id = uuidv7::create().into_bytes();
 
-    let outline_id = match outline_id.0 {
+    let outline_id = match outline_id {
         Some(id) => id,
         None => {
-            insert_outline(
-                app_handle.clone(),
-                None,
-                NullableBase64String::none(),
-                origin.clone(),
-            )
-            .await
-            .map_err(|e| anyhow!(e.to_string()))?
-            .id
+            create_outline(app_handle.clone(), None, origin.clone())
+                .await
+                .map_err(|e| anyhow!(e.to_string()))?
+                .id
         }
     };
 
@@ -46,7 +42,7 @@ pub async fn insert_card<R: tauri::Runtime>(
         id,
         outline_id,
         "",
-        text,
+        "",
     )
     .fetch_one(pool)
     .await

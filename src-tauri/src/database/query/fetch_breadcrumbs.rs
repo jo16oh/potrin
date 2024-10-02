@@ -53,8 +53,8 @@ pub async fn fetch_breadcrumbs(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::database::query::insert_outline;
-    use crate::database::types::{NullableBase64String, Origin};
+    use crate::database::query::create_outline;
+    use crate::database::types::Origin;
     use crate::test::*;
     use tauri::{AppHandle, Manager};
 
@@ -68,34 +68,19 @@ mod test {
     async fn test(app_handle: &AppHandle<MockRuntime>) {
         let pool = app_handle.state::<SqlitePool>().inner();
 
-        let root = insert_outline(
-            app_handle.clone(),
-            None,
-            NullableBase64String::none(),
-            Origin::Local,
-        )
-        .await
-        .unwrap();
-        let child = insert_outline(
-            app_handle.clone(),
-            None,
-            NullableBase64String::from(root.id),
-            Origin::Local,
-        )
-        .await
-        .unwrap();
-        let grand_child = insert_outline(
-            app_handle.clone(),
-            None,
-            NullableBase64String::from(child.id),
-            Origin::Local,
-        )
-        .await
-        .unwrap();
+        let root = create_outline(app_handle.clone(), None, Origin::Local)
+            .await
+            .unwrap();
+        let child = create_outline(app_handle.clone(), Some(root.id), Origin::Local)
+            .await
+            .unwrap();
+        let grand_child = create_outline(app_handle.clone(), Some(child.id), Origin::Local)
+            .await
+            .unwrap();
 
-        let parent_id = grand_child.parent_id.as_ref().unwrap();
+        let parent_id = grand_child.parent_id.inner().unwrap();
 
-        let breadcrumbs = fetch_breadcrumbs(vec![&parent_id], pool).await.unwrap();
+        let breadcrumbs = fetch_breadcrumbs(vec![parent_id], pool).await.unwrap();
         assert_eq!(breadcrumbs.len(), 2);
     }
 }

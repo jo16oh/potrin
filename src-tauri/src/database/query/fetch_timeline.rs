@@ -5,7 +5,6 @@ use anyhow::anyhow;
 use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;
 use serde::Serialize;
-use sqlx::query_as;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -85,30 +84,35 @@ pub async fn fetch_timeline<R: Runtime>(
     }
     .map_err(|e| anyhow!(e.to_string()))?;
 
-    let ids = cards
-        .iter()
-        .map(|c| c.id.to_string())
-        .collect::<Vec<String>>()
-        .join(", ");
+    let outlines = {
+        let query = format!(
+            r#"
+                SELECT *
+                FROM outlines
+                WHERE id IN ({}) AND is_deleted = false;
+            "#,
+            cards
+                .iter()
+                .map(|_| "?".to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        );
 
-    let outlines = query_as!(
-        OutlinesTable,
-        r#"
-            SELECT *
-            FROM outlines
-            WHERE id IN (?) AND is_deleted = false;
-        "#,
-        ids
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+        let mut query_builder = sqlx::query_as::<_, OutlinesTable>(&query);
+
+        for card in cards.iter() {
+            query_builder = query_builder.bind(&card.outline_id);
+        }
+
+        query_builder.fetch_all(pool).await?
+    };
 
     let parent_ids = outlines
         .iter()
-        .filter_map(|o| o.parent_id.as_ref())
+        .filter_map(|o| o.parent_id.inner())
         .collect::<Vec<&Base64String>>();
 
     let breadcrumbs = fetch_breadcrumbs(parent_ids, pool).await?;
+
     Ok((outlines, cards, breadcrumbs))
 }
