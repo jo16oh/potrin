@@ -15,7 +15,7 @@ pub async fn fetch_tree<R: Runtime>(
     app_handle: AppHandle<R>,
     id: Base64String,
     depth: Option<u32>,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<Breadcrumb>, Vec<CardsTable>)> {
+) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>, Vec<Breadcrumb>)> {
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))?
@@ -30,22 +30,28 @@ pub async fn fetch_tree<R: Runtime>(
 
     let breadcrumbs = fetch_breadcrumbs(parent_ids, pool).await?;
 
-    let ids = outlines
-        .iter()
-        .map(|o| o.id.to_string())
-        .collect::<Vec<String>>()
-        .join(", ");
+    let cards = {
+        let query = format!(
+            r#"
+                SELECT * FROM cards WHERE outline_id IN ({}) AND is_deleted = false;
+            "#,
+            outlines
+                .iter()
+                .map(|_| "?".to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        );
 
-    let cards = query_as!(
-        CardsTable,
-        "SELECT * FROM cards WHERE outline_id IN (?) AND is_deleted = false;",
-        ids
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+        let mut query_builder = query_as::<_, CardsTable>(&query);
 
-    Ok((outlines, breadcrumbs, cards))
+        for outline in outlines.iter() {
+            query_builder = query_builder.bind(&outline.id);
+        }
+
+        query_builder.fetch_all(pool).await?
+    };
+
+    Ok((outlines, cards, breadcrumbs))
 }
 
 async fn fetch_outline_tree(
