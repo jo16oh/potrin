@@ -110,16 +110,9 @@ async fn fetch_outline_tree(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::database::query::insert_card;
+    use crate::database::test::create_tree;
+    use crate::database::types::NullableBase64String;
     use crate::test::*;
-    use crate::{
-        database::{
-            query::insert_outline,
-            types::{NullableBase64String, Origin},
-        },
-        run_in_mock_app,
-    };
-    use tauri::test::MockRuntime;
 
     #[test]
     fn test_fetch_tree() {
@@ -131,43 +124,12 @@ mod test {
     async fn test(app_handle: &AppHandle<MockRuntime>) {
         let outline = create_tree(app_handle, NullableBase64String::none(), 2, 0).await;
 
-        let (outlines, cards, _) = fetch_tree(app_handle.clone(), outline.id, None)
+        let (outlines, cards, breadcrumbs) = fetch_tree(app_handle.clone(), outline.id, None)
             .await
             .unwrap();
 
         assert_eq!(outlines.len(), 3);
         assert_eq!(cards.len(), 3);
-    }
-
-    async fn create_tree(
-        app_handle: &AppHandle<MockRuntime>,
-        parent_id: NullableBase64String,
-        limit: u8,
-        current: u8,
-    ) -> OutlinesTable {
-        let outline = insert_outline(app_handle.clone(), None, parent_id, Origin::Local)
-            .await
-            .unwrap();
-
-        insert_card(
-            app_handle.clone(),
-            "",
-            NullableBase64String::from(outline.id.clone()),
-            Origin::Local,
-        )
-        .await
-        .unwrap();
-
-        if current < limit {
-            Box::pin(create_tree(
-                app_handle,
-                NullableBase64String::from(outline.id.clone()),
-                limit,
-                current + 1,
-            ))
-            .await;
-        }
-
-        outline
+        assert_eq!(breadcrumbs.len(), 0);
     }
 }
