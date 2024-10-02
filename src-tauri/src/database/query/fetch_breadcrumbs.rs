@@ -50,3 +50,52 @@ pub async fn fetch_breadcrumbs(
         .map_err(|e| anyhow::anyhow!(e.to_string()))
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::database::query::insert_outline;
+    use crate::database::types::{NullableBase64String, Origin};
+    use crate::test::*;
+    use tauri::{AppHandle, Manager};
+
+    #[test]
+    fn test_fetch_breadcrumbs() {
+        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            test(app_handle).await;
+        });
+    }
+
+    async fn test(app_handle: &AppHandle<MockRuntime>) {
+        let pool = app_handle.state::<SqlitePool>().inner();
+
+        let root = insert_outline(
+            app_handle.clone(),
+            None,
+            NullableBase64String::none(),
+            Origin::Local,
+        )
+        .await
+        .unwrap();
+        let child = insert_outline(
+            app_handle.clone(),
+            None,
+            NullableBase64String::from(root.id),
+            Origin::Local,
+        )
+        .await
+        .unwrap();
+        let grand_child = insert_outline(
+            app_handle.clone(),
+            None,
+            NullableBase64String::from(child.id),
+            Origin::Local,
+        )
+        .await
+        .unwrap();
+
+        let parent_id = grand_child.parent_id.as_ref().unwrap();
+
+        let breadcrumbs = fetch_breadcrumbs(vec![&parent_id], pool).await.unwrap();
+        assert_eq!(breadcrumbs.len(), 2);
+    }
+}
