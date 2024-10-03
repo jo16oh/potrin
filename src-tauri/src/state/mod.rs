@@ -190,7 +190,6 @@ pub fn update_pot_state<R: Runtime>(
     app_handle: AppHandle<R>,
     value: PotStateFields,
 ) -> anyhow::Result<Option<WorkspaceState>> {
-    println!("start");
     let pot_state_col = get_once_lock(&POT_STATE_COL)?;
     let workspace_state_col = get_once_lock(&WS_STATE_COL)?;
 
@@ -198,7 +197,6 @@ pub fn update_pot_state<R: Runtime>(
         .try_state::<RwLock<AppState>>()
         .ok_or(anyhow!("failed to get state"))?;
     let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-    println!("got write lock");
 
     if app_state.pot.is_some() {
         let res = if let PotStateFields::Id(ref id) = value {

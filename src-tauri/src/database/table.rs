@@ -4,6 +4,93 @@ use specta::Type;
 use sqlx::FromRow;
 use tauri_specta::Event;
 
+#[macros::table_change_event]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct Outline {
+    pub id: Base64String,
+    pub parent_id: NullableBase64String,
+    pub fractional_index: String,
+    pub text: Option<String>,
+}
+
+#[cfg(test)]
+impl Outline {
+    pub fn new(parent_id: Option<&Base64String>) -> Self {
+        Self {
+            id: Base64String::from(uuidv7::create_raw().to_vec()),
+            parent_id: match parent_id {
+                Some(id) => NullableBase64String::from(id.clone()),
+                None => NullableBase64String::none(),
+            },
+            fractional_index: String::new(),
+            text: Some(String::new()),
+        }
+    }
+}
+
+#[macros::table_change_event]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct OutlineYUpdate {
+    pub id: Base64String,
+    pub data: Base64String,
+    pub updated_at: i64,
+    pub is_checkpoint: i64,
+}
+
+#[cfg(test)]
+impl OutlineYUpdate {
+    pub fn new() -> Self {
+        Self {
+            id: Base64String::from(uuidv7::create_raw().to_vec()),
+            data: Base64String::from(uuidv7::create_raw().to_vec()),
+            updated_at: chrono::Utc::now().timestamp_millis(),
+            is_checkpoint: 0,
+        }
+    }
+}
+
+#[macros::table_change_event]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct Card {
+    pub id: Base64String,
+    pub outline_id: Base64String,
+    pub fractional_index: String,
+    pub text: String,
+}
+
+#[cfg(test)]
+impl Card {
+    pub fn new(outline_id: Base64String) -> Self {
+        Self {
+            id: Base64String::from(uuidv7::create_raw().to_vec()),
+            outline_id,
+            fractional_index: String::new(),
+            text: String::new(),
+        }
+    }
+}
+
+#[macros::table_change_event]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct CardYUpdate {
+    pub id: Base64String,
+    pub data: Base64String,
+    pub updated_at: i64,
+    pub is_checkpoint: i64,
+}
+
+#[cfg(test)]
+impl CardYUpdate {
+    pub fn new() -> Self {
+        Self {
+            id: Base64String::from(uuidv7::create_raw().to_vec()),
+            data: Base64String::from(uuidv7::create_raw().to_vec()),
+            updated_at: chrono::Utc::now().timestamp_millis(),
+            is_checkpoint: 0,
+        }
+    }
+}
+
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OplogTable {
     pub rowid: i64,
@@ -65,7 +152,6 @@ pub struct OutlineYUpdatesTable {
     pub data: Base64String,
     pub updated_at: i64,
     pub is_checkpoint: i64,
-    pub from_remote: i64,
 }
 
 #[macros::table_change_event]
@@ -90,5 +176,4 @@ pub struct CardYUpdatesTable {
     pub data: Base64String,
     pub updated_at: i64,
     pub is_checkpoint: i64,
-    pub from_remote: i64,
 }

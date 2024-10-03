@@ -49,24 +49,33 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod test {
-    use crate::database::query::{create_card, create_outline};
-    use crate::database::table::OutlinesTable;
-    use crate::database::types::{Base64String, Origin};
+    use crate::database::query::{insert_card, insert_outline};
+    use crate::database::types::Base64String;
     use tauri::{test::MockRuntime, AppHandle};
+
+    use super::table::{Card, CardYUpdate, Outline, OutlineYUpdate};
 
     pub async fn create_tree(
         app_handle: &AppHandle<MockRuntime>,
         parent_id: Option<Base64String>,
         limit: u8,
         current: u8,
-    ) -> OutlinesTable {
-        let outline = create_outline(app_handle.clone(), parent_id, Origin::Local)
-            .await
-            .unwrap();
+    ) -> Outline {
+        let outline = insert_outline(
+            app_handle.clone(),
+            Outline::new(parent_id.as_ref()),
+            vec![OutlineYUpdate::new()],
+        )
+        .await
+        .unwrap();
 
-        create_card(app_handle.clone(), Some(outline.id.clone()), Origin::Local)
-            .await
-            .unwrap();
+        insert_card(
+            app_handle.clone(),
+            Card::new(outline.id.clone()),
+            vec![CardYUpdate::new()],
+        )
+        .await
+        .unwrap();
 
         if current < limit {
             Box::pin(create_tree(

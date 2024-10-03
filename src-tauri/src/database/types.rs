@@ -75,9 +75,20 @@ impl From<Vec<u8>> for Base64String {
 #[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct NullableBase64String(Option<Base64String>);
 
+impl From<Option<Base64String>> for NullableBase64String {
+    fn from(value: Option<Base64String>) -> Self {
+        Self(value)
+    }
+}
+
 impl NullableBase64String {
     pub fn inner(&self) -> Option<&Base64String> {
         self.0.as_ref()
+    }
+
+    #[cfg(test)]
+    pub fn none() -> Self {
+        Self(None)
     }
 }
 

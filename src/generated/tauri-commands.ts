@@ -8,19 +8,13 @@ export const commands = {
 async greet(name: string) : Promise<string> {
     return await TAURI_INVOKE("greet", { name });
 },
-async selectOutline(id: Base64String) : Promise<OutlinesTable> {
-    return await TAURI_INVOKE("select_outline", { id });
+async insertOutline(outline: Outline, yUpdates: OutlineYUpdate[]) : Promise<Outline> {
+    return await TAURI_INVOKE("insert_outline", { outline, yUpdates });
 },
-async insertOutline(text: string | null, parent: NullableBase64String, origin: Origin) : Promise<OutlinesTable> {
-    return await TAURI_INVOKE("insert_outline", { text, parent, origin });
+async insertCard(card: Card, yUpdates: CardYUpdate[]) : Promise<Card> {
+    return await TAURI_INVOKE("insert_card", { card, yUpdates });
 },
-async selectCards(ids: Base64String[]) : Promise<CardsTable[]> {
-    return await TAURI_INVOKE("select_cards", { ids });
-},
-async insertCard(text: string, outlineId: NullableBase64String, origin: Origin) : Promise<CardsTable> {
-    return await TAURI_INVOKE("insert_card", { text, outlineId, origin });
-},
-async fetchTree(id: Base64String, depth: number | null) : Promise<[OutlinesTable[], Breadcrumb[], CardsTable[]]> {
+async fetchTree(id: Base64String, depth: number | null) : Promise<[OutlinesTable[], CardsTable[], Breadcrumb[]]> {
     return await TAURI_INVOKE("fetch_tree", { id, depth });
 },
 async fetchTimeline(from: string, option: TlOption) : Promise<[OutlinesTable[], CardsTable[], Breadcrumb[]]> {
@@ -62,13 +56,21 @@ async setSettingState(setting: SettingState) : Promise<null> {
 
 
 export const events = __makeEvents__<{
+cardChangeEvent: CardChangeEvent,
+cardYUpdateChangeEvent: CardYUpdateChangeEvent,
 cardYUpdatesTableChangeEvent: CardYUpdatesTableChangeEvent,
 cardsTableChangeEvent: CardsTableChangeEvent,
+outlineChangeEvent: OutlineChangeEvent,
+outlineYUpdateChangeEvent: OutlineYUpdateChangeEvent,
 outlineYUpdatesTableChangeEvent: OutlineYUpdatesTableChangeEvent,
 outlinesTableChangeEvent: OutlinesTableChangeEvent
 }>({
+cardChangeEvent: "card-change-event",
+cardYUpdateChangeEvent: "card-y-update-change-event",
 cardYUpdatesTableChangeEvent: "card-y-updates-table-change-event",
 cardsTableChangeEvent: "cards-table-change-event",
+outlineChangeEvent: "outline-change-event",
+outlineYUpdateChangeEvent: "outline-y-update-change-event",
 outlineYUpdatesTableChangeEvent: "outline-y-updates-table-change-event",
 outlinesTableChangeEvent: "outlines-table-change-event"
 })
@@ -82,7 +84,11 @@ outlinesTableChangeEvent: "outlines-table-change-event"
 export type AppState = { client: ClientState; user: UserState | null; pot: PotState | null; workspace: WorkspaceState | null; setting: SettingState }
 export type Base64String = string
 export type Breadcrumb = { id: Base64String; parent_id: NullableBase64String; text: string | null }
-export type CardYUpdatesTable = { id: Base64String; card_id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number; from_remote: number }
+export type Card = { id: Base64String; outline_id: Base64String; fractional_index: string; text: string }
+export type CardChangeEvent = { operation: Operation; origin: Origin; rows_changed: Card[] }
+export type CardYUpdate = { id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number }
+export type CardYUpdateChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardYUpdate[] }
+export type CardYUpdatesTable = { id: Base64String; card_id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number }
 export type CardYUpdatesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardYUpdatesTable[] }
 export type CardsTable = { id: Base64String; author: NullableBase64String; outline_id: Base64String; fractional_index: string; text: string; last_materialized_hash: NullableBase64String; created_at: number; updated_at: number; is_deleted: number }
 export type CardsTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardsTable[] }
@@ -91,7 +97,11 @@ export type IndexTarget = { id: string; pot_id: string; doc_type: string; text: 
 export type NullableBase64String = Base64String | null
 export type Operation = "insert" | "update" | "delete"
 export type Origin = "local" | "remote"
-export type OutlineYUpdatesTable = { id: Base64String; outline_id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number; from_remote: number }
+export type Outline = { id: Base64String; parent_id: NullableBase64String; fractional_index: string; text: string | null }
+export type OutlineChangeEvent = { operation: Operation; origin: Origin; rows_changed: Outline[] }
+export type OutlineYUpdate = { id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number }
+export type OutlineYUpdateChangeEvent = { operation: Operation; origin: Origin; rows_changed: OutlineYUpdate[] }
+export type OutlineYUpdatesTable = { id: Base64String; outline_id: Base64String; data: Base64String; updated_at: number; is_checkpoint: number }
 export type OutlineYUpdatesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: OutlineYUpdatesTable[] }
 export type OutlinesTable = { id: Base64String; author: NullableBase64String; pot_id: NullableBase64String; parent_id: NullableBase64String; fractional_index: string; text: string | null; last_materialized_hash: NullableBase64String; created_at: number; updated_at: number; is_deleted: number }
 export type OutlinesTableChangeEvent = { operation: Operation; origin: Origin; rows_changed: OutlinesTable[] }

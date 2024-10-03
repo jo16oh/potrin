@@ -53,8 +53,8 @@ pub async fn fetch_breadcrumbs(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::database::query::create_outline;
-    use crate::database::types::Origin;
+    use crate::database::table::OutlineYUpdate;
+    use crate::database::{query::insert_outline, table::Outline};
     use crate::test::*;
     use tauri::{AppHandle, Manager};
 
@@ -68,15 +68,36 @@ mod test {
     async fn test(app_handle: &AppHandle<MockRuntime>) {
         let pool = app_handle.state::<SqlitePool>().inner();
 
-        let root = create_outline(app_handle.clone(), None, Origin::Local)
-            .await
-            .unwrap();
-        let child = create_outline(app_handle.clone(), Some(root.id), Origin::Local)
-            .await
-            .unwrap();
-        let grand_child = create_outline(app_handle.clone(), Some(child.id), Origin::Local)
-            .await
-            .unwrap();
+        let root = insert_outline(
+            app_handle.clone(),
+            Outline::new(None),
+            vec![OutlineYUpdate::new()],
+        )
+        .await
+        .unwrap();
+
+        let child = insert_outline(
+            app_handle.clone(),
+            Outline::new(Some(&root.id)),
+            vec![OutlineYUpdate::new()],
+        )
+        .await
+        .unwrap();
+
+        let grand_child = Outline {
+            id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
+            parent_id: NullableBase64String::from(child.id.clone()),
+            fractional_index: String::new(),
+            text: Some(String::new()),
+        };
+
+        insert_outline(
+            app_handle.clone(),
+            grand_child.clone(),
+            vec![OutlineYUpdate::new()],
+        )
+        .await
+        .unwrap();
 
         let parent_id = grand_child.parent_id.inner().unwrap();
 

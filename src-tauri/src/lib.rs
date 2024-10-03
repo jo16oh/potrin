@@ -4,7 +4,8 @@ mod state;
 mod utils;
 
 use database::table::{
-    CardYUpdatesTableChangeEvent, CardsTableChangeEvent, OutlineYUpdatesTableChangeEvent,
+    CardChangeEvent, CardYUpdateChangeEvent, CardYUpdatesTableChangeEvent, CardsTableChangeEvent,
+    OutlineChangeEvent, OutlineYUpdateChangeEvent, OutlineYUpdatesTableChangeEvent,
     OutlinesTableChangeEvent,
 };
 use specta_typescript::Typescript;
@@ -23,8 +24,8 @@ pub fn run() {
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             greet,
-            database::query::create_outline::<tauri::Wry>,
-            database::query::create_card::<tauri::Wry>,
+            database::query::insert_outline::<tauri::Wry>,
+            database::query::insert_card::<tauri::Wry>,
             database::query::fetch_tree::<tauri::Wry>,
             database::query::fetch_timeline::<tauri::Wry>,
             search_engine::index,
@@ -62,6 +63,10 @@ fn events() -> Events {
         OutlineYUpdatesTableChangeEvent,
         CardsTableChangeEvent,
         CardYUpdatesTableChangeEvent,
+        OutlineChangeEvent,
+        OutlineYUpdateChangeEvent,
+        CardChangeEvent,
+        CardYUpdateChangeEvent
     ]
 }
 
