@@ -122,34 +122,34 @@ pub mod test {
             (|$arg:ident: $arg_type:ty| async $closure:block) => {{
                 let is_successful = Arc::new(AtomicBool::new(false));
 
-                {
-                    let is_successful = Arc::clone(&is_successful);
-                    panic::set_hook(Box::new(move |panic_info| {
-                        if !is_successful.load(SeqCst) {
-                            if let Some(location) = panic_info.location() {
-                                println!("panic occurred in file '{}' at line {}",
-                                    location.file(),
-                                    location.line(),
-                                );
-                            } else {
-                                println!("panic occurred but can't get location information...");
-                            }
+                panic::set_hook(Box::new(move |panic_info| {
+                    if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+                        if *s == "SUCCESS" {
+                            return;
+                        } else if *s == "assertion failed: is_successful.load(SeqCst)" {
+                            return
+                        }
+                    }
 
-                            if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
-                                println!("{}", s);
-                            } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
-                                println!("{}", s);
-                            } else {
-                                println!("panic occurred");
-                            }
-                        };
-                    }));
-                }
+                    if let Some(location) = panic_info.location() {
+                        println!("panic occurred in file '{}' at line {}",
+                            location.file(),
+                            location.line(),
+                        );
+                    } else {
+                        println!("panic occurred but couldn't get location information...");
+                    }
+
+                    if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+                        println!("{}", s);
+                    } else if let Some(s) = panic_info.payload().downcast_ref::<String>() {
+                        println!("{}", s);
+                    }
+                }));
 
                 {
                     let is_successful = is_successful.clone();
                     let handle = thread::spawn(|| {
-                        println!("thread running");
                         std::panic::catch_unwind(|| {
                             let mock_app = mock_app();
                             mock_app.run(move |$arg: $arg_type, _event| {
@@ -157,13 +157,12 @@ pub mod test {
                                     $closure
                                     is_successful.store(true, SeqCst);
                                 });
-                                $arg.exit(1);
+                                panic!("SUCCESS");
                             })
                         })
                     });
                     let _ = handle.join();
                 }
-
 
                 assert!(is_successful.load(SeqCst));
             }};
