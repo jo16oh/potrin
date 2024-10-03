@@ -116,3 +116,152 @@ pub async fn fetch_timeline<R: Runtime>(
 
     Ok((outlines, cards, breadcrumbs))
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::database::test::create_tree;
+    use crate::test::*;
+    use chrono::Duration;
+
+    #[test]
+    fn test_fetch_timeline() {
+        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            test(app_handle).await;
+        });
+    }
+
+    async fn test(app_handle: &AppHandle<MockRuntime>) {
+        let now = Utc::now();
+        create_tree(app_handle, None, 2, 0).await;
+
+        let (outlines, cards, breadcrumbs) =
+            fetch_timeline(app_handle.clone(), now, TlOption::Both)
+                .await
+                .unwrap();
+
+        assert_eq!(outlines.len(), 3);
+        assert_eq!(cards.len(), 3);
+        assert_eq!(breadcrumbs.len(), 2);
+
+        let now = Utc::now() - Duration::days(2);
+        let (outlines, cards, breadcrumbs) =
+            fetch_timeline(app_handle.clone(), now, TlOption::Both)
+                .await
+                .unwrap();
+
+        assert_eq!(outlines.len(), 0);
+        assert_eq!(cards.len(), 0);
+        assert_eq!(breadcrumbs.len(), 0);
+
+        let pool = app_handle.state::<SqlitePool>().inner();
+
+        let time = (Utc::now() + Duration::days(3)).timestamp_millis();
+        sqlx::query!(
+            r#"
+                UPDATE outlines
+                SET updated_at = ?;
+            "#,
+            time
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        let time = (Utc::now() + Duration::days(3)).timestamp_millis();
+        sqlx::query!(
+            r#"
+                UPDATE cards
+                SET updated_at = ?;
+            "#,
+            time
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        let (outlines, cards, breadcrumbs) = fetch_timeline(
+            app_handle.clone(),
+            Utc::now() - Duration::minutes(1),
+            TlOption::Both,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(outlines.len(), 3);
+        assert_eq!(cards.len(), 3);
+        assert_eq!(breadcrumbs.len(), 2);
+
+        let (outlines, cards, breadcrumbs) = fetch_timeline(
+            app_handle.clone(),
+            Utc::now() - Duration::minutes(1),
+            TlOption::CreatedAt,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(outlines.len(), 3);
+        assert_eq!(cards.len(), 3);
+        assert_eq!(breadcrumbs.len(), 2);
+
+        let (outlines, cards, breadcrumbs) = fetch_timeline(
+            app_handle.clone(),
+            Utc::now() - Duration::minutes(1),
+            TlOption::UpdatedAt,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(outlines.len(), 0);
+        assert_eq!(cards.len(), 0);
+        assert_eq!(breadcrumbs.len(), 0);
+
+        let time = (Utc::now() + Duration::days(3)).timestamp_millis();
+        sqlx::query!(
+            r#"
+                UPDATE outlines
+                SET created_at = ?;
+            "#,
+            time
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        let time = (Utc::now() + Duration::days(3)).timestamp_millis();
+        sqlx::query!(
+            r#"
+                UPDATE cards
+                SET created_at = ?;
+            "#,
+            time
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        let (outlines, cards, breadcrumbs) = fetch_timeline(
+            app_handle.clone(),
+            Utc::now() - Duration::minutes(1),
+            TlOption::Both,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(outlines.len(), 0);
+        assert_eq!(cards.len(), 0);
+        assert_eq!(breadcrumbs.len(), 0);
+
+        let (outlines, cards, breadcrumbs) = fetch_timeline(
+            app_handle.clone(),
+            Utc::now() - Duration::minutes(1),
+            TlOption::CreatedAt,
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(outlines.len(), 0);
+        assert_eq!(cards.len(), 0);
+        assert_eq!(breadcrumbs.len(), 0);
+    }
+}
