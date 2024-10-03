@@ -1,6 +1,8 @@
+import { uuidv7obj } from "uuidv7";
+
 export const sql = String.raw;
 
-export function uint8ArrayToBase64(bytes: Uint8Array) {
+export function uint8ArrayToBase64(bytes: Uint8Array): string {
   let binaryString = "";
 
   for (const byte of bytes) {
@@ -20,4 +22,8 @@ export function base64ToUint8Array(base64: string): Uint8Array {
   }
 
   return bytes;
+}
+
+export function b64uuidv7(): string {
+  return uint8ArrayToBase64(uuidv7obj().bytes);
 }
