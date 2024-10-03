@@ -29,7 +29,7 @@ pub async fn fetch_breadcrumbs(
                 JOIN outlines AS parent ON parent.id = child.parent_id
                 WHERE parent.is_deleted = false
             )
-            SELECT id, parent_id, text FROM breadcrumbs;
+            SELECT DISTINCT id, parent_id, text FROM breadcrumbs;
         "#,
         parent_ids
             .iter()
