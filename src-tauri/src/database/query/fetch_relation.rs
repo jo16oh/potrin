@@ -1,5 +1,5 @@
-use crate::database::table::CardsTable;
-use crate::database::table::OutlinesTable;
+use crate::database::table::Card;
+use crate::database::table::Outline;
 use crate::database::types::Base64String;
 use anyhow::anyhow;
 use serde::Deserialize;
@@ -38,7 +38,7 @@ pub async fn fetch_relation<R: Runtime>(
     outline_ids: Vec<Base64String>,
     card_ids: Vec<Base64String>,
     option: RelationOption,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))
@@ -128,13 +128,12 @@ async fn fetch_relation_back(
     pool: &SqlitePool,
     outline_ids: Vec<Base64String>,
     card_ids: Vec<Base64String>,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let outlines = {
         let query = format!(
             r#"
                 SELECT
-                    id, author, pot_id, parent_id, fractional_index, text,
-                    last_materialized_hash, created_at, updated_at, is_deleted
+                    id, parent_id, fractional_index, text
                 FROM outline_links
                 INNER JOIN outlines ON outline_links.id_from = outlines.id
                 WHERE outlines.is_deleted = false AND id_to IN ({});
@@ -146,7 +145,7 @@ async fn fetch_relation_back(
                 .join(", ")
         );
 
-        let mut query_builder = sqlx::query_as::<_, OutlinesTable>(&query);
+        let mut query_builder = sqlx::query_as::<_, Outline>(&query);
 
         for id in outline_ids.iter() {
             query_builder = query_builder.bind(id);
@@ -155,12 +154,11 @@ async fn fetch_relation_back(
         query_builder.fetch_all(pool).await?
     };
 
-    let cards: Vec<CardsTable> = {
+    let cards: Vec<Card> = {
         let query = format!(
             r#"
                 SELECT
-                    id, author, outline_id, fractional_index, text, last_materialized_hash,
-                    created_at, updated_at, is_deleted
+                    id, outline_id, fractional_index, text
                 FROM cards
                 INNER JOIN card_links ON card_links.id_from = cards.id
                 INNER JOIN card_quotes ON card_links.id_from = cards.id
@@ -178,7 +176,7 @@ async fn fetch_relation_back(
                 .join(", ")
         );
 
-        let mut query_builder = sqlx::query_as::<_, CardsTable>(&query);
+        let mut query_builder = sqlx::query_as::<_, Card>(&query);
 
         for id in outline_ids.iter() {
             query_builder = query_builder.bind(id);
@@ -194,13 +192,12 @@ async fn fetch_relation_forward(
     pool: &SqlitePool,
     outline_ids: Vec<Base64String>,
     card_ids: Vec<Base64String>,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let outlines = {
         let query = format!(
             r#"
                 SELECT
-                    id, author, pot_id, parent_id, fractional_index, text,
-                    last_materialized_hash, created_at, updated_at, is_deleted
+                    id, parent_id, fractional_index, text
                 FROM outlines
                 INNER JOIN outline_links ON outline_links.id_to = outlines.id
                 INNER JOIN card_links ON card_links.id_to = outlines.id
@@ -213,7 +210,7 @@ async fn fetch_relation_forward(
                 .join(", ")
         );
 
-        let mut query_builder = sqlx::query_as::<_, OutlinesTable>(&query);
+        let mut query_builder = sqlx::query_as::<_, Outline>(&query);
 
         for id in outline_ids.iter() {
             query_builder = query_builder.bind(id);
@@ -222,12 +219,11 @@ async fn fetch_relation_forward(
         query_builder.fetch_all(pool).await?
     };
 
-    let cards: Vec<CardsTable> = {
+    let cards: Vec<Card> = {
         let query = format!(
             r#"
                     SELECT
-                        id, author, outline_id, fractional_index, text, last_materialized_hash,
-                        created_at, updated_at, is_deleted
+                        id, outline_id, fractional_index, text
                     FROM card_quotes
                     INNER JOIN cards ON card_quotes.id_to = cards.id
                     WHERE cards.is_deleted = false AND card_quotes.id_from IN ({});
@@ -239,7 +235,7 @@ async fn fetch_relation_forward(
                 .join(", ")
         );
 
-        let mut query_builder = sqlx::query_as::<_, CardsTable>(&query);
+        let mut query_builder = sqlx::query_as::<_, Card>(&query);
 
         for id in card_ids {
             query_builder = query_builder.bind(id);

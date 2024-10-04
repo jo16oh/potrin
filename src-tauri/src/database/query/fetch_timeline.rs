@@ -1,6 +1,5 @@
-use crate::database::table::CardsTable;
-use crate::database::table::OutlinesTable;
-use crate::database::types::Base64String;
+use crate::database::table::Card;
+use crate::database::table::Outline;
 use anyhow::anyhow;
 use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;
@@ -22,7 +21,7 @@ pub async fn fetch_timeline<R: Runtime>(
     app_handle: AppHandle<R>,
     from: DateTime<Utc>,
     option: TlOption,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let to = (from + Duration::days(1)).timestamp_millis();
     let from = from.timestamp_millis();
 
@@ -34,9 +33,9 @@ pub async fn fetch_timeline<R: Runtime>(
     let cards = match option {
         TlOption::CreatedAt => {
             sqlx::query_as!(
-                CardsTable,
+                Card,
                 r#"
-                    SELECT *
+                    SELECT id, outline_id, fractional_index, text
                     FROM cards
                     WHERE ? <= created_at AND created_at < ? AND is_deleted = false;
                 "#,
@@ -48,9 +47,9 @@ pub async fn fetch_timeline<R: Runtime>(
         }
         TlOption::UpdatedAt => {
             sqlx::query_as!(
-                CardsTable,
+                Card,
                 r#"
-                    SELECT *
+                    SELECT id, outline_id, fractional_index, text
                     FROM cards
                     WHERE ? <= updated_at AND updated_at < ? AND is_deleted = false;
                 "#,
@@ -62,9 +61,9 @@ pub async fn fetch_timeline<R: Runtime>(
         }
         TlOption::Both => {
             sqlx::query_as!(
-                CardsTable,
+                Card,
                 r#"
-                    SELECT *
+                    SELECT id, outline_id, fractional_index, text
                     FROM cards
                     WHERE
                         ((? <= updated_at AND updated_at < ?) OR (? <= created_at AND created_at < ?))
@@ -84,7 +83,7 @@ pub async fn fetch_timeline<R: Runtime>(
     let outlines = {
         let query = format!(
             r#"
-                SELECT *
+                SELECT id, parent_id, fractional_index, text
                 FROM outlines
                 WHERE id IN ({}) AND is_deleted = false;
             "#,
@@ -95,7 +94,7 @@ pub async fn fetch_timeline<R: Runtime>(
                 .join(", ")
         );
 
-        let mut query_builder = sqlx::query_as::<_, OutlinesTable>(&query);
+        let mut query_builder = sqlx::query_as::<_, Outline>(&query);
 
         for card in cards.iter() {
             query_builder = query_builder.bind(&card.outline_id);

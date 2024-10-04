@@ -1,7 +1,5 @@
-use super::fetch_breadcrumbs;
-use super::fetch_breadcrumbs::Breadcrumb;
-use crate::database::table::CardsTable;
-use crate::database::table::OutlinesTable;
+use crate::database::table::Card;
+use crate::database::table::Outline;
 use crate::database::types::Base64String;
 use anyhow::anyhow;
 use sqlx::query_as;
@@ -15,7 +13,7 @@ pub async fn fetch_tree<R: Runtime>(
     app_handle: AppHandle<R>,
     id: Base64String,
     depth: Option<u32>,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))?
@@ -35,7 +33,7 @@ pub async fn fetch_tree<R: Runtime>(
                 .join(", ")
         );
 
-        let mut query_builder = query_as::<_, CardsTable>(&query);
+        let mut query_builder = query_as::<_, Card>(&query);
 
         for outline in outlines.iter() {
             query_builder = query_builder.bind(&outline.id);
@@ -51,48 +49,58 @@ async fn fetch_outline_tree(
     id: &Base64String,
     depth: Option<u32>,
     pool: &SqlitePool,
-) -> anyhow::Result<Vec<OutlinesTable>> {
+) -> anyhow::Result<Vec<Outline>> {
     match depth {
-        Some(depth) => sqlx::query_as!(OutlinesTable, r#"
+        Some(depth) => {
+            sqlx::query_as!(
+                Outline,
+                r#"
                 WITH RECURSIVE outline_tree AS (
                     SELECT
-                        id, author, pot_id, parent_id, fractional_index, text, last_materialized_hash, created_at,
-                        updated_at, is_deleted, 0 AS depth
+                        id, parent_id, fractional_index, text, 0 AS depth
                     FROM outlines
                     WHERE id = ? AND is_deleted = false
                     UNION ALL
                     SELECT
-                        child.id, child.author, child.pot_id, child.parent_id, child.fractional_index, child.text,
-                        child.last_materialized_hash, child.created_at, child.updated_at, child.is_deleted,
+                        child.id, child.parent_id, child.fractional_index, child.text,
                         parent.depth + 1 AS depth
                     FROM outline_tree AS parent
                     JOIN outlines AS child ON parent.id = child.parent_id
                     WHERE child.is_deleted = false AND depth <= ?
                 )
                 SELECT
-                    id, author, pot_id, parent_id, fractional_index, text, last_materialized_hash, created_at,
-                    updated_at, is_deleted
+                    id, parent_id, fractional_index, text
                 FROM outline_tree;
-                "#, id, depth)
-                .fetch_all(pool).await,
-        None => sqlx::query_as!(OutlinesTable, r#"
+                "#,
+                id,
+                depth
+            )
+            .fetch_all(pool)
+            .await
+        }
+        None => {
+            sqlx::query_as!(
+                Outline,
+                r#"
                 WITH RECURSIVE outline_tree AS (
                     SELECT
-                        id, author, pot_id, parent_id, fractional_index, text, last_materialized_hash, created_at,
-                        updated_at, is_deleted
+                        id, parent_id, fractional_index, text
                     FROM outlines
                     WHERE id = ? AND is_deleted = false
                     UNION ALL
                     SELECT
-                        child.id, child.author, child.pot_id, child.parent_id, child.fractional_index, child.text,
-                        child.last_materialized_hash, child.created_at, child.updated_at, child.is_deleted
+                        child.id, child.parent_id, child.fractional_index, child.text
                     FROM outline_tree AS parent
                     JOIN outlines AS child ON parent.id = child.parent_id
                     WHERE child.is_deleted = false
                 )
                 SELECT * FROM outline_tree;
-                "#, id)
-                .fetch_all(pool).await
+                "#,
+                id
+            )
+            .fetch_all(pool)
+            .await
+        }
     }
     .map_err(|e| anyhow!(e.to_string()))
 }
