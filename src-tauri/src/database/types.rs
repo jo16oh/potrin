@@ -23,13 +23,9 @@ pub enum Operation {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, specta::Type, Deref, PartialEq)]
-pub struct Base64String(String);
+pub struct Base64(String);
 
-impl Base64String {
-    pub fn from_bytes(bytes: Vec<u8>) -> Self {
-        Base64String(BASE64_STANDARD.encode(bytes))
-    }
-
+impl Base64 {
     pub fn to_bytes(&self) -> anyhow::Result<Vec<u8>> {
         let string = self.as_bytes();
         let mut buffer = Vec::<u8>::new();
@@ -38,23 +34,23 @@ impl Base64String {
     }
 }
 
-impl sqlx::Type<Sqlite> for Base64String {
+impl sqlx::Type<Sqlite> for Base64 {
     fn type_info() -> SqliteTypeInfo {
         <&[u8] as sqlx::Type<Sqlite>>::type_info()
     }
 }
 
-impl<'r> Decode<'r, Sqlite> for Base64String {
+impl<'r> Decode<'r, Sqlite> for Base64 {
     fn decode(
         value: SqliteValueRef<'r>,
     ) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
         let bytes = <&[u8] as Decode<Sqlite>>::decode(value)?;
         let base64 = BASE64_STANDARD.encode(bytes);
-        Ok(Base64String(base64))
+        Ok(Base64(base64))
     }
 }
 
-impl<'r> Encode<'r, Sqlite> for Base64String {
+impl<'r> Encode<'r, Sqlite> for Base64 {
     fn encode_by_ref(
         &self,
         buf: &mut <Sqlite as Database>::ArgumentBuffer<'r>,
@@ -66,49 +62,48 @@ impl<'r> Encode<'r, Sqlite> for Base64String {
     }
 }
 
-impl From<Vec<u8>> for Base64String {
+impl From<Vec<u8>> for Base64 {
     fn from(value: Vec<u8>) -> Self {
-        Base64String(BASE64_STANDARD.encode(value))
+        Base64(BASE64_STANDARD.encode(value))
     }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
-pub struct NullableBase64String(Option<Base64String>);
+pub struct NullableBase64(Option<Base64>);
 
-impl From<Option<Base64String>> for NullableBase64String {
-    fn from(value: Option<Base64String>) -> Self {
+impl From<Option<Base64>> for NullableBase64 {
+    fn from(value: Option<Base64>) -> Self {
         Self(value)
     }
 }
 
-impl NullableBase64String {
-    pub fn inner(&self) -> Option<&Base64String> {
+#[cfg(test)]
+impl NullableBase64 {
+    pub fn inner(&self) -> Option<&Base64> {
         self.0.as_ref()
     }
 
-    #[cfg(test)]
     pub fn none() -> Self {
         Self(None)
     }
 }
 
-impl sqlx::Type<Sqlite> for NullableBase64String {
+impl sqlx::Type<Sqlite> for NullableBase64 {
     fn type_info() -> SqliteTypeInfo {
         <&[u8] as sqlx::Type<Sqlite>>::type_info()
     }
 }
 
-impl<'r> Decode<'r, Sqlite> for NullableBase64String {
+impl<'r> Decode<'r, Sqlite> for NullableBase64 {
     fn decode(
         value: SqliteValueRef<'r>,
     ) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
-        let base64string =
-            <Option<Vec<u8>> as Decode<Sqlite>>::decode(value)?.map(Base64String::from_bytes);
-        Ok(NullableBase64String(base64string))
+        let base64string = <Option<Vec<u8>> as Decode<Sqlite>>::decode(value)?.map(Base64::from);
+        Ok(NullableBase64(base64string))
     }
 }
 
-impl<'r> Encode<'r, Sqlite> for NullableBase64String {
+impl<'r> Encode<'r, Sqlite> for NullableBase64 {
     fn encode_by_ref(
         &self,
         buf: &mut <Sqlite as Database>::ArgumentBuffer<'r>,
@@ -120,15 +115,15 @@ impl<'r> Encode<'r, Sqlite> for NullableBase64String {
     }
 }
 
-impl From<Option<Vec<u8>>> for NullableBase64String {
+impl From<Option<Vec<u8>>> for NullableBase64 {
     fn from(opt: Option<Vec<u8>>) -> Self {
-        let base64 = opt.map(Base64String::from_bytes);
-        NullableBase64String(base64)
+        let base64 = opt.map(Base64::from);
+        NullableBase64(base64)
     }
 }
 
-impl From<Base64String> for NullableBase64String {
-    fn from(base64: Base64String) -> Self {
-        NullableBase64String(Some(base64))
+impl From<Base64> for NullableBase64 {
+    fn from(base64: Base64) -> Self {
+        NullableBase64(Some(base64))
     }
 }

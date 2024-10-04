@@ -1,13 +1,13 @@
 use crate::database::{
     table::{CardYUpdate, OutlineYUpdate},
-    types::Base64String,
+    types::Base64,
 };
 use anyhow::anyhow;
 use sqlx::{Sqlite, Transaction};
 
 pub async fn insert_outline_y_updates(
     tx: &mut Transaction<'_, Sqlite>,
-    outline_id: &Base64String,
+    outline_id: &Base64,
     y_updates: Vec<OutlineYUpdate>,
 ) -> anyhow::Result<()> {
     if y_updates.is_empty() {
@@ -43,7 +43,7 @@ pub async fn insert_outline_y_updates(
 
 pub async fn insert_card_y_updates(
     tx: &mut Transaction<'_, Sqlite>,
-    card_id: &Base64String,
+    card_id: &Base64,
     y_updates: Vec<CardYUpdate>,
 ) -> anyhow::Result<()> {
     if y_updates.is_empty() {

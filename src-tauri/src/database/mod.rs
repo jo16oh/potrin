@@ -50,14 +50,14 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 #[cfg(test)]
 mod test {
     use crate::database::query::{insert_card, insert_outline};
-    use crate::database::types::Base64String;
+    use crate::database::types::Base64;
     use tauri::{test::MockRuntime, AppHandle};
 
     use super::table::{Card, CardYUpdate, Outline, OutlineYUpdate};
 
     pub async fn create_tree(
         app_handle: &AppHandle<MockRuntime>,
-        parent_id: Option<Base64String>,
+        parent_id: Option<Base64>,
         limit: u8,
         current: u8,
     ) -> Outline {

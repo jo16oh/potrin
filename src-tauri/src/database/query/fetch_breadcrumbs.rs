@@ -1,13 +1,13 @@
-use crate::database::types::Base64String;
-use crate::database::types::NullableBase64String;
+use crate::database::types::Base64;
+use crate::database::types::NullableBase64;
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
 use sqlx::{prelude::FromRow, SqlitePool};
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct Breadcrumb {
-    pub id: Base64String,
-    pub parent_id: NullableBase64String,
+    pub id: Base64,
+    pub parent_id: NullableBase64,
     pub text: Option<String>,
 }
 
@@ -15,7 +15,7 @@ pub struct Breadcrumb {
 #[specta::specta]
 #[macros::anyhow_to_string]
 pub async fn fetch_breadcrumbs(
-    parent_ids: Vec<&Base64String>,
+    parent_ids: Vec<&Base64>,
     pool: &SqlitePool,
 ) -> anyhow::Result<Vec<Breadcrumb>> {
     let query = format!(
@@ -88,8 +88,8 @@ mod test {
         .unwrap();
 
         let grand_child = Outline {
-            id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
-            parent_id: NullableBase64String::from(child.id.clone()),
+            id: Base64::from(uuidv7::create_raw().to_vec()),
+            parent_id: NullableBase64::from(child.id.clone()),
             fractional_index: String::new(),
             text: Some(String::new()),
         };

@@ -1,6 +1,6 @@
 use crate::database::table::Card;
 use crate::database::table::Outline;
-use crate::database::types::Base64String;
+use crate::database::types::Base64;
 use anyhow::anyhow;
 use serde::Deserialize;
 use serde::Serialize;
@@ -27,7 +27,7 @@ struct IncludeChildrenOption {
 
 #[derive(FromRow)]
 struct QueryResult {
-    pub id: Base64String,
+    pub id: Base64,
 }
 
 #[tauri::command]
@@ -35,8 +35,8 @@ struct QueryResult {
 #[macros::anyhow_to_string]
 pub async fn fetch_relation<R: Runtime>(
     app_handle: AppHandle<R>,
-    outline_ids: Vec<Base64String>,
-    card_ids: Vec<Base64String>,
+    outline_ids: Vec<Base64>,
+    card_ids: Vec<Base64>,
     option: RelationOption,
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = app_handle
@@ -81,7 +81,7 @@ pub async fn fetch_relation<R: Runtime>(
                     .unwrap()
                     .into_iter()
                     .map(|r| r.id)
-                    .collect::<Vec<Base64String>>()
+                    .collect::<Vec<Base64>>()
             };
 
             let card_ids = if opt.card {
@@ -108,7 +108,7 @@ pub async fn fetch_relation<R: Runtime>(
                     .unwrap()
                     .into_iter()
                     .map(|r| r.id)
-                    .collect::<Vec<Base64String>>()
+                    .collect::<Vec<Base64>>()
             } else {
                 card_ids
             };
@@ -126,8 +126,8 @@ pub async fn fetch_relation<R: Runtime>(
 
 async fn fetch_relation_back(
     pool: &SqlitePool,
-    outline_ids: Vec<Base64String>,
-    card_ids: Vec<Base64String>,
+    outline_ids: Vec<Base64>,
+    card_ids: Vec<Base64>,
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let outlines = {
         let query = format!(
@@ -190,8 +190,8 @@ async fn fetch_relation_back(
 
 async fn fetch_relation_forward(
     pool: &SqlitePool,
-    outline_ids: Vec<Base64String>,
-    card_ids: Vec<Base64String>,
+    outline_ids: Vec<Base64>,
+    card_ids: Vec<Base64>,
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let outlines = {
         let query = format!(

@@ -1,6 +1,6 @@
 use crate::database::table::Card;
 use crate::database::table::Outline;
-use crate::database::types::Base64String;
+use crate::database::types::Base64;
 use anyhow::anyhow;
 use sqlx::query_as;
 use sqlx::SqlitePool;
@@ -11,7 +11,7 @@ use tauri::{AppHandle, Manager, Runtime};
 #[macros::anyhow_to_string]
 pub async fn fetch_tree<R: Runtime>(
     app_handle: AppHandle<R>,
-    id: Base64String,
+    id: Base64,
     depth: Option<u32>,
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = app_handle
@@ -46,7 +46,7 @@ pub async fn fetch_tree<R: Runtime>(
 }
 
 async fn fetch_outline_tree(
-    id: &Base64String,
+    id: &Base64,
     depth: Option<u32>,
     pool: &SqlitePool,
 ) -> anyhow::Result<Vec<Outline>> {

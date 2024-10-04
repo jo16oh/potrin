@@ -1,7 +1,7 @@
 pub mod types;
 
 use crate::{
-    database::types::Base64String,
+    database::types::Base64,
     utils::{get_once_lock, set_once_lock},
 };
 use anyhow::anyhow;
@@ -25,8 +25,8 @@ static POT_STATE_COL: OnceLock<Collection<PotState>> = OnceLock::new();
 static WS_STATE_COL: OnceLock<Collection<WorkspaceState>> = OnceLock::new();
 static SETTING_STATE_COL: OnceLock<Collection<SettingState>> = OnceLock::new();
 
-impl From<Base64String> for Bson {
-    fn from(value: Base64String) -> Self {
+impl From<Base64> for Bson {
+    fn from(value: Base64) -> Self {
         Bson::from(value.to_string())
     }
 }
@@ -50,7 +50,7 @@ pub fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
         Some(client) => client,
         None => {
             let client = ClientState {
-                id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
+                id: Base64::from(uuidv7::create_raw().to_vec()),
             };
 
             client_state_col.insert_one(&client)?;
@@ -337,7 +337,7 @@ mod test {
             let collection = get_once_lock(&USER_STATE_COL).unwrap();
 
             let user = UserState {
-                id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
+                id: Base64::from(uuidv7::create_raw().to_vec()),
                 name: "name".to_string(),
             };
 
@@ -361,7 +361,7 @@ mod test {
     fn test_pot_and_workspace_state() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
             let pot = PotState {
-                id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
+                id: Base64::from(uuidv7::create_raw().to_vec()),
                 sync: true,
             };
             set_pot_state(app_handle.clone(), pot.clone()).unwrap();
@@ -372,7 +372,7 @@ mod test {
 
             let workspace = WorkspaceState {
                 tabs: vec![TabState {
-                    id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
+                    id: Base64::from(uuidv7::create_raw().to_vec()),
                     view: "view".to_string(),
                     scroll_pos: 32,
                 }],
@@ -392,7 +392,7 @@ mod test {
             assert_eq!(result.focused_tab_idx, Some(2));
 
             let pot = PotState {
-                id: Base64String::from_bytes(uuidv7::create_raw().to_vec()),
+                id: Base64::from(uuidv7::create_raw().to_vec()),
                 sync: true,
             };
             set_pot_state(app_handle.clone(), pot.clone()).unwrap();

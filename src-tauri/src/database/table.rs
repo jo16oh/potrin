@@ -7,20 +7,20 @@ use tauri_specta::Event;
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct Outline {
-    pub id: Base64String,
-    pub parent_id: NullableBase64String,
+    pub id: Base64,
+    pub parent_id: NullableBase64,
     pub fractional_index: String,
     pub text: Option<String>,
 }
 
 #[cfg(test)]
 impl Outline {
-    pub fn new(parent_id: Option<&Base64String>) -> Self {
+    pub fn new(parent_id: Option<&Base64>) -> Self {
         Self {
-            id: Base64String::from(uuidv7::create_raw().to_vec()),
+            id: Base64::from(uuidv7::create_raw().to_vec()),
             parent_id: match parent_id {
-                Some(id) => NullableBase64String::from(id.clone()),
-                None => NullableBase64String::none(),
+                Some(id) => NullableBase64::from(id.clone()),
+                None => NullableBase64::none(),
             },
             fractional_index: String::new(),
             text: Some(String::new()),
@@ -31,8 +31,8 @@ impl Outline {
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OutlineYUpdate {
-    pub id: Base64String,
-    pub data: Base64String,
+    pub id: Base64,
+    pub data: Base64,
     pub updated_at: i64,
     pub is_checkpoint: i64,
 }
@@ -41,8 +41,8 @@ pub struct OutlineYUpdate {
 impl OutlineYUpdate {
     pub fn new() -> Self {
         Self {
-            id: Base64String::from(uuidv7::create_raw().to_vec()),
-            data: Base64String::from(uuidv7::create_raw().to_vec()),
+            id: Base64::from(uuidv7::create_raw().to_vec()),
+            data: Base64::from(uuidv7::create_raw().to_vec()),
             updated_at: chrono::Utc::now().timestamp_millis(),
             is_checkpoint: 0,
         }
@@ -52,17 +52,17 @@ impl OutlineYUpdate {
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct Card {
-    pub id: Base64String,
-    pub outline_id: Base64String,
+    pub id: Base64,
+    pub outline_id: Base64,
     pub fractional_index: String,
     pub text: String,
 }
 
 #[cfg(test)]
 impl Card {
-    pub fn new(outline_id: Base64String) -> Self {
+    pub fn new(outline_id: Base64) -> Self {
         Self {
-            id: Base64String::from(uuidv7::create_raw().to_vec()),
+            id: Base64::from(uuidv7::create_raw().to_vec()),
             outline_id,
             fractional_index: String::new(),
             text: String::new(),
@@ -73,8 +73,8 @@ impl Card {
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct CardYUpdate {
-    pub id: Base64String,
-    pub data: Base64String,
+    pub id: Base64,
+    pub data: Base64,
     pub updated_at: i64,
     pub is_checkpoint: i64,
 }
@@ -83,8 +83,8 @@ pub struct CardYUpdate {
 impl CardYUpdate {
     pub fn new() -> Self {
         Self {
-            id: Base64String::from(uuidv7::create_raw().to_vec()),
-            data: Base64String::from(uuidv7::create_raw().to_vec()),
+            id: Base64::from(uuidv7::create_raw().to_vec()),
+            data: Base64::from(uuidv7::create_raw().to_vec()),
             updated_at: chrono::Utc::now().timestamp_millis(),
             is_checkpoint: 0,
         }
@@ -94,17 +94,17 @@ impl CardYUpdate {
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OplogTable {
     pub rowid: i64,
-    pub primary_key: Base64String,
+    pub primary_key: Base64,
     pub tablename: String,
     pub updated_at: i64,
     pub counter: i64,
     pub is_deleted: i64,
-    pub status: NullableBase64String,
+    pub status: NullableBase64,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct UsersTable {
-    pub id: Base64String,
+    pub id: Base64,
     pub name: String,
     pub created_at: i64,
     pub updated_at: i64,
@@ -112,7 +112,7 @@ pub struct UsersTable {
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct PotsTable {
-    pub id: Base64String,
+    pub id: Base64,
     pub name: String,
     pub owner: Option<i64>,
     pub sync: i64,
@@ -122,7 +122,7 @@ pub struct PotsTable {
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct SyncStatusTable {
-    pub pot_id: Base64String,
+    pub pot_id: Base64,
     pub tablename: String,
     pub shape_id: Option<String>,
     pub offset: Option<String>,
@@ -132,13 +132,13 @@ pub struct SyncStatusTable {
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OutlinesTable {
-    pub id: Base64String,
-    pub author: NullableBase64String,
-    pub pot_id: NullableBase64String,
-    pub parent_id: NullableBase64String,
+    pub id: Base64,
+    pub author: NullableBase64,
+    pub pot_id: NullableBase64,
+    pub parent_id: NullableBase64,
     pub fractional_index: String,
     pub text: Option<String>,
-    pub last_materialized_hash: NullableBase64String,
+    pub last_materialized_hash: NullableBase64,
     pub created_at: i64,
     pub updated_at: i64,
     pub is_deleted: i64,
@@ -147,9 +147,9 @@ pub struct OutlinesTable {
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OutlineYUpdatesTable {
-    pub id: Base64String,
-    pub outline_id: Base64String,
-    pub data: Base64String,
+    pub id: Base64,
+    pub outline_id: Base64,
+    pub data: Base64,
     pub updated_at: i64,
     pub is_checkpoint: i64,
 }
@@ -157,12 +157,12 @@ pub struct OutlineYUpdatesTable {
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct CardsTable {
-    pub id: Base64String,
-    pub author: NullableBase64String,
-    pub outline_id: Base64String,
+    pub id: Base64,
+    pub author: NullableBase64,
+    pub outline_id: Base64,
     pub fractional_index: String,
     pub text: String,
-    pub last_materialized_hash: NullableBase64String,
+    pub last_materialized_hash: NullableBase64,
     pub created_at: i64,
     pub updated_at: i64,
     pub is_deleted: i64,
@@ -171,9 +171,9 @@ pub struct CardsTable {
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct CardYUpdatesTable {
-    pub id: Base64String,
-    pub card_id: Base64String,
-    pub data: Base64String,
+    pub id: Base64,
+    pub card_id: Base64,
+    pub data: Base64,
     pub updated_at: i64,
     pub is_checkpoint: i64,
 }

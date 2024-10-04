@@ -1,4 +1,4 @@
-use crate::database::types::Base64String;
+use crate::database::types::Base64;
 use macros::Bson;
 use serde::{Deserialize, Serialize};
 
@@ -14,20 +14,20 @@ pub struct AppState {
 #[derive(Serialize, Deserialize, Debug, Clone, Bson, specta::Type)]
 #[macros::fields]
 pub struct ClientState {
-    pub id: Base64String,
+    pub id: Base64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Bson, specta::Type)]
 #[macros::fields]
 pub struct UserState {
-    pub id: Base64String,
+    pub id: Base64,
     pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Bson, specta::Type)]
 #[macros::fields]
 pub struct PotState {
-    pub id: Base64String,
+    pub id: Base64,
     pub sync: bool,
 }
 
@@ -40,7 +40,7 @@ pub struct WorkspaceState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Bson, specta::Type)]
 pub struct TabState {
-    pub id: Base64String,
+    pub id: Base64,
     pub view: String,
     pub scroll_pos: i64,
 }
