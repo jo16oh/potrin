@@ -15,23 +15,13 @@ pub async fn fetch_tree<R: Runtime>(
     app_handle: AppHandle<R>,
     id: Base64String,
     depth: Option<u32>,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>, Vec<Breadcrumb>)> {
+) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))?
         .inner();
 
     let outlines = fetch_outline_tree(&id, depth, pool).await?;
-
-    let root = outlines
-        .iter()
-        .find(|o| o.id == id)
-        .ok_or(anyhow!("failed to find root outline"))?;
-
-    let breadcrumbs = match root.parent_id.inner() {
-        Some(id) => fetch_breadcrumbs(vec![id], pool).await?,
-        None => vec![],
-    };
 
     let cards = {
         let query = format!(
@@ -54,7 +44,7 @@ pub async fn fetch_tree<R: Runtime>(
         query_builder.fetch_all(pool).await?
     };
 
-    Ok((outlines, cards, breadcrumbs))
+    Ok((outlines, cards))
 }
 
 async fn fetch_outline_tree(
@@ -123,12 +113,11 @@ mod test {
     async fn test(app_handle: &AppHandle<MockRuntime>) {
         let outline = create_tree(app_handle, None, 2, 0).await;
 
-        let (outlines, cards, breadcrumbs) = fetch_tree(app_handle.clone(), outline.id, None)
+        let (outlines, cards) = fetch_tree(app_handle.clone(), outline.id, None)
             .await
             .unwrap();
 
         assert_eq!(outlines.len(), 3);
         assert_eq!(cards.len(), 3);
-        assert_eq!(breadcrumbs.len(), 0);
     }
 }

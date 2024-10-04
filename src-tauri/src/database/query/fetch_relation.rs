@@ -8,9 +8,6 @@ use sqlx::FromRow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
 
-use super::fetch_breadcrumbs;
-use super::fetch_breadcrumbs::Breadcrumb;
-
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 pub struct RelationOption {
     direction: Direction,
@@ -41,7 +38,7 @@ pub async fn fetch_relation<R: Runtime>(
     outline_ids: Vec<Base64String>,
     card_ids: Vec<Base64String>,
     option: RelationOption,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>, Vec<Breadcrumb>)> {
+) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))
@@ -131,7 +128,7 @@ async fn fetch_relation_back(
     pool: &SqlitePool,
     outline_ids: Vec<Base64String>,
     card_ids: Vec<Base64String>,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>, Vec<Breadcrumb>)> {
+) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
     let outlines = {
         let query = format!(
             r#"
@@ -190,23 +187,14 @@ async fn fetch_relation_back(
         query_builder.fetch_all(pool).await?
     };
 
-    let breadcrumbs = fetch_breadcrumbs(
-        outlines
-            .iter()
-            .filter_map(|o| o.parent_id.inner())
-            .collect::<Vec<&Base64String>>(),
-        pool,
-    )
-    .await?;
-
-    Ok((outlines, cards, breadcrumbs))
+    Ok((outlines, cards))
 }
 
 async fn fetch_relation_forward(
     pool: &SqlitePool,
     outline_ids: Vec<Base64String>,
     card_ids: Vec<Base64String>,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>, Vec<Breadcrumb>)> {
+) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
     let outlines = {
         let query = format!(
             r#"
@@ -260,16 +248,7 @@ async fn fetch_relation_forward(
         query_builder.fetch_all(pool).await?
     };
 
-    let breadcrumbs = fetch_breadcrumbs(
-        outlines
-            .iter()
-            .filter_map(|o| o.parent_id.inner())
-            .collect::<Vec<&Base64String>>(),
-        pool,
-    )
-    .await?;
-
-    Ok((outlines, cards, breadcrumbs))
+    Ok((outlines, cards))
 }
 
 #[cfg(test)]
@@ -279,7 +258,6 @@ mod test {
     use crate::database::table::{Card, CardYUpdate};
     use crate::database::test::create_tree;
     use crate::test::*;
-    use chrono::Duration;
 
     #[test]
     fn test_fetch_timeline() {
@@ -344,7 +322,7 @@ mod test {
         .await
         .unwrap();
 
-        let (outlines, cards, breadcrumbs) = fetch_relation(
+        let (outlines, cards) = fetch_relation(
             app_handle.clone(),
             vec![outline.id],
             vec![],
@@ -359,7 +337,7 @@ mod test {
         assert_eq!(outlines.len(), 1);
         assert_eq!(cards.len(), 1);
 
-        let (outlines, cards, breadcrumbs) = fetch_relation(
+        let (outlines, cards) = fetch_relation(
             app_handle.clone(),
             vec![root.id],
             vec![],

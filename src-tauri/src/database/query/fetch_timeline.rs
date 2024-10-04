@@ -8,9 +8,6 @@ use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
 
-use super::fetch_breadcrumbs;
-use super::fetch_breadcrumbs::Breadcrumb;
-
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 pub enum TlOption {
     CreatedAt,
@@ -25,7 +22,7 @@ pub async fn fetch_timeline<R: Runtime>(
     app_handle: AppHandle<R>,
     from: DateTime<Utc>,
     option: TlOption,
-) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>, Vec<Breadcrumb>)> {
+) -> anyhow::Result<(Vec<OutlinesTable>, Vec<CardsTable>)> {
     let to = (from + Duration::days(1)).timestamp_millis();
     let from = from.timestamp_millis();
 
@@ -107,14 +104,7 @@ pub async fn fetch_timeline<R: Runtime>(
         query_builder.fetch_all(pool).await?
     };
 
-    let parent_ids = outlines
-        .iter()
-        .filter_map(|o| o.parent_id.inner())
-        .collect::<Vec<&Base64String>>();
-
-    let breadcrumbs = fetch_breadcrumbs(parent_ids, pool).await?;
-
-    Ok((outlines, cards, breadcrumbs))
+    Ok((outlines, cards))
 }
 
 #[cfg(test)]
@@ -135,24 +125,20 @@ mod test {
         let now = Utc::now();
         create_tree(app_handle, None, 2, 0).await;
 
-        let (outlines, cards, breadcrumbs) =
-            fetch_timeline(app_handle.clone(), now, TlOption::Both)
-                .await
-                .unwrap();
+        let (outlines, cards) = fetch_timeline(app_handle.clone(), now, TlOption::Both)
+            .await
+            .unwrap();
 
         assert_eq!(outlines.len(), 3);
         assert_eq!(cards.len(), 3);
-        assert_eq!(breadcrumbs.len(), 2);
 
         let now = Utc::now() - Duration::days(2);
-        let (outlines, cards, breadcrumbs) =
-            fetch_timeline(app_handle.clone(), now, TlOption::Both)
-                .await
-                .unwrap();
+        let (outlines, cards) = fetch_timeline(app_handle.clone(), now, TlOption::Both)
+            .await
+            .unwrap();
 
         assert_eq!(outlines.len(), 0);
         assert_eq!(cards.len(), 0);
-        assert_eq!(breadcrumbs.len(), 0);
 
         let pool = app_handle.state::<SqlitePool>().inner();
 
@@ -180,7 +166,7 @@ mod test {
         .await
         .unwrap();
 
-        let (outlines, cards, breadcrumbs) = fetch_timeline(
+        let (outlines, cards) = fetch_timeline(
             app_handle.clone(),
             Utc::now() - Duration::minutes(1),
             TlOption::Both,
@@ -190,9 +176,8 @@ mod test {
 
         assert_eq!(outlines.len(), 3);
         assert_eq!(cards.len(), 3);
-        assert_eq!(breadcrumbs.len(), 2);
 
-        let (outlines, cards, breadcrumbs) = fetch_timeline(
+        let (outlines, cards) = fetch_timeline(
             app_handle.clone(),
             Utc::now() - Duration::minutes(1),
             TlOption::CreatedAt,
@@ -202,9 +187,8 @@ mod test {
 
         assert_eq!(outlines.len(), 3);
         assert_eq!(cards.len(), 3);
-        assert_eq!(breadcrumbs.len(), 2);
 
-        let (outlines, cards, breadcrumbs) = fetch_timeline(
+        let (outlines, cards) = fetch_timeline(
             app_handle.clone(),
             Utc::now() - Duration::minutes(1),
             TlOption::UpdatedAt,
@@ -214,7 +198,6 @@ mod test {
 
         assert_eq!(outlines.len(), 0);
         assert_eq!(cards.len(), 0);
-        assert_eq!(breadcrumbs.len(), 0);
 
         let time = (Utc::now() + Duration::days(3)).timestamp_millis();
         sqlx::query!(
@@ -240,7 +223,7 @@ mod test {
         .await
         .unwrap();
 
-        let (outlines, cards, breadcrumbs) = fetch_timeline(
+        let (outlines, cards) = fetch_timeline(
             app_handle.clone(),
             Utc::now() - Duration::minutes(1),
             TlOption::Both,
@@ -250,9 +233,8 @@ mod test {
 
         assert_eq!(outlines.len(), 0);
         assert_eq!(cards.len(), 0);
-        assert_eq!(breadcrumbs.len(), 0);
 
-        let (outlines, cards, breadcrumbs) = fetch_timeline(
+        let (outlines, cards) = fetch_timeline(
             app_handle.clone(),
             Utc::now() - Duration::minutes(1),
             TlOption::CreatedAt,
@@ -262,6 +244,5 @@ mod test {
 
         assert_eq!(outlines.len(), 0);
         assert_eq!(cards.len(), 0);
-        assert_eq!(breadcrumbs.len(), 0);
     }
 }

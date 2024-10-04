@@ -11,6 +11,9 @@ pub struct Breadcrumb {
     pub text: Option<String>,
 }
 
+#[tauri::command]
+#[specta::specta]
+#[macros::anyhow_to_string]
 pub async fn fetch_breadcrumbs(
     parent_ids: Vec<&Base64String>,
     pool: &SqlitePool,
