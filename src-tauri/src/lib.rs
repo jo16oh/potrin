@@ -29,6 +29,7 @@ pub fn run() {
             database::query::fetch_tree::<tauri::Wry>,
             database::query::fetch_timeline::<tauri::Wry>,
             database::query::fetch_relation::<tauri::Wry>,
+            database::query::fetch_relation_count::<tauri::Wry>,
             search_engine::index,
             search_engine::search,
             state::get_app_state::<tauri::Wry>,
