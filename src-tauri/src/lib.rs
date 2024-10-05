@@ -131,7 +131,7 @@ pub mod test {
                 panic::set_hook(Box::new(move |panic_info| {
                     if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
                         if *s == "SUCCESS" {
-                            return;
+                            return
                         } else if *s == "assertion failed: is_successful.load(SeqCst)" {
                             return
                         }
@@ -163,6 +163,8 @@ pub mod test {
                                     $closure
                                     is_successful.store(true, SeqCst);
                                 });
+                                // suppress unused variable warnings
+                                let _ = $arg;
                                 panic!("SUCCESS");
                             })
                         })
