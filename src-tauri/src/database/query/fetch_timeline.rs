@@ -109,6 +109,7 @@ pub async fn fetch_timeline<R: Runtime>(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::database::test::create_mock_user_and_pot;
     use crate::database::test::create_tree;
     use crate::test::*;
     use chrono::Duration;

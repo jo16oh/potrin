@@ -388,6 +388,7 @@ pub async fn update_app_state<R: Runtime>(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::database::test::create_mock_user_and_pot;
     use crate::test::*;
     use tauri::AppHandle;
 

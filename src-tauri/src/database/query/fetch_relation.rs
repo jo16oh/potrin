@@ -252,6 +252,7 @@ mod test {
     use super::*;
     use crate::database::query::insert_card;
     use crate::database::table::{Card, CardYUpdate};
+    use crate::database::test::create_mock_user_and_pot;
     use crate::database::test::create_tree;
     use crate::test::*;
 

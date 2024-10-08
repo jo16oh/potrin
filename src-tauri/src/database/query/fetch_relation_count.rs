@@ -255,6 +255,7 @@ mod test {
     use super::*;
     use crate::database::query::{insert_card, insert_outline};
     use crate::database::table::{Card, CardYUpdate, Outline, OutlineYUpdate};
+    use crate::database::test::create_mock_user_and_pot;
     use crate::database::types::NullableBase64;
     use crate::test::*;
 

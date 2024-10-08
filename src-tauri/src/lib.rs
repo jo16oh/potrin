@@ -97,13 +97,7 @@ fn setup<R: Runtime>(
 #[cfg(test)]
 pub mod test {
     use super::*;
-    use crate::database::query::insert_pot;
-    use crate::database::table::{Pot, User};
-    use crate::database::types::Base64;
     pub use crate::run_in_mock_app;
-    use sqlx::SqlitePool;
-    use state::types::{PotState, UserState};
-    use state::update_app_state;
     pub use std::boxed::Box;
     pub use std::panic;
     pub use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
@@ -120,55 +114,6 @@ pub mod test {
             .setup(move |app| setup(specta_builder, app))
             .build(mock_context(noop_assets()))
             .unwrap()
-    }
-
-    pub async fn create_mock_user_and_pot(app_handle: AppHandle<MockRuntime>) {
-        let pool = app_handle.state::<SqlitePool>().inner();
-
-        let user = User {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            name: "mock_user".to_string(),
-        };
-
-        sqlx::query!(
-            r#"
-                INSERT INTO users (id, name)
-                VALUES (?, ?);
-            "#,
-            user.id,
-            user.name
-        )
-        .execute(pool)
-        .await
-        .unwrap();
-
-        update_app_state(
-            app_handle.clone(),
-            state::AppStateValues::User(Some(UserState {
-                id: user.id.clone().to_string(),
-                name: user.name.clone(),
-            })),
-        )
-        .await
-        .unwrap();
-
-        let pot = Pot {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            name: "mock".to_string(),
-            owner: user.id.clone(),
-        };
-
-        insert_pot(app_handle.clone(), pot.clone()).await.unwrap();
-
-        update_app_state(
-            app_handle.clone(),
-            state::AppStateValues::Pot(Some(PotState {
-                id: pot.id.to_string(),
-                sync: false,
-            })),
-        )
-        .await
-        .unwrap();
     }
 
     #[macro_export]

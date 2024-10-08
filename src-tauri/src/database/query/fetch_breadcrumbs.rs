@@ -57,6 +57,7 @@ pub async fn fetch_breadcrumbs(
 mod test {
     use super::*;
     use crate::database::table::OutlineYUpdate;
+    use crate::database::test::create_mock_user_and_pot;
     use crate::database::{query::insert_outline, table::Outline};
     use crate::test::*;
     use tauri::{AppHandle, Manager};
