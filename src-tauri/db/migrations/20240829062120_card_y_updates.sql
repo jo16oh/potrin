@@ -2,7 +2,7 @@ CREATE TABLE card_y_updates (
   id BLOB PRIMARY KEY,
   card_id BLOB REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
   data BLOB NOT NULL,
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000) ,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000) ,
   is_checkpoint INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
@@ -16,7 +16,7 @@ BEGIN
   VALUES (
     NEW.id,
     "card_y_updates",
-    NEW.updated_at,
+    NEW.created_at,
     0,
     jsonb_object(
       'is_synced', jsonb(false)
@@ -32,7 +32,7 @@ BEGIN
   VALUES (
     NEW.id,
     "card_y_updates",
-    NEW.updated_at,
+    NEW.created_at,
     0,
     jsonb_object(
       'is_synced', jsonb(false)
@@ -49,7 +49,7 @@ BEGIN
     OLD.id,
     "card_y_updates",
     unixepoch('now', 'subsec') * 1000,
-    1, 
+    1,
     jsonb_object(
       'is_synced', jsonb(false)
     )

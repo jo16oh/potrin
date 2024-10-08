@@ -2,7 +2,7 @@ CREATE TABLE outline_y_updates (
   id BLOB PRIMARY KEY,
   outline_id BLOB REFERENCES outlines(id) ON DELETE CASCADE NOT NULL,
   data BLOB NOT NULL,
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
+  created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
   is_checkpoint INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
@@ -16,7 +16,7 @@ BEGIN
   VALUES (
     NEW.id,
     "outline_y_updates",
-    NEW.updated_at,
+    NEW.created_at,
     1,
     jsonb_object(
       'is_synced', jsonb(false)
@@ -32,7 +32,7 @@ BEGIN
   VALUES (
     NEW.id,
     "outline_y_updates",
-    NEW.updated_at,
+    NEW.created_at,
     1,
     jsonb_object(
       'is_synced', jsonb(false)

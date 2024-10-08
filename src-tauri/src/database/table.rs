@@ -33,7 +33,7 @@ impl Outline {
 pub struct OutlineYUpdate {
     pub id: Base64,
     pub data: Base64,
-    pub updated_at: i64,
+    pub created_at: i64,
     pub is_checkpoint: i64,
 }
 
@@ -43,7 +43,7 @@ impl OutlineYUpdate {
         Self {
             id: Base64::from(uuidv7::create_raw().to_vec()),
             data: Base64::from(uuidv7::create_raw().to_vec()),
-            updated_at: chrono::Utc::now().timestamp_millis(),
+            created_at: chrono::Utc::now().timestamp_millis(),
             is_checkpoint: 0,
         }
     }
@@ -75,7 +75,7 @@ impl Card {
 pub struct CardYUpdate {
     pub id: Base64,
     pub data: Base64,
-    pub updated_at: i64,
+    pub created_at: i64,
     pub is_checkpoint: i64,
 }
 
@@ -85,7 +85,7 @@ impl CardYUpdate {
         Self {
             id: Base64::from(uuidv7::create_raw().to_vec()),
             data: Base64::from(uuidv7::create_raw().to_vec()),
-            updated_at: chrono::Utc::now().timestamp_millis(),
+            created_at: chrono::Utc::now().timestamp_millis(),
             is_checkpoint: 0,
         }
     }
@@ -150,8 +150,8 @@ pub struct OutlineYUpdatesTable {
     pub id: Base64,
     pub outline_id: Base64,
     pub data: Base64,
-    pub updated_at: i64,
     pub is_checkpoint: i64,
+    pub created_at: i64,
 }
 
 #[macros::table_change_event]
@@ -174,6 +174,6 @@ pub struct CardYUpdatesTable {
     pub id: Base64,
     pub card_id: Base64,
     pub data: Base64,
-    pub updated_at: i64,
+    pub created_at: i64,
     pub is_checkpoint: i64,
 }

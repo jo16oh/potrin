@@ -16,7 +16,7 @@ pub async fn insert_outline_y_updates(
 
     let query = format!(
         r#"
-            INSERT INTO outline_y_updates (id, outline_id, data, updated_at, is_checkpoint)
+            INSERT INTO outline_y_updates (id, outline_id, data, created_at, is_checkpoint)
             VALUES {};
         "#,
         y_updates
@@ -32,7 +32,7 @@ pub async fn insert_outline_y_updates(
         query_builder = query_builder.bind(update.id);
         query_builder = query_builder.bind(outline_id);
         query_builder = query_builder.bind(update.data);
-        query_builder = query_builder.bind(update.updated_at);
+        query_builder = query_builder.bind(update.created_at);
         query_builder = query_builder.bind(update.is_checkpoint);
     }
 
@@ -52,7 +52,7 @@ pub async fn insert_card_y_updates(
 
     let query = format!(
         r#"
-            INSERT INTO card_y_updates (id, card_id, data, updated_at, is_checkpoint)
+            INSERT INTO card_y_updates (id, card_id, data, created_at, is_checkpoint)
             VALUES {};
         "#,
         y_updates
@@ -68,7 +68,7 @@ pub async fn insert_card_y_updates(
         query_builder = query_builder.bind(update.id);
         query_builder = query_builder.bind(card_id);
         query_builder = query_builder.bind(update.data);
-        query_builder = query_builder.bind(update.updated_at);
+        query_builder = query_builder.bind(update.created_at);
         query_builder = query_builder.bind(update.is_checkpoint);
     }
 
