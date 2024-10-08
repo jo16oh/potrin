@@ -24,6 +24,8 @@ pub fn run() {
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(collect_commands![
             greet,
+            database::query::insert_user::<tauri::Wry>,
+            database::query::insert_pot::<tauri::Wry>,
             database::query::insert_outline::<tauri::Wry>,
             database::query::insert_card::<tauri::Wry>,
             database::query::fetch_tree::<tauri::Wry>,
@@ -32,6 +34,7 @@ pub fn run() {
             database::query::fetch_relation_count::<tauri::Wry>,
             search_engine::index,
             search_engine::search,
+            state::update_app_state::<tauri::Wry>
         ])
         .events(events())
         .error_handling(tauri_specta::ErrorHandlingMode::Throw);
