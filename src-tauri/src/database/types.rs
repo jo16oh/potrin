@@ -1,4 +1,5 @@
 use base64::prelude::*;
+use base64::DecodeError;
 use derive_more::derive::Deref;
 use serde::{Deserialize, Serialize};
 use sqlx::{
@@ -65,7 +66,7 @@ impl From<i64> for SqliteBool {
 pub struct Base64(String);
 
 impl Base64 {
-    pub fn to_bytes(&self) -> anyhow::Result<Vec<u8>> {
+    pub fn to_bytes(&self) -> Result<Vec<u8>, DecodeError> {
         let string = self.as_bytes();
         let mut buffer = Vec::<u8>::new();
         BASE64_STANDARD.decode_vec(string, &mut buffer)?;
@@ -94,10 +95,7 @@ impl<'r> Encode<'r, Sqlite> for Base64 {
         &self,
         buf: &mut <Sqlite as Database>::ArgumentBuffer<'r>,
     ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
-        match self.to_bytes() {
-            Ok(bytes) => <&Vec<u8> as Encode<Sqlite>>::encode(&bytes, buf),
-            Err(_) => Ok(IsNull::Yes),
-        }
+        <&Vec<u8> as Encode<Sqlite>>::encode(&self.to_bytes()?, buf)
     }
 }
 
