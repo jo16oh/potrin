@@ -4,7 +4,6 @@ CREATE TABLE cards (
   outline_id BLOB REFERENCES outlines(id) ON DELETE CASCADE NOT NULL,
   fractional_index TEXT NOT NULL,
   text TEXT NOT NULL,
-  last_materialized_hash BLOB,
   created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
   is_deleted INTEGER NOT NULL DEFAULT 0
