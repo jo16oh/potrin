@@ -1,7 +1,10 @@
-use crate::database::{
-    query::insert_outline_y_updates,
-    table::{Outline, OutlineChangeEvent, OutlineYUpdate},
-    types::{Operation::*, Origin},
+use crate::{
+    database::{
+        query::insert_outline_y_updates,
+        table::{Outline, OutlineChangeEvent, OutlineYUpdate},
+        types::{Operation::*, Origin},
+    },
+    state::get_app_state,
 };
 use anyhow::anyhow;
 use sqlx::SqlitePool;
@@ -16,6 +19,11 @@ pub async fn insert_outline<R: Runtime>(
     outline: Outline,
     y_updates: Vec<OutlineYUpdate>,
 ) -> anyhow::Result<Outline> {
+    let pot = get_app_state(app_handle.clone())
+        .map_err(|e| anyhow!(e))?
+        .pot
+        .ok_or(anyhow!("pot state is not set"))?;
+
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))?
@@ -26,10 +34,11 @@ pub async fn insert_outline<R: Runtime>(
     let outline: Outline = sqlx::query_as!(
         Outline,
         r#"
-            INSERT INTO outlines (id, parent_id, fractional_index, text)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO outlines (id, pot_id, parent_id, fractional_index, text)
+            VALUES (?, ?, ?, ?, ?)
             RETURNING id, parent_id, fractional_index, text;"#,
         outline.id,
+        pot.id,
         outline.parent_id,
         outline.fractional_index,
         outline.text

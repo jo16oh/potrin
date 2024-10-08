@@ -256,8 +256,9 @@ mod test {
     use crate::test::*;
 
     #[test]
-    fn test_fetch_timeline() {
+    fn test_fetch_relation() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            create_mock_user_and_pot(app_handle.clone()).await;
             test(app_handle).await;
         });
     }

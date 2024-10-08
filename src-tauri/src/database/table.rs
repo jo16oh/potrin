@@ -2,7 +2,13 @@ use super::types::*;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::FromRow;
+
 use tauri_specta::Event;
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct User {
+    pub id: Base64,
+    pub name: String,
+}
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct Pot {

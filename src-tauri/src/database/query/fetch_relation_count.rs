@@ -261,6 +261,7 @@ mod test {
     #[test]
     fn test_fetch_relation_count() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            create_mock_user_and_pot(app_handle.clone()).await;
             test_count(app_handle).await;
             test_count_recursively(app_handle).await;
         });
