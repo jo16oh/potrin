@@ -32,14 +32,6 @@ pub fn run() {
             database::query::fetch_relation_count::<tauri::Wry>,
             search_engine::index,
             search_engine::search,
-            state::get_app_state::<tauri::Wry>,
-            state::set_user_state::<tauri::Wry>,
-            state::update_user_state::<tauri::Wry>,
-            state::set_pot_state::<tauri::Wry>,
-            state::update_pot_state::<tauri::Wry>,
-            state::set_workspace_state::<tauri::Wry>,
-            state::update_workspace_state::<tauri::Wry>,
-            state::set_setting_state::<tauri::Wry>,
         ])
         .events(events())
         .error_handling(tauri_specta::ErrorHandlingMode::Throw);
@@ -89,15 +81,15 @@ fn setup<R: Runtime>(
         async move { search_engine::init(&app_handle, 0).await }
     });
 
-    state::init(app_handle.clone())?;
-
-    // set event listners here
-    // OutlinesTableChangeEvent::listen(app_handle, |e| {
-    //     dbg!(e.payload);
-    // });
-
     async_runtime::block_on(handle)??;
+
+    let handle3 = async_runtime::spawn({
+        let app_handle = app_handle.clone();
+        async move { state::init(app_handle).await }
+    });
+
     async_runtime::block_on(handle2)??;
+    async_runtime::block_on(handle3)??;
 
     Ok(())
 }
@@ -111,7 +103,7 @@ pub mod test {
     pub use crate::run_in_mock_app;
     use sqlx::SqlitePool;
     use state::types::{PotState, UserState};
-    use state::{set_pot_state, set_user_state};
+    use state::update_app_state;
     pub use std::boxed::Box;
     pub use std::panic;
     pub use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
@@ -150,13 +142,14 @@ pub mod test {
         .await
         .unwrap();
 
-        set_user_state(
+        update_app_state(
             app_handle.clone(),
-            UserState {
-                id: user.id.clone(),
+            state::AppStateValues::User(Some(UserState {
+                id: user.id.clone().to_string(),
                 name: user.name.clone(),
-            },
+            })),
         )
+        .await
         .unwrap();
 
         let pot = Pot {
@@ -167,13 +160,14 @@ pub mod test {
 
         insert_pot(app_handle.clone(), pot.clone()).await.unwrap();
 
-        set_pot_state(
+        update_app_state(
             app_handle.clone(),
-            PotState {
-                id: pot.id,
+            state::AppStateValues::Pot(Some(PotState {
+                id: pot.id.to_string(),
                 sync: false,
-            },
+            })),
         )
+        .await
         .unwrap();
     }
 

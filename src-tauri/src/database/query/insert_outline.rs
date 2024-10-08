@@ -2,12 +2,13 @@ use crate::{
     database::{
         query::insert_outline_y_updates,
         table::{Outline, OutlineChangeEvent, OutlineYUpdate},
-        types::{Operation::*, Origin},
+        types::{Base64, Operation::*, Origin},
     },
-    state::get_app_state,
+    state::types::AppState,
 };
 use anyhow::anyhow;
 use sqlx::SqlitePool;
+use std::sync::RwLock;
 use tauri::{AppHandle, Manager, Runtime};
 use tauri_specta::Event;
 
@@ -19,17 +20,30 @@ pub async fn insert_outline<R: Runtime>(
     outline: Outline,
     y_updates: Vec<OutlineYUpdate>,
 ) -> anyhow::Result<Outline> {
-    let pot = get_app_state(app_handle.clone())
-        .map_err(|e| anyhow!(e))?
-        .pot
-        .ok_or(anyhow!("pot state is not set"))?;
-
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))?
         .inner();
 
     let mut tx = pool.begin().await?;
+
+    let pot_id = {
+        let lock = app_handle
+            .try_state::<RwLock<AppState>>()
+            .ok_or(anyhow!("failed to get app state"))?
+            .inner();
+
+        let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
+
+        let id = app_state
+            .pot
+            .as_ref()
+            .ok_or(anyhow!("failed to get pot state"))?
+            .id
+            .clone();
+
+        Base64::from(id)
+    };
 
     let outline: Outline = sqlx::query_as!(
         Outline,
@@ -38,7 +52,7 @@ pub async fn insert_outline<R: Runtime>(
             VALUES (?, ?, ?, ?, ?)
             RETURNING id, parent_id, fractional_index, text;"#,
         outline.id,
-        pot.id,
+        pot_id,
         outline.parent_id,
         outline.fractional_index,
         outline.text

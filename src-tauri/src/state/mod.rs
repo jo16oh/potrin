@@ -1,318 +1,386 @@
 pub mod types;
 
-use crate::{
-    database::types::Base64,
-    utils::{get_once_lock, set_once_lock},
-};
+use crate::database::types::Base64;
 use anyhow::anyhow;
-use polodb_core::{
-    bson::{doc, Bson},
-    options::UpdateOptions,
-    test_utils::prepare_db,
-    Collection, CollectionT, Database,
-};
-use std::{
-    any::TypeId,
-    sync::{OnceLock, RwLock},
-};
-use tauri::{test::MockRuntime, AppHandle, Manager, Runtime};
+use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
+use std::sync::RwLock;
+use tauri::{AppHandle, Manager, Runtime};
 use types::*;
 
-static DB: OnceLock<Database> = OnceLock::new();
-static CLIENT_STATE_COL: OnceLock<Collection<ClientState>> = OnceLock::new();
-static USER_STATE_COL: OnceLock<Collection<UserState>> = OnceLock::new();
-static POT_STATE_COL: OnceLock<Collection<PotState>> = OnceLock::new();
-static WS_STATE_COL: OnceLock<Collection<WorkspaceState>> = OnceLock::new();
-static SETTING_STATE_COL: OnceLock<Collection<SettingState>> = OnceLock::new();
-
-impl From<Base64> for Bson {
-    fn from(value: Base64) -> Self {
-        Bson::from(value.to_string())
-    }
+struct QueryResult {
+    value: Vec<u8>,
 }
 
-pub fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
-    let db = if TypeId::of::<R>() == TypeId::of::<MockRuntime>() {
-        prepare_db(uuidv7::create().as_str())?
-    } else {
-        let mut path = app_handle.path().app_data_dir()?;
-        path.push("state");
-        Database::open_path(path)?
-    };
+#[derive(Serialize, Deserialize, Clone, specta::Type)]
+pub enum AppStateValues {
+    App(AppState),
+    Client(ClientState),
+    User(Option<UserState>),
+    Pot(Option<PotState>),
+    Workspace(Option<WorkspaceState>),
+    Tabs(Vec<TabState>),
+    Setting(SettingState),
+}
 
-    let client_state_col = db.collection::<ClientState>("ClientState");
-    let user_state_col = db.collection::<UserState>("UserState");
-    let pot_state_col = db.collection::<PotState>("PotState");
-    let workspace_state_col = db.collection::<WorkspaceState>("WorkspaceState");
-    let setting_state_col = db.collection::<SettingState>("SettingState");
+pub async fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
+    let pool = app_handle
+        .try_state::<SqlitePool>()
+        .ok_or(anyhow!("sqlite is not initialized"))?
+        .inner();
 
-    let client = match client_state_col.find_one(doc! {})? {
-        Some(client) => client,
+    let initial = sqlx::query_as!(
+        QueryResult,
+        r#"
+            SELECT value
+            FROM kv
+            WHERE key = ?;
+        "#,
+        "app_state"
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    let app_state = match initial {
+        Some(result) => serde_sqlite_jsonb::from_slice::<AppState>(&result.value)?,
         None => {
-            let client = ClientState {
-                id: Base64::from(uuidv7::create_raw().to_vec()),
+            let app_state = AppState {
+                client: ClientState {
+                    id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
+                },
+                user: None,
+                pot: None,
+                workspace: None,
+                setting: SettingState {},
             };
 
-            client_state_col.insert_one(&client)?;
-            client
+            let jsonb = serde_sqlite_jsonb::to_vec(&app_state)?;
+
+            sqlx::query!(
+                r#"
+                    INSERT INTO kv (key, value)
+                    VALUES (?, ?);
+                "#,
+                "app_state",
+                jsonb
+            )
+            .execute(pool)
+            .await?;
+
+            app_state
         }
-    };
-
-    let user = user_state_col.find_one(doc! {})?;
-    let pot = pot_state_col.find_one(doc! {})?;
-
-    let workspace = match &pot {
-        Some(pot) => workspace_state_col.find_one(doc! {"_id": &pot.id})?,
-        None => None,
-    };
-
-    let setting = match setting_state_col.find_one(doc! {})? {
-        Some(setting) => setting,
-        None => SettingState {},
-    };
-
-    let app_state = AppState {
-        client,
-        user,
-        pot,
-        workspace,
-        setting,
     };
 
     app_handle.manage::<RwLock<AppState>>(RwLock::new(app_state));
 
-    let _ = set_once_lock(&DB, db);
-    let _ = set_once_lock(&CLIENT_STATE_COL, client_state_col);
-    let _ = set_once_lock(&USER_STATE_COL, user_state_col);
-    let _ = set_once_lock(&POT_STATE_COL, pot_state_col);
-    let _ = set_once_lock(&WS_STATE_COL, workspace_state_col);
-    let _ = set_once_lock(&SETTING_STATE_COL, setting_state_col);
-
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub fn get_app_state<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<AppState> {
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get state"))?;
-    let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
-    Ok(app_state.clone())
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
-pub fn set_user_state<R: Runtime>(app_handle: AppHandle<R>, user: UserState) -> anyhow::Result<()> {
-    let collection = get_once_lock(&USER_STATE_COL)?;
-    collection.update_one_with_options(
-        doc! {},
-        doc! {
-            "$set": &user
-        },
-        UpdateOptions::builder().upsert(true).build(),
-    )?;
-
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get state"))?;
-    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-    app_state.user = Some(user);
-
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
-pub fn update_user_state<R: Runtime>(
+pub async fn update_app_state<R: Runtime>(
     app_handle: AppHandle<R>,
-    value: UserStateFields,
+    value: AppStateValues,
 ) -> anyhow::Result<()> {
-    let user_state_col = get_once_lock(&USER_STATE_COL)?;
+    let pool = app_handle
+        .try_state::<SqlitePool>()
+        .ok_or(anyhow!("sqlite is not initialized"))?
+        .inner();
 
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get state"))?;
-    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+    match value {
+        AppStateValues::App(value) => {
+            let jsonb = serde_sqlite_jsonb::to_vec(&value)?;
+            sqlx::query!(
+                r#"
+                    UPDATE kv
+                    SET value = ?
+                    WHERE key = "app_state";
+                "#,
+                jsonb
+            )
+            .execute(pool)
+            .await?;
 
-    if let Some(ref mut user) = app_state.user {
-        user_state_col.update_one(
-            doc! {},
-            doc! {
-                "$set": &value
-            },
-        )?;
-
-        user.apply(value);
-
-        Ok(())
-    } else {
-        Err(anyhow!("user state is not set"))
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
-pub fn set_pot_state<R: Runtime>(
-    app_handle: AppHandle<R>,
-    pot: PotState,
-) -> anyhow::Result<Option<WorkspaceState>> {
-    let pot_state_col = get_once_lock(&POT_STATE_COL)?;
-    pot_state_col.update_one_with_options(
-        doc! {},
-        doc! {
-            "$set": &pot
-        },
-        UpdateOptions::builder().upsert(true).build(),
-    )?;
-
-    let workspace_state_col = get_once_lock(&WS_STATE_COL)?;
-    let workspace = workspace_state_col.find_one(doc! {"_id": &pot.id})?;
-
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get state"))?;
-    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-    app_state.pot = Some(pot);
-    app_state.workspace = workspace;
-
-    Ok(app_state.workspace.clone())
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
-pub fn update_pot_state<R: Runtime>(
-    app_handle: AppHandle<R>,
-    value: PotStateFields,
-) -> anyhow::Result<Option<WorkspaceState>> {
-    let pot_state_col = get_once_lock(&POT_STATE_COL)?;
-    let workspace_state_col = get_once_lock(&WS_STATE_COL)?;
-
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get state"))?;
-    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-
-    if app_state.pot.is_some() {
-        let res = if let PotStateFields::Id(ref id) = value {
-            let workspace = workspace_state_col.find_one(doc! {"_id": id})?;
-            app_state.workspace = workspace.clone();
-            workspace
-        } else {
-            None
-        };
-
-        if let Some(ref mut pot) = app_state.pot {
-            pot_state_col.update_one(
-                doc! {},
-                doc! {
-                    "$set": &value
-                },
-            )?;
-
-            pot.apply(value);
+            let lock = app_handle
+                .try_state::<RwLock<AppState>>()
+                .ok_or(anyhow!("failed to get state"))?;
+            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            *app_state = value;
         }
+        AppStateValues::Client(client_state) => {
+            let jsonb = serde_sqlite_jsonb::to_vec(&client_state)?;
+            sqlx::query!(
+                r#"
+                    UPDATE kv
+                    SET value = jsonb_set(
+                        (
+                            SELECT value 
+                            FROM kv
+                            WHERE key = "app_state"
+                        ),
+                        '$.client',
+                        ?
+                    )
+                    WHERE key = "app_state";
+                "#,
+                jsonb
+            )
+            .execute(pool)
+            .await?;
 
-        Ok(res)
-    } else {
-        Err(anyhow!("pot state is not set"))
+            let lock = app_handle
+                .try_state::<RwLock<AppState>>()
+                .ok_or(anyhow!("failed to get state"))?;
+            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            app_state.client = client_state;
+        }
+        AppStateValues::User(user_state) => {
+            let jsonb = serde_sqlite_jsonb::to_vec(&user_state)?;
+            sqlx::query!(
+                r#"
+                    UPDATE kv
+                    SET value = jsonb_set(
+                        (
+                            SELECT value 
+                            FROM kv
+                            WHERE key = "app_state"
+                        ),
+                        '$.user',
+                        ?
+                    )
+                    WHERE key = "app_state";
+                "#,
+                jsonb
+            )
+            .execute(pool)
+            .await?;
+
+            let lock = app_handle
+                .try_state::<RwLock<AppState>>()
+                .ok_or(anyhow!("failed to get state"))?;
+            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            app_state.user = user_state;
+        }
+        AppStateValues::Pot(pot_state) => {
+            let lock = app_handle
+                .try_state::<RwLock<AppState>>()
+                .ok_or(anyhow!("failed to get state"))?;
+
+            let workspace_state = match pot_state {
+                Some(ref pot) => {
+                    let id = Base64::from(pot.id.clone());
+                    sqlx::query_as!(
+                        QueryResult,
+                        r#"
+                            SELECT value
+                            FROM workspaces 
+                            WHERE pot_id = ?;
+                        "#,
+                        id
+                    )
+                    .fetch_optional(pool)
+                    .await?
+                    .map(|r| serde_sqlite_jsonb::from_slice(&r.value))
+                    .transpose()?
+                }
+                None => None,
+            };
+
+            let value = serde_sqlite_jsonb::to_vec(&pot_state)?;
+            sqlx::query!(
+                r#"
+                    UPDATE kv
+                    SET value = jsonb_set(
+                        (
+                            SELECT value 
+                            FROM kv
+                            WHERE key = "app_state"
+                        ),
+                        '$.pot',
+                        ?
+                    )
+                    WHERE key = "app_state";
+                "#,
+                value
+            )
+            .execute(pool)
+            .await?;
+
+            let value = serde_sqlite_jsonb::to_vec(&workspace_state)?;
+            sqlx::query!(
+                r#"
+                    UPDATE kv
+                    SET value = jsonb_set(
+                        (
+                            SELECT value 
+                            FROM kv
+                            WHERE key = "app_state"
+                        ),
+                        '$.workspace',
+                        ?
+                    )
+                    WHERE key = "app_state";
+                "#,
+                value
+            )
+            .execute(pool)
+            .await?;
+
+            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            app_state.pot = pot_state;
+            app_state.workspace = workspace_state;
+        }
+        AppStateValues::Workspace(workspace_state) => {
+            let lock = app_handle
+                .try_state::<RwLock<AppState>>()
+                .ok_or(anyhow!("failed to get state"))?;
+
+            let value = serde_sqlite_jsonb::to_vec(&workspace_state)?;
+            sqlx::query!(
+                r#"
+                    UPDATE kv
+                    SET value = jsonb_set(
+                        (
+                            SELECT value 
+                            FROM kv
+                            WHERE key = "app_state"
+                        ),
+                        '$.workspace',
+                        ?
+                    )
+                    WHERE key = "app_state";
+                "#,
+                value
+            )
+            .execute(pool)
+            .await?;
+
+            if let Some(ref workspace) = workspace_state {
+                let pot_id = {
+                    let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
+                    let pot = app_state
+                        .pot
+                        .as_ref()
+                        .ok_or(anyhow!("pot state is not set"))?;
+                    Base64::from(pot.id.clone())
+                };
+
+                let value = serde_sqlite_jsonb::to_vec(&workspace)?;
+
+                sqlx::query!(
+                    r#"
+                        INSERT INTO workspaces (pot_id, value)
+                        VALUES (?, ?)
+                        ON CONFLICT (pot_id)
+                        DO UPDATE
+                        SET value = excluded.value;
+                    "#,
+                    pot_id,
+                    value
+                )
+                .execute(pool)
+                .await?;
+            }
+
+            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            app_state.workspace = workspace_state;
+        }
+        AppStateValues::Tabs(tabs) => {
+            let lock = app_handle
+                .try_state::<RwLock<AppState>>()
+                .ok_or(anyhow!("failed to get state"))?;
+
+            let pot_id = {
+                let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
+                let pot = app_state
+                    .pot
+                    .as_ref()
+                    .ok_or(anyhow!("pot state is not set"))?;
+                Base64::from(pot.id.clone())
+            };
+
+            let value = serde_sqlite_jsonb::to_vec(&tabs)?;
+
+            sqlx::query!(
+                r#"
+                    UPDATE kv
+                    SET value = jsonb_set(
+                        (
+                            SELECT value 
+                            FROM kv
+                            WHERE key = "app_state"
+                        ),
+                        '$.workspace',
+                        jsonb_set(
+                            json_extract(
+                                (
+                                    SELECT value 
+                                    FROM kv
+                                    WHERE key = "app_state"
+                                ),
+                                '$.workspace'
+                            ),
+                            "$.tabs",
+                            ?
+                        )
+                    )
+                    WHERE key = "app_state";
+                "#,
+                value
+            )
+            .execute(pool)
+            .await?;
+
+            sqlx::query!(
+                r#"
+                    INSERT INTO workspaces (pot_id, value)
+                    VALUES (?, ?)
+                    ON CONFLICT (pot_id)
+                    DO UPDATE
+                    SET value = excluded.value;
+                "#,
+                pot_id,
+                value
+            )
+            .execute(pool)
+            .await?;
+
+            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            app_state
+                .workspace
+                .as_mut()
+                .ok_or(anyhow!("workspace state is not set"))?
+                .tabs = tabs;
+        }
+        AppStateValues::Setting(setting) => {
+            let jsonb = serde_sqlite_jsonb::to_vec(&setting)?;
+            sqlx::query!(
+                r#"
+                    UPDATE kv
+                    SET value = jsonb_set(
+                        (
+                            SELECT value 
+                            FROM kv
+                            WHERE key = "app_state"
+                        ),
+                        '$.setting',
+                        ?
+                    )
+                    WHERE key = "app_state";
+                "#,
+                jsonb
+            )
+            .execute(pool)
+            .await?;
+
+            let lock = app_handle
+                .try_state::<RwLock<AppState>>()
+                .ok_or(anyhow!("failed to get state"))?;
+            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            app_state.setting = setting;
+        }
     }
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
-pub fn set_workspace_state<R: Runtime>(
-    app_handle: AppHandle<R>,
-    workspace: WorkspaceState,
-) -> anyhow::Result<()> {
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get state"))?;
-    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-
-    let pot_id = match &app_state.pot {
-        Some(pot) => Ok(&pot.id),
-        None => Err(anyhow!("pot state is not set")),
-    }?;
-
-    let workspace_state_col = get_once_lock(&WS_STATE_COL)?;
-    workspace_state_col.update_one_with_options(
-        doc! {"_id": pot_id},
-        doc! {
-            "$set": &workspace
-        },
-        UpdateOptions::builder().upsert(true).build(),
-    )?;
-
-    app_state.workspace = Some(workspace);
-
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
-pub fn update_workspace_state<R: Runtime>(
-    app_handle: AppHandle<R>,
-    value: WorkspaceStateFields,
-) -> anyhow::Result<()> {
-    let workspace_state_col = get_once_lock(&WS_STATE_COL)?;
-
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get state"))?;
-    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-
-    let pot_id = match &app_state.pot {
-        Some(pot) => Ok(&pot.id),
-        None => Err(anyhow!("pot state is not set")),
-    }?;
-
-    if app_state.workspace.is_some() {
-        workspace_state_col.update_one(
-            doc! {"_id": pot_id},
-            doc! {
-                "$set": &value
-            },
-        )?;
-
-        if let Some(ref mut workspace) = app_state.workspace {
-            workspace.apply(value);
-        };
-
-        Ok(())
-    } else {
-        Err(anyhow!("workspace state is not set"))
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
-pub fn set_setting_state<R: Runtime>(
-    app_handle: AppHandle<R>,
-    setting: SettingState,
-) -> anyhow::Result<()> {
-    let setting_state_col = get_once_lock(&SETTING_STATE_COL)?;
-    setting_state_col.update_one_with_options(
-        doc! {},
-        doc! {
-            "$set": &setting
-        },
-        UpdateOptions::builder().upsert(true).build(),
-    )?;
-
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get state"))?;
-    let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-    app_state.setting = setting;
 
     Ok(())
 }
@@ -334,81 +402,115 @@ mod test {
     #[test]
     fn test_user_state() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let collection = get_once_lock(&USER_STATE_COL).unwrap();
+            let pool = app_handle.state::<SqlitePool>().inner();
 
             let user = UserState {
-                id: Base64::from(uuidv7::create_raw().to_vec()),
-                name: "name".to_string(),
+                id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
+                name: "updated".to_string(),
             };
 
-            set_user_state(app_handle.clone(), user.clone()).unwrap();
-            let result = collection.find_one(doc! {}).unwrap().unwrap();
+            update_app_state(app_handle.clone(), AppStateValues::User(Some(user)))
+                .await
+                .unwrap();
 
-            assert_eq!(result.name, user.name);
+            let result = sqlx::query_as!(
+                QueryResult,
+                r#"
+                    SELECT value
+                    FROM kv
+                    WHERE key = ?;
+                "#,
+                "app_state"
+            )
+            .fetch_one(pool)
+            .await
+            .unwrap();
 
-            let value = UserStateFields::Name("updated".to_string());
-            update_user_state(app_handle.clone(), value).unwrap();
-
-            let result = collection.find_one(doc! {}).unwrap().unwrap();
-
-            // partial update
-            assert_eq!(result.name, "updated".to_string());
-            assert_eq!(result.id.to_string(), user.id.to_string());
+            let app_state: AppState = serde_sqlite_jsonb::from_slice(&result.value).unwrap();
+            assert_eq!(app_state.user.unwrap().name, "updated");
         });
     }
 
     #[test]
     fn test_pot_and_workspace_state() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            let pool = app_handle.state::<SqlitePool>().inner();
+
+            create_mock_user_and_pot(app_handle.clone()).await;
+
+            // update pot state
             let pot = PotState {
-                id: Base64::from(uuidv7::create_raw().to_vec()),
+                id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
                 sync: true,
             };
-            set_pot_state(app_handle.clone(), pot.clone()).unwrap();
 
-            let pot_col = get_once_lock(&POT_STATE_COL).unwrap();
-            let result = pot_col.find_one(doc! {}).unwrap().unwrap();
-            assert_eq!(result.sync, pot.sync);
+            update_app_state(app_handle.clone(), AppStateValues::Pot(Some(pot.clone())))
+                .await
+                .unwrap();
 
+            let app_state = get_app_state(pool).await;
+
+            assert_eq!(app_state.pot.unwrap().id, pot.id);
+            assert!(app_state.workspace.is_none());
+
+            // update workspace state
             let workspace = WorkspaceState {
                 tabs: vec![TabState {
-                    id: Base64::from(uuidv7::create_raw().to_vec()),
+                    id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
                     view: "view".to_string(),
                     scroll_pos: 32,
                 }],
                 focused_tab_idx: Some(1),
             };
-            set_workspace_state(app_handle.clone(), workspace).unwrap();
 
-            update_workspace_state(
+            update_app_state(
                 app_handle.clone(),
-                WorkspaceStateFields::FocusedTabIdx(Some(2)),
+                AppStateValues::Workspace(Some(workspace)),
             )
+            .await
             .unwrap();
-            let ws_col = get_once_lock(&WS_STATE_COL).unwrap();
-            let result = ws_col.find_one(doc! {"_id": &pot.id}).unwrap().unwrap();
 
-            // partial update workspace
-            assert_eq!(result.focused_tab_idx, Some(2));
+            let app_state = get_app_state(pool).await;
 
-            let pot = PotState {
-                id: Base64::from(uuidv7::create_raw().to_vec()),
+            assert!(app_state.workspace.is_some());
+
+            // is workspace updated after pot state changed?
+            let pot2 = PotState {
+                id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
                 sync: true,
             };
-            set_pot_state(app_handle.clone(), pot.clone()).unwrap();
 
-            let lock = app_handle.state::<RwLock<AppState>>();
-            let app_state = lock.read().unwrap();
+            update_app_state(app_handle.clone(), AppStateValues::Pot(Some(pot2.clone())))
+                .await
+                .unwrap();
 
-            // is workspace state updated after pot state changed?
+            let app_state = get_app_state(pool).await;
+            assert_eq!(app_state.pot.unwrap().id, pot2.id);
             assert!(app_state.workspace.is_none());
-            drop(app_state);
 
-            update_pot_state(app_handle.clone(), PotStateFields::Sync(false)).unwrap();
-            let result = pot_col.find_one(doc! {}).unwrap().unwrap();
+            update_app_state(app_handle.clone(), AppStateValues::Pot(Some(pot.clone())))
+                .await
+                .unwrap();
 
-            // partial update pot
-            assert!(!result.sync);
+            let app_state = get_app_state(pool).await;
+            assert_eq!(app_state.pot.unwrap().id, pot.id);
+            assert!(app_state.workspace.is_some());
         });
+    }
+
+    async fn get_app_state(pool: &SqlitePool) -> AppState {
+        sqlx::query_as!(
+            QueryResult,
+            r#"
+                SELECT value
+                FROM kv
+                WHERE key = ?;
+            "#,
+            "app_state"
+        )
+        .fetch_one(pool)
+        .await
+        .map(|r| serde_sqlite_jsonb::from_slice(&r.value).unwrap())
+        .unwrap()
     }
 }

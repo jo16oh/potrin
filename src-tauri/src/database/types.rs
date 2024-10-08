@@ -105,6 +105,12 @@ impl From<Vec<u8>> for Base64 {
     }
 }
 
+impl From<String> for Base64 {
+    fn from(value: String) -> Self {
+        Base64(value)
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct NullableBase64(Option<Base64>);
 
