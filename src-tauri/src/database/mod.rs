@@ -1,5 +1,4 @@
 pub mod query;
-mod sync;
 pub mod table;
 pub mod types;
 
@@ -36,13 +35,6 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
     MIGRATOR.run(&pool).await?;
     app_handle.manage::<SqlitePool>(pool);
-
-    // if let Some(handle) = app_handle {
-    //     sync::start_sync(handle);
-    // }
-
-    // let client = get_client_info().await?;
-    // set_once_lock(&CLIENT_ID, client)?;
 
     Ok(())
 }
