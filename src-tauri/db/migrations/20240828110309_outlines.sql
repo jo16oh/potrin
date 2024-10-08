@@ -1,7 +1,7 @@
 CREATE TABLE outlines (
   id BLOB PRIMARY KEY,
-  author BLOB REFERENCES users(id) ON DELETE SET NULL, 
-  pot_id BLOB REFERENCES pots(id) ON DELETE CASCADE, -- NOT NULL
+  author BLOB REFERENCES users(id) ON DELETE SET NULL,
+  pot_id BLOB REFERENCES pots(id) ON DELETE CASCADE NOT NULL,
   parent_id BLOB REFERENCES outlines(id) ON DELETE CASCADE,
   fractional_index TEXT NOT NULL,
   text TEXT,
@@ -28,11 +28,11 @@ BEGIN
         'is_synced', jsonb('false'),
         'is_indexed', jsonb('false'),
         'is_conflicting', (
-          CASE 
+          CASE
             WHEN EXISTS (
               SELECT 1 FROM outlines
-              WHERE 
-                text = NEW.text 
+              WHERE
+                text = NEW.text
                 AND id != NEW.id
                 AND is_deleted = 0
                 AND (parent_id = NEW.parent_id OR (parent_id IS NULL AND NEW.parent_id IS NULL))
@@ -58,11 +58,11 @@ BEGIN
       'is_synced', jsonb('false'),
       'is_indexed', jsonb('false'),
       'is_conflicting', (
-        CASE 
+        CASE
           WHEN EXISTS (
             SELECT 1 FROM outlines
-            WHERE 
-              text = NEW.text 
+            WHERE
+              text = NEW.text
               AND id != NEW.id
               AND is_deleted = 0
               AND (parent_id = NEW.parent_id OR (parent_id IS NULL AND NEW.parent_id IS NULL))
@@ -83,7 +83,7 @@ BEGIN
     OLD.id,
     "outlines",
     unixepoch('now', 'subsec') * 1000,
-    1, 
+    1,
     jsonb_object(
       'is_synced', jsonb('false'),
       'is_indexed', jsonb('false'),

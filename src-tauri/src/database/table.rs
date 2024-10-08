@@ -4,6 +4,13 @@ use specta::Type;
 use sqlx::FromRow;
 use tauri_specta::Event;
 
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct Pot {
+    pub id: Base64,
+    pub name: String,
+    pub owner: Base64,
+}
+
 #[macros::table_change_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct Outline {
@@ -114,8 +121,7 @@ pub struct UsersTable {
 pub struct PotsTable {
     pub id: Base64,
     pub name: String,
-    pub owner: Option<i64>,
-    pub sync: i64,
+    pub owner: Option<Base64>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -149,8 +155,8 @@ pub struct OutlineYUpdatesTable {
     pub id: Base64,
     pub outline_id: Base64,
     pub data: Base64,
-    pub is_checkpoint: i64,
     pub created_at: i64,
+    pub is_checkpoint: SqliteBool,
 }
 
 #[macros::table_change_event]

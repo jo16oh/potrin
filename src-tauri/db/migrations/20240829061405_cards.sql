@@ -1,6 +1,6 @@
 CREATE TABLE cards (
   id BLOB PRIMARY KEY,
-  author BLOB REFERENCES users(id) ON DELETE CASCADE, -- NOT NULL
+  author BLOB REFERENCES users(id) ON DELETE SET NULL,
   outline_id BLOB REFERENCES outlines(id) ON DELETE CASCADE NOT NULL,
   fractional_index TEXT NOT NULL,
   text TEXT NOT NULL,
@@ -55,7 +55,7 @@ BEGIN
     OLD.id,
     "cards",
     unixepoch('now', 'subsec') * 1000,
-    1, 
+    1,
     jsonb_object(
       'is_synced', jsonb('false'),
       'is_indexed', jsonb('false')
