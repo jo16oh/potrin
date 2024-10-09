@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, ItemStruct};
 
-pub fn table_change_event_impl(item: TokenStream) -> TokenStream {
+pub fn model_to_event_impl(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemStruct);
     let table_name = &input.ident;
     let event_name = format_ident!("{}ChangeEvent", table_name);

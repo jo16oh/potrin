@@ -1,4 +1,4 @@
-use crate::types::util::{Base64, NullableBase64, Origin, Operation};
+use crate::types::util::{Base64, NullableBase64, Operation, Origin};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use sqlx::FromRow;
@@ -17,7 +17,7 @@ pub struct Pot {
     pub owner: Base64,
 }
 
-#[macros::table_change_event]
+#[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct Outline {
     pub id: Base64,
@@ -41,7 +41,7 @@ impl Outline {
     }
 }
 
-#[macros::table_change_event]
+#[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct OutlineYUpdate {
     pub id: Base64,
@@ -62,7 +62,7 @@ impl OutlineYUpdate {
     }
 }
 
-#[macros::table_change_event]
+#[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct Card {
     pub id: Base64,
@@ -83,7 +83,7 @@ impl Card {
     }
 }
 
-#[macros::table_change_event]
+#[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct CardYUpdate {
     pub id: Base64,

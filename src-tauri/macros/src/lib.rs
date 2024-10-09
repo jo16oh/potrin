@@ -3,13 +3,13 @@ extern crate proc_macro;
 mod anyhow_to_string;
 mod fields;
 mod into_bson;
-mod table_change_event;
+mod model_to_event;
 
 use anyhow_to_string::anyhow_to_string_impl;
 use fields::fields_impl;
 use into_bson::into_bson_impl;
+use model_to_event::model_to_event_impl;
 use proc_macro::TokenStream;
-use table_change_event::table_change_event_impl;
 
 #[proc_macro_attribute]
 pub fn anyhow_to_string(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -17,8 +17,8 @@ pub fn anyhow_to_string(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn table_change_event(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    table_change_event_impl(item)
+pub fn model_to_event(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    model_to_event_impl(item)
 }
 
 #[proc_macro_attribute]
