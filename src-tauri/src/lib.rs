@@ -1,3 +1,4 @@
+mod commands;
 mod database;
 mod search_engine;
 mod state;
@@ -10,32 +11,12 @@ use database::table::{
 };
 use specta_typescript::Typescript;
 use tauri::{async_runtime, App, Runtime};
-use tauri_specta::{collect_commands, collect_events, Events};
-
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-#[specta::specta]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+use tauri_specta::{collect_events, Events};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
-        .commands(collect_commands![
-            greet,
-            database::query::insert_user::<tauri::Wry>,
-            database::query::insert_pot::<tauri::Wry>,
-            database::query::insert_outline::<tauri::Wry>,
-            database::query::insert_card::<tauri::Wry>,
-            database::query::fetch_tree::<tauri::Wry>,
-            database::query::fetch_timeline::<tauri::Wry>,
-            database::query::fetch_relation::<tauri::Wry>,
-            database::query::fetch_relation_count::<tauri::Wry>,
-            search_engine::index,
-            search_engine::search,
-            state::update_app_state::<tauri::Wry>
-        ])
+        .commands(commands::commands())
         .events(events())
         .error_handling(tauri_specta::ErrorHandlingMode::Throw);
 

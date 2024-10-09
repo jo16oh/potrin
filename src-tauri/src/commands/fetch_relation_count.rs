@@ -253,7 +253,7 @@ async fn count_relation_recursively(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::database::query::{insert_card, insert_outline};
+    use crate::commands::{insert_card, insert_outline};
     use crate::database::table::{Card, CardYUpdate, Outline, OutlineYUpdate};
     use crate::database::test::create_mock_user_and_pot;
     use crate::database::types::NullableBase64;
@@ -264,6 +264,13 @@ mod test {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
             create_mock_user_and_pot(app_handle.clone()).await;
             test_count(app_handle).await;
+        });
+    }
+
+    #[test]
+    fn test_fetch_relation_count_recursively() {
+        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            create_mock_user_and_pot(app_handle.clone()).await;
             test_count_recursively(app_handle).await;
         });
     }

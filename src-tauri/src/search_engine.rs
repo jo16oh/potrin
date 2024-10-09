@@ -125,9 +125,6 @@ pub async fn init<R: Runtime>(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
 pub async fn set_levenstein_distance(levenshtein_distance: u8) -> anyhow::Result<()> {
     if levenshtein_distance != 0 && levenshtein_distance != 1 && levenshtein_distance != 2 {
         return Err(anyhow!("Levenstein distance must be between 0 and 2"));
@@ -143,9 +140,6 @@ pub async fn set_levenstein_distance(levenshtein_distance: u8) -> anyhow::Result
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
 pub async fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
     let id_field = get_once_lock(&ID_FIELD)?;
     let pot_id_field = get_once_lock(&POT_ID_FIELD)?;
@@ -173,9 +167,6 @@ pub async fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
 pub async fn search(query: &str, pot_id: &str, limit: u8) -> anyhow::Result<Vec<SearchResult>> {
     let mut results: Vec<SearchResult> = vec![];
     let query = remove_diacritics(query.nfc().collect::<String>().as_str());

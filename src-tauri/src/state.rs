@@ -76,9 +76,6 @@ pub async fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-#[macros::anyhow_to_string]
 pub async fn update_app_state<R: Runtime>(
     app_handle: AppHandle<R>,
     value: AppStateValues,

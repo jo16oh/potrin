@@ -41,13 +41,12 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
 #[cfg(test)]
 pub mod test {
-    use crate::database::query::{insert_card, insert_outline};
+    use super::table::{Card, CardYUpdate, Outline, OutlineYUpdate, Pot, User};
+    use crate::commands::{insert_card, insert_outline, insert_pot, insert_user};
     use crate::database::types::Base64;
     use crate::state::types::{PotState, UserState};
     use crate::state::update_app_state;
     use tauri::{test::MockRuntime, AppHandle};
-    use super::query::{insert_pot, insert_user};
-    use super::table::{Card, CardYUpdate, Outline, OutlineYUpdate, Pot, User};
 
     pub async fn create_tree(
         app_handle: &AppHandle<MockRuntime>,
