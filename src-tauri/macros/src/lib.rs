@@ -2,12 +2,10 @@ extern crate proc_macro;
 
 mod anyhow_to_string;
 mod fields;
-mod into_bson;
 mod model_to_event;
 
 use anyhow_to_string::anyhow_to_string_impl;
 use fields::fields_impl;
-use into_bson::into_bson_impl;
 use model_to_event::model_to_event_impl;
 use proc_macro::TokenStream;
 
@@ -24,9 +22,4 @@ pub fn model_to_event(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn fields(_attr: TokenStream, item: TokenStream) -> TokenStream {
     fields_impl(item)
-}
-
-#[proc_macro_derive(Bson)]
-pub fn into_bson(item: TokenStream) -> TokenStream {
-    into_bson_impl(item)
 }
