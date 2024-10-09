@@ -1,12 +1,13 @@
+use crate::database::query::fetch_descendant_ids;
 use crate::types::model::Card;
 use crate::types::model::Outline;
 use crate::types::util::Base64;
 use anyhow::anyhow;
 use serde::Deserialize;
 use serde::Serialize;
-use sqlx::FromRow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
+use crate::database::query::{fetch_relation_back, fetch_relation_forward};
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 pub struct RelationOption {
@@ -22,12 +23,7 @@ enum Direction {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 struct IncludeChildrenOption {
-    card: bool,
-}
-
-#[derive(FromRow)]
-struct QueryResult {
-    pub id: Base64,
+    include_cards: bool,
 }
 
 #[tauri::command]
@@ -47,205 +43,17 @@ pub async fn fetch_relation<R: Runtime>(
 
     let (outline_ids, card_ids) = match option.include_children {
         Some(opt) => {
-            let outline_ids = {
-                let query = format!(
-                    r#"
-                        WITH RECURSIVE outline_tree AS (
-                            SELECT id
-                            FROM outlines
-                            WHERE id = {} AND is_deleted = false
-                            UNION ALL
-                            SELECT child.id
-                            FROM outline_tree AS parent
-                            JOIN outlines AS child ON parent.id = child.parent_id
-                            WHERE child.is_deleted = false
-                        )
-                        SELECT id FROM outline_tree;
-                    "#,
-                    outline_ids
-                        .iter()
-                        .map(|_| "?".to_string())
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                );
-
-                let mut query_builder = sqlx::query_as::<_, QueryResult>(&query);
-
-                for id in outline_ids.iter() {
-                    query_builder = query_builder.bind(id);
-                }
-
-                query_builder
-                    .fetch_all(pool)
-                    .await
-                    .unwrap()
-                    .into_iter()
-                    .map(|r| r.id)
-                    .collect::<Vec<Base64>>()
-            };
-
-            let card_ids = if opt.card {
-                let query = format!(
-                    r#"
-                        SELECT id FROM cards WHERE outline_id IN ({}) AND is_deleted = false;
-                    "#,
-                    outline_ids
-                        .iter()
-                        .map(|_| "?".to_string())
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                );
-
-                let mut query_builder = sqlx::query_as::<_, QueryResult>(&query);
-
-                for id in outline_ids.iter() {
-                    query_builder = query_builder.bind(id);
-                }
-
-                query_builder
-                    .fetch_all(pool)
-                    .await
-                    .unwrap()
-                    .into_iter()
-                    .map(|r| r.id)
-                    .collect::<Vec<Base64>>()
-            } else {
-                card_ids
-            };
-
-            (outline_ids, card_ids)
+            fetch_descendant_ids(pool, &outline_ids, opt.include_cards).await?
         }
         None => (outline_ids, card_ids),
     };
 
     match option.direction {
-        Direction::Back => fetch_relation_back(pool, outline_ids, card_ids).await,
+        Direction::Back => fetch_relation_back(pool, &outline_ids, &card_ids).await,
         Direction::Forward => fetch_relation_forward(pool, outline_ids, card_ids).await,
     }
 }
 
-async fn fetch_relation_back(
-    pool: &SqlitePool,
-    outline_ids: Vec<Base64>,
-    card_ids: Vec<Base64>,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
-    let outlines = {
-        let query = format!(
-            r#"
-                SELECT
-                    id, parent_id, fractional_index, text
-                FROM outline_links
-                INNER JOIN outlines ON outline_links.id_from = outlines.id
-                WHERE outlines.is_deleted = false AND id_to IN ({});
-            "#,
-            outline_ids
-                .iter()
-                .map(|_| "?".to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Outline>(&query);
-
-        for id in outline_ids.iter() {
-            query_builder = query_builder.bind(id);
-        }
-
-        query_builder.fetch_all(pool).await?
-    };
-
-    let cards: Vec<Card> = {
-        let query = format!(
-            r#"
-                SELECT
-                    id, outline_id, fractional_index, text
-                FROM cards
-                INNER JOIN card_links ON card_links.id_from = cards.id
-                INNER JOIN card_quotes ON card_links.id_from = cards.id
-                WHERE (card_links.id_to IN ({}) OR card_quotes.id_to IN ({})) AND cards.is_deleted = false;
-            "#,
-            outline_ids
-                .iter()
-                .map(|_| "?".to_string())
-                .collect::<Vec<String>>()
-                .join(", "),
-            card_ids
-                .iter()
-                .map(|_| "?".to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Card>(&query);
-
-        for id in outline_ids.iter() {
-            query_builder = query_builder.bind(id);
-        }
-
-        query_builder.fetch_all(pool).await?
-    };
-
-    Ok((outlines, cards))
-}
-
-async fn fetch_relation_forward(
-    pool: &SqlitePool,
-    outline_ids: Vec<Base64>,
-    card_ids: Vec<Base64>,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
-    let outlines = {
-        let query = format!(
-            r#"
-                SELECT
-                    id, parent_id, fractional_index, text
-                FROM outlines
-                INNER JOIN outline_links ON outline_links.id_to = outlines.id
-                INNER JOIN card_links ON card_links.id_to = outlines.id
-                WHERE outline_links.id_from IN ({}) AND outlines.is_deleted = false;
-            "#,
-            outline_ids
-                .iter()
-                .map(|_| "?".to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Outline>(&query);
-
-        for id in outline_ids.iter() {
-            query_builder = query_builder.bind(id);
-        }
-
-        query_builder.fetch_all(pool).await?
-    };
-
-    let cards: Vec<Card> = {
-        let query = format!(
-            r#"
-                    SELECT
-                        id, outline_id, fractional_index, text
-                    FROM card_quotes
-                    INNER JOIN cards ON card_quotes.id_to = cards.id
-                    WHERE cards.is_deleted = false AND card_quotes.id_from IN ({});
-            "#,
-            card_ids
-                .iter()
-                .map(|_| "?".to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Card>(&query);
-
-        for id in card_ids {
-            query_builder = query_builder.bind(id);
-        }
-
-        query_builder.fetch_all(pool).await?
-    };
-
-    Ok((outlines, cards))
-}
 
 #[cfg(test)]
 mod test {
@@ -318,7 +126,7 @@ mod test {
             vec![],
             RelationOption {
                 direction: Direction::Back,
-                include_children: Some(IncludeChildrenOption { card: true }),
+                include_children: Some(IncludeChildrenOption { include_cards: true }),
             },
         )
         .await
@@ -333,7 +141,7 @@ mod test {
             vec![],
             RelationOption {
                 direction: Direction::Forward,
-                include_children: Some(IncludeChildrenOption { card: true }),
+                include_children: Some(IncludeChildrenOption { include_cards: true }),
             },
         )
         .await

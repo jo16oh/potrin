@@ -1,3 +1,5 @@
+mod fetch_descendant_ids;
+mod fetch_relation;
 mod insert_card;
 mod insert_outline;
 mod insert_pot;
@@ -5,6 +7,8 @@ mod insert_user;
 mod insert_y_updates;
 mod select_oplog;
 
+pub use fetch_descendant_ids::*;
+pub use fetch_relation::*;
 pub use insert_card::*;
 pub use insert_outline::*;
 pub use insert_pot::*;
