@@ -1,23 +1,19 @@
 mod commands;
 mod database;
+mod events;
 mod search_engine;
 mod state;
+mod types;
 mod utils;
 
-use database::table::{
-    CardChangeEvent, CardYUpdateChangeEvent, CardYUpdatesTableChangeEvent, CardsTableChangeEvent,
-    OutlineChangeEvent, OutlineYUpdateChangeEvent, OutlineYUpdatesTableChangeEvent,
-    OutlinesTableChangeEvent,
-};
 use specta_typescript::Typescript;
 use tauri::{async_runtime, App, Runtime};
-use tauri_specta::{collect_events, Events};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(commands::commands())
-        .events(events())
+        .events(events::events())
         .error_handling(tauri_specta::ErrorHandlingMode::Throw);
 
     #[cfg(debug_assertions)]
@@ -33,19 +29,6 @@ pub fn run() {
         .setup(move |app| setup(specta_builder, app))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-fn events() -> Events {
-    collect_events![
-        OutlinesTableChangeEvent,
-        OutlineYUpdatesTableChangeEvent,
-        CardsTableChangeEvent,
-        CardYUpdatesTableChangeEvent,
-        OutlineChangeEvent,
-        OutlineYUpdateChangeEvent,
-        CardChangeEvent,
-        CardYUpdateChangeEvent
-    ]
 }
 
 fn setup<R: Runtime>(
@@ -92,7 +75,7 @@ pub mod test {
     pub use tauri::{async_runtime, App, AppHandle, Manager};
 
     pub fn mock_app() -> App<MockRuntime> {
-        let specta_builder = tauri_specta::Builder::<MockRuntime>::new().events(events());
+        let specta_builder = tauri_specta::Builder::<MockRuntime>::new().events(events::events());
         mock_builder()
             .invoke_handler(specta_builder.invoke_handler())
             .setup(move |app| setup(specta_builder, app))
