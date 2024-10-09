@@ -1,13 +1,16 @@
 use crate::types::model::{CardYUpdate, OutlineYUpdate};
 use crate::types::util::Base64;
 use anyhow::anyhow;
-use sqlx::{Sqlite, Transaction};
+use sqlx::SqliteExecutor;
 
-pub async fn insert_outline_y_updates(
-    tx: &mut Transaction<'_, Sqlite>,
+pub async fn insert_outline_y_updates<'a, E>(
+    conn: E,
     outline_id: &Base64,
     y_updates: Vec<OutlineYUpdate>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<()>
+where
+    E: SqliteExecutor<'a>,
+{
     if y_updates.is_empty() {
         return Err(anyhow!("no y-update provided"));
     }
@@ -34,16 +37,18 @@ pub async fn insert_outline_y_updates(
         query_builder = query_builder.bind(update.is_checkpoint);
     }
 
-    query_builder.execute(&mut **tx).await?;
+    query_builder.execute(conn).await?;
 
     Ok(())
 }
 
-pub async fn insert_card_y_updates(
-    tx: &mut Transaction<'_, Sqlite>,
+pub async fn insert_card_y_updates<'a, E>(
+    conn: E,
     card_id: &Base64,
     y_updates: Vec<CardYUpdate>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<()> 
+where E: SqliteExecutor<'a>,
+{
     if y_updates.is_empty() {
         return Err(anyhow!("no y-update provided"));
     }
@@ -70,7 +75,7 @@ pub async fn insert_card_y_updates(
         query_builder = query_builder.bind(update.is_checkpoint);
     }
 
-    query_builder.execute(&mut **tx).await?;
+    query_builder.execute(conn).await?;
 
     Ok(())
 }

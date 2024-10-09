@@ -1,3 +1,4 @@
+use crate::database;
 use crate::types::model::Pot;
 use anyhow::anyhow;
 use sqlx::SqlitePool;
@@ -12,17 +13,5 @@ pub async fn insert_pot<R: Runtime>(app_handle: AppHandle<R>, pot: Pot) -> anyho
         .ok_or(anyhow!("failed to get SqlitePool"))?
         .inner();
 
-    sqlx::query!(
-        r#"
-            INSERT INTO pots (id, name, owner)
-            VALUES (?, ?, ?);
-        "#,
-        pot.id,
-        pot.name,
-        pot.owner
-    )
-    .execute(pool)
-    .await?;
-
-    Ok(())
+    database::query::insert_pot(pool, &pot).await
 }

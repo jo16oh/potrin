@@ -252,11 +252,14 @@ async fn count_relation_recursively(
 
 #[cfg(test)]
 mod test {
+    use std::sync::RwLock;
+
     use super::*;
-    use crate::commands::{insert_card, insert_outline};
+    use crate::database::query;
     use crate::database::test::create_mock_user_and_pot;
     use crate::test::run_in_mock_app;
-    use crate::types::model::{Card, CardYUpdate, Outline, OutlineYUpdate};
+    use crate::types::model::{Card, Outline};
+    use crate::types::state::AppState;
     use crate::types::util::NullableBase64;
     use tauri::test::MockRuntime;
 
@@ -336,37 +339,31 @@ mod test {
         app_handle: &AppHandle<MockRuntime>,
         pool: &SqlitePool,
     ) -> ((Outline, Outline), (Card, Card)) {
-        let o1 = insert_outline(
-            app_handle.clone(),
-            Outline::new(None),
-            vec![OutlineYUpdate::new()],
-        )
-        .await
-        .unwrap();
+        let lock = app_handle.state::<RwLock<AppState>>().inner();
 
-        let o2 = insert_outline(
-            app_handle.clone(),
-            Outline::new(None),
-            vec![OutlineYUpdate::new()],
-        )
-        .await
-        .unwrap();
+        let pot_id = {
+            let app_state = lock.read().unwrap();
 
-        let c1 = insert_card(
-            app_handle.clone(),
-            Card::new(o1.id.clone()),
-            vec![CardYUpdate::new()],
-        )
-        .await
-        .unwrap();
+            let pot = app_state
+                .pot
+                .as_ref()
+                .ok_or(anyhow!("failed to get pot state"))
+                .unwrap();
 
-        let c2 = insert_card(
-            app_handle.clone(),
-            Card::new(o2.id.clone()),
-            vec![CardYUpdate::new()],
-        )
-        .await
-        .unwrap();
+            Base64::from(pot.id.clone())
+        };
+
+        let o1 = Outline::new(None);
+        query::insert_outline(pool, &o1, &pot_id).await.unwrap();
+
+        let o2 = Outline::new(None);
+        query::insert_outline(pool, &o2, &pot_id).await.unwrap();
+
+        let c1 = Card::new(o1.id.clone());
+        query::insert_card(pool, &c1).await.unwrap();
+
+        let c2 = Card::new(o2.id.clone());
+        query::insert_card(pool, &c2).await.unwrap();
 
         sqlx::query!(
             r#"
@@ -422,15 +419,21 @@ mod test {
         ),
         (Card, Card, Card),
     ) {
+        let lock = app_handle.state::<RwLock<AppState>>().inner();
+
+        let pot_id = {
+            let app_state = lock.read().unwrap();
+            let pot = app_state.pot.as_ref().unwrap();
+            Base64::from(pot.id.clone())
+        };
+
         let o1 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
             parent_id: NullableBase64::none(),
             fractional_index: String::new(),
             text: None,
         };
-        insert_outline(app_handle.clone(), o1.clone(), vec![OutlineYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_outline(pool, &o1, &pot_id).await.unwrap();
 
         let o2 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -438,9 +441,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        insert_outline(app_handle.clone(), o2.clone(), vec![OutlineYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_outline(pool, &o2, &pot_id).await.unwrap();
 
         let o3 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -448,9 +449,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        insert_outline(app_handle.clone(), o3.clone(), vec![OutlineYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_outline(pool, &o3, &pot_id).await.unwrap();
 
         let o4 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -458,9 +457,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        insert_outline(app_handle.clone(), o4.clone(), vec![OutlineYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_outline(pool, &o4, &pot_id).await.unwrap();
 
         let o5 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -468,18 +465,14 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        insert_outline(app_handle.clone(), o5.clone(), vec![OutlineYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_outline(pool, &o5, &pot_id).await.unwrap();
         let o6 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
             parent_id: NullableBase64::none(),
             fractional_index: String::new(),
             text: None,
         };
-        insert_outline(app_handle.clone(), o6.clone(), vec![OutlineYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_outline(pool, &o6, &pot_id).await.unwrap();
 
         let o7 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -487,9 +480,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        insert_outline(app_handle.clone(), o7.clone(), vec![OutlineYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_outline(pool, &o7, &pot_id).await.unwrap();
 
         let c1 = Card {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -497,9 +488,7 @@ mod test {
             fractional_index: String::new(),
             text: String::new(),
         };
-        insert_card(app_handle.clone(), c1.clone(), vec![CardYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_card(pool, &c1).await.unwrap();
 
         let c2 = Card {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -507,9 +496,7 @@ mod test {
             fractional_index: String::new(),
             text: String::new(),
         };
-        insert_card(app_handle.clone(), c2.clone(), vec![CardYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_card(pool, &c2).await.unwrap();
 
         let c3 = Card {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -517,9 +504,7 @@ mod test {
             fractional_index: String::new(),
             text: String::new(),
         };
-        insert_card(app_handle.clone(), c3.clone(), vec![CardYUpdate::new()])
-            .await
-            .unwrap();
+        query::insert_card(pool, &c3).await.unwrap();
 
         sqlx::query!(
             r#"

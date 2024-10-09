@@ -1,3 +1,4 @@
+use crate::database;
 use crate::types::model::User;
 use anyhow::anyhow;
 use sqlx::SqlitePool;
@@ -12,16 +13,5 @@ pub async fn insert_user<R: Runtime>(app_handle: AppHandle<R>, user: User) -> an
         .ok_or(anyhow!("failed to get SqlitePool"))?
         .inner();
 
-    sqlx::query!(
-        r#"
-            INSERT INTO users (id, name)
-            VALUES (?, ?);
-        "#,
-        user.id,
-        user.name,
-    )
-    .execute(pool)
-    .await?;
-
-    Ok(())
+    database::query::insert_user(pool, &user).await
 }

@@ -64,10 +64,12 @@ pub async fn fetch_breadcrumbs<R: Runtime>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::commands::insert_outline;
+    use crate::database::query;
     use crate::database::test::create_mock_user_and_pot;
     use crate::test::run_in_mock_app;
-    use crate::types::model::{Outline, OutlineYUpdate};
+    use crate::types::model::Outline;
+    use crate::types::state::AppState;
+    use std::sync::RwLock;
     use tauri::test::MockRuntime;
     use tauri::AppHandle;
 
@@ -80,21 +82,20 @@ mod test {
     }
 
     async fn test(app_handle: &AppHandle<MockRuntime>) {
-        let root = insert_outline(
-            app_handle.clone(),
-            Outline::new(None),
-            vec![OutlineYUpdate::new()],
-        )
-        .await
-        .unwrap();
+        let pool = app_handle.state::<SqlitePool>().inner();
+        let lock = app_handle.state::<RwLock<AppState>>().inner();
 
-        let child = insert_outline(
-            app_handle.clone(),
-            Outline::new(Some(&root.id)),
-            vec![OutlineYUpdate::new()],
-        )
-        .await
-        .unwrap();
+        let pot_id = {
+            let app_state = lock.read().unwrap();
+            let pot = app_state.pot.as_ref().unwrap();
+            Base64::from(pot.id.clone())
+        };
+
+        let root = Outline::new(None);
+        query::insert_outline(pool, &root, &pot_id).await.unwrap();
+
+        let child = Outline::new(Some(&root.id));
+        query::insert_outline(pool, &child, &pot_id).await.unwrap();
 
         let grand_child = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -103,13 +104,9 @@ mod test {
             text: Some(String::new()),
         };
 
-        insert_outline(
-            app_handle.clone(),
-            grand_child.clone(),
-            vec![OutlineYUpdate::new()],
-        )
-        .await
-        .unwrap();
+        query::insert_outline(pool, &grand_child, &pot_id)
+            .await
+            .unwrap();
 
         let parent_id = grand_child.parent_id.inner().unwrap().clone();
 

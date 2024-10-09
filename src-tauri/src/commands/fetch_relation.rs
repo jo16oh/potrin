@@ -250,11 +250,10 @@ async fn fetch_relation_forward(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::commands::insert_card;
+    use crate::database::query;
     use crate::database::test::create_mock_user_and_pot;
     use crate::database::test::create_tree;
     use crate::test::run_in_mock_app;
-    use crate::types::model::CardYUpdate;
     use tauri::test::MockRuntime;
 
     #[test]
@@ -270,20 +269,12 @@ mod test {
 
         let root = create_tree(app_handle, None, 3, 0).await;
         let outline = create_tree(app_handle, None, 3, 0).await;
-        let card1 = insert_card(
-            app_handle.clone(),
-            Card::new(root.id.clone()),
-            vec![CardYUpdate::new()],
-        )
-        .await
-        .unwrap();
-        let card2 = insert_card(
-            app_handle.clone(),
-            Card::new(outline.id.clone()),
-            vec![CardYUpdate::new()],
-        )
-        .await
-        .unwrap();
+
+        let card1 = Card::new(root.id.clone());
+        query::insert_card(pool, &card1).await.unwrap();
+
+        let card2 = Card::new(outline.id.clone());
+        query::insert_card(pool, &card2).await.unwrap();
 
         sqlx::query!(
             r#"

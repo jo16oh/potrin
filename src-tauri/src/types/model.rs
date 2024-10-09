@@ -50,18 +50,6 @@ pub struct OutlineYUpdate {
     pub is_checkpoint: i64,
 }
 
-#[cfg(test)]
-impl OutlineYUpdate {
-    pub fn new() -> Self {
-        Self {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            data: Base64::from(uuidv7::create_raw().to_vec()),
-            created_at: chrono::Utc::now().timestamp_millis(),
-            is_checkpoint: 0,
-        }
-    }
-}
-
 #[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct Card {
@@ -90,16 +78,4 @@ pub struct CardYUpdate {
     pub data: Base64,
     pub created_at: i64,
     pub is_checkpoint: i64,
-}
-
-#[cfg(test)]
-impl CardYUpdate {
-    pub fn new() -> Self {
-        Self {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            data: Base64::from(uuidv7::create_raw().to_vec()),
-            created_at: chrono::Utc::now().timestamp_millis(),
-            is_checkpoint: 0,
-        }
-    }
 }

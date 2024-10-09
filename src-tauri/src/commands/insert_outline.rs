@@ -1,7 +1,8 @@
+use crate::database::query;
 use crate::types::model::{Outline, OutlineChangeEvent, OutlineYUpdate};
 use crate::types::state::AppState;
+use crate::types::util::Base64;
 use crate::types::util::{Operation, Origin};
-use crate::{database::query::insert_outline_y_updates, types::util::Base64};
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use std::sync::RwLock;
@@ -15,7 +16,7 @@ pub async fn insert_outline<R: Runtime>(
     app_handle: AppHandle<R>,
     outline: Outline,
     y_updates: Vec<OutlineYUpdate>,
-) -> anyhow::Result<Outline> {
+) -> anyhow::Result<()> {
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))?
@@ -23,45 +24,28 @@ pub async fn insert_outline<R: Runtime>(
 
     let mut tx = pool.begin().await?;
 
-    let pot_id = {
-        let lock = app_handle
-            .try_state::<RwLock<AppState>>()
-            .ok_or(anyhow!("failed to get app state"))?
-            .inner();
+    let lock = app_handle
+        .try_state::<RwLock<AppState>>()
+        .ok_or(anyhow!("failed to get app state"))?
+        .inner();
 
+    let pot_id = {
         let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
 
-        let id = app_state
+        let pot = app_state
             .pot
             .as_ref()
-            .ok_or(anyhow!("failed to get pot state"))?
-            .id
-            .clone();
-
-        Base64::from(id)
+            .ok_or(anyhow!("failed to get pot state"))?;
+        Base64::from(pot.id.clone())
     };
 
-    let outline: Outline = sqlx::query_as!(
-        Outline,
-        r#"
-            INSERT INTO outlines (id, pot_id, parent_id, fractional_index, text)
-            VALUES (?, ?, ?, ?, ?)
-            RETURNING id, parent_id, fractional_index, text;"#,
-        outline.id,
-        pot_id,
-        outline.parent_id,
-        outline.fractional_index,
-        outline.text
-    )
-    .fetch_one(&mut *tx)
-    .await?;
-
-    insert_outline_y_updates(&mut tx, &outline.id, y_updates).await?;
+    query::insert_outline_y_updates(&mut *tx, &outline.id, y_updates).await?;
+    query::insert_outline(&mut *tx, &outline, &pot_id).await?;
 
     tx.commit().await?;
 
     OutlineChangeEvent::new(Operation::Insert, Origin::Local, &[outline.clone()])
         .emit(&app_handle)?;
 
-    Ok(outline)
+    Ok(())
 }

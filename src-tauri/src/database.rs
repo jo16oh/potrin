@@ -40,11 +40,17 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
 #[cfg(test)]
 pub mod test {
-    use crate::commands::{insert_card, insert_outline, insert_pot, insert_user, update_app_state};
+    use std::sync::RwLock;
+
+    use crate::commands::update_app_state;
+    use crate::database::query;
     use crate::state::AppStateValues;
-    use crate::types::model::{Card, CardYUpdate, Outline, OutlineYUpdate, Pot, User};
-    use crate::types::state::{PotState, UserState};
+    use crate::types::model::{Card, Outline, Pot, User};
+    use crate::types::state::{AppState, PotState, UserState};
     use crate::types::util::Base64;
+    use anyhow::anyhow;
+    use sqlx::SqlitePool;
+    use tauri::Manager;
     use tauri::{test::MockRuntime, AppHandle};
 
     pub async fn create_tree(
@@ -53,21 +59,34 @@ pub mod test {
         limit: u8,
         current: u8,
     ) -> Outline {
-        let outline = insert_outline(
-            app_handle.clone(),
-            Outline::new(parent_id.as_ref()),
-            vec![OutlineYUpdate::new()],
-        )
-        .await
-        .unwrap();
+        let pool = app_handle
+            .try_state::<SqlitePool>()
+            .ok_or(anyhow!("failed to get SqlitePool"))
+            .unwrap()
+            .inner();
 
-        insert_card(
-            app_handle.clone(),
-            Card::new(outline.id.clone()),
-            vec![CardYUpdate::new()],
-        )
-        .await
-        .unwrap();
+        let lock = app_handle
+            .try_state::<RwLock<AppState>>()
+            .ok_or(anyhow!("failed to get state"))
+            .unwrap();
+
+        let pot_id = {
+            let app_state = lock.read().map_err(|e| anyhow!(e.to_string())).unwrap();
+            let pot = app_state
+                .pot
+                .as_ref()
+                .ok_or(anyhow!("pot state is not set"))
+                .unwrap();
+            Base64::from(pot.id.clone())
+        };
+
+        let outline = Outline::new(parent_id.as_ref());
+        query::insert_outline(pool, &outline, &pot_id)
+            .await
+            .unwrap();
+
+        let card = Card::new(outline.id.clone());
+        query::insert_card(pool, &card).await.unwrap();
 
         if current < limit {
             Box::pin(create_tree(
@@ -83,12 +102,14 @@ pub mod test {
     }
 
     pub async fn create_mock_user_and_pot(app_handle: AppHandle<MockRuntime>) {
+        let pool = app_handle.state::<SqlitePool>().inner();
+
         let user = User {
             id: Base64::from(uuidv7::create_raw().to_vec()),
             name: "mock_user".to_string(),
         };
 
-        insert_user(app_handle.clone(), user.clone()).await.unwrap();
+        query::insert_user(pool, &user).await.unwrap();
 
         update_app_state(
             app_handle.clone(),
@@ -106,7 +127,7 @@ pub mod test {
             owner: user.id.clone(),
         };
 
-        insert_pot(app_handle.clone(), pot.clone()).await.unwrap();
+        query::insert_pot(pool, &pot).await.unwrap();
 
         update_app_state(
             app_handle.clone(),
