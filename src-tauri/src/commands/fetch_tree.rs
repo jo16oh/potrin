@@ -1,8 +1,9 @@
+use crate::database::query::fetch_cards;
+use crate::database::query::fetch_outline_tree;
 use crate::types::model::Card;
 use crate::types::model::Outline;
 use crate::types::util::Base64;
 use anyhow::anyhow;
-use sqlx::query_as;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -20,90 +21,13 @@ pub async fn fetch_tree<R: Runtime>(
         .inner();
 
     let outlines = fetch_outline_tree(&id, depth, pool).await?;
-
-    let cards = {
-        let query = format!(
-            r#"
-                SELECT * FROM cards WHERE outline_id IN ({}) AND is_deleted = false;
-            "#,
-            outlines
-                .iter()
-                .map(|_| "?".to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-
-        let mut query_builder = query_as::<_, Card>(&query);
-
-        for outline in outlines.iter() {
-            query_builder = query_builder.bind(&outline.id);
-        }
-
-        query_builder.fetch_all(pool).await?
-    };
+    let outline_ids = outlines.iter().map(|o| &o.id).collect::<Vec<&Base64>>();
+    let cards = fetch_cards(pool, &outline_ids).await?;
 
     Ok((outlines, cards))
 }
 
-async fn fetch_outline_tree(
-    id: &Base64,
-    depth: Option<u32>,
-    pool: &SqlitePool,
-) -> anyhow::Result<Vec<Outline>> {
-    match depth {
-        Some(depth) => {
-            sqlx::query_as!(
-                Outline,
-                r#"
-                WITH RECURSIVE outline_tree AS (
-                    SELECT
-                        id, parent_id, fractional_index, text, 0 AS depth
-                    FROM outlines
-                    WHERE id = ? AND is_deleted = false
-                    UNION ALL
-                    SELECT
-                        child.id, child.parent_id, child.fractional_index, child.text,
-                        parent.depth + 1 AS depth
-                    FROM outline_tree AS parent
-                    JOIN outlines AS child ON parent.id = child.parent_id
-                    WHERE child.is_deleted = false AND depth <= ?
-                )
-                SELECT
-                    id, parent_id, fractional_index, text
-                FROM outline_tree;
-                "#,
-                id,
-                depth
-            )
-            .fetch_all(pool)
-            .await
-        }
-        None => {
-            sqlx::query_as!(
-                Outline,
-                r#"
-                WITH RECURSIVE outline_tree AS (
-                    SELECT
-                        id, parent_id, fractional_index, text
-                    FROM outlines
-                    WHERE id = ? AND is_deleted = false
-                    UNION ALL
-                    SELECT
-                        child.id, child.parent_id, child.fractional_index, child.text
-                    FROM outline_tree AS parent
-                    JOIN outlines AS child ON parent.id = child.parent_id
-                    WHERE child.is_deleted = false
-                )
-                SELECT * FROM outline_tree;
-                "#,
-                id
-            )
-            .fetch_all(pool)
-            .await
-        }
-    }
-    .map_err(|e| anyhow!(e.to_string()))
-}
+
 
 #[cfg(test)]
 mod test {

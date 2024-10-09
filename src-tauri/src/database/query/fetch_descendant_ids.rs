@@ -15,18 +15,18 @@ pub async fn fetch_descendant_ids(
     let outline_ids = {
         let query = format!(
             r#"
-                    WITH RECURSIVE outline_tree AS (
-                        SELECT id
-                        FROM outlines
-                        WHERE id = {} AND is_deleted = false
-                        UNION ALL
-                        SELECT child.id
-                        FROM outline_tree AS parent
-                        JOIN outlines AS child ON parent.id = child.parent_id
-                        WHERE child.is_deleted = false
-                    )
-                    SELECT id FROM outline_tree;
-                "#,
+                WITH RECURSIVE outline_tree AS (
+                    SELECT id
+                    FROM outlines
+                    WHERE id = {} AND is_deleted = false
+                    UNION ALL
+                    SELECT child.id
+                    FROM outline_tree AS parent
+                    JOIN outlines AS child ON parent.id = child.parent_id
+                    WHERE child.is_deleted = false
+                )
+                SELECT id FROM outline_tree;
+            "#,
             outline_ids
                 .iter()
                 .map(|_| "?".to_string())
