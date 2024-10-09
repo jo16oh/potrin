@@ -1,18 +1,11 @@
-use crate::types::util::{Base64, NullableBase64};
+use crate::types::model::Breadcrumb;
+use crate::types::util::Base64;
 use anyhow::anyhow;
-use serde::{Deserialize, Serialize};
 use sqlx::query_as;
-use sqlx::{prelude::FromRow, SqlitePool};
+use sqlx::SqlitePool;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri::Runtime;
-
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
-pub struct Breadcrumb {
-    pub id: Base64,
-    pub parent_id: NullableBase64,
-    pub text: Option<String>,
-}
 
 #[tauri::command]
 #[specta::specta]
@@ -69,6 +62,7 @@ mod test {
     use crate::test::run_in_mock_app;
     use crate::types::model::Outline;
     use crate::types::state::AppState;
+    use crate::types::util::NullableBase64;
     use std::sync::RwLock;
     use tauri::test::MockRuntime;
     use tauri::AppHandle;

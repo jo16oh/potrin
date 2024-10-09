@@ -81,6 +81,13 @@ pub struct CardYUpdate {
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct Breadcrumb {
+    pub id: Base64,
+    pub parent_id: NullableBase64,
+    pub text: Option<String>,
+}
+
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 pub struct LinkCount {
     pub id: Base64,
     pub back: i64,
