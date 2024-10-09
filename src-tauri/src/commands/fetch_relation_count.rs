@@ -1,17 +1,9 @@
+use crate::database::query::count_relation;
 use crate::types::util::Base64;
+use crate::{database::query::count_relation_recursively, types::model::LinkCount};
 use anyhow::anyhow;
-use serde::Deserialize;
-use serde::Serialize;
-use sqlx::FromRow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
-
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
-pub struct LinkCount {
-    id: Base64,
-    back: i64,
-    forward: i64,
-}
 
 #[tauri::command]
 #[specta::specta]
@@ -29,225 +21,10 @@ pub async fn fetch_relation_count<R: Runtime>(
         .inner();
 
     if count_children {
-        count_relation_recursively(pool, outline_ids, card_ids).await
+        count_relation_recursively(pool, &outline_ids, &card_ids).await
     } else {
-        count_relation(pool, outline_ids, card_ids).await
+        count_relation(pool, &outline_ids, &card_ids).await
     }
-}
-
-async fn count_relation(
-    pool: &SqlitePool,
-    outline_ids: Vec<Base64>,
-    card_ids: Vec<Base64>,
-) -> anyhow::Result<Vec<LinkCount>> {
-    let query = format!(
-        r#"
-            SELECT
-                id,
-                (
-                    (
-                        SELECT COUNT(*)
-                        FROM outline_links
-                        WHERE outline_links.id_to = this.id
-                    )
-                    +
-                    (
-                        SELECT COUNT(*)
-                        FROM card_links
-                        WHERE card_links.id_to = this.id
-                    )
-                ) AS back,
-                (
-                    SELECT COUNT(*)
-                    FROM outline_links
-                    WHERE outline_links.id_from = this.id
-                ) AS forward
-            FROM outlines AS this
-            WHERE id IN ({})
-            UNION ALL
-            SELECT
-                id,
-                (
-                    SELECT COUNT(*)
-                    FROM card_quotes
-                    WHERE card_quotes.id_to = this.id
-                ) AS back,
-                (
-                    (
-                        SELECT COUNT(*)
-                        FROM card_links
-                        WHERE card_links.id_from = this.id
-                    )
-                    +
-                    (
-                        SELECT COUNT(*)
-                        FROM card_quotes
-                        WHERE card_quotes.id_from = this.id
-                    )
-                ) AS forward
-            FROM cards AS this
-            WHERE id IN ({});
-        "#,
-        outline_ids
-            .iter()
-            .map(|_| "?".to_string())
-            .collect::<Vec<String>>()
-            .join(", "),
-        card_ids
-            .iter()
-            .map(|_| "?".to_string())
-            .collect::<Vec<String>>()
-            .join(", "),
-    );
-
-    let mut query_builder = sqlx::query_as::<_, LinkCount>(&query);
-
-    for id in outline_ids.iter() {
-        query_builder = query_builder.bind(id);
-    }
-
-    for id in card_ids.iter() {
-        query_builder = query_builder.bind(id);
-    }
-
-    query_builder.fetch_all(pool).await.map_err(|e| anyhow!(e))
-}
-
-async fn count_relation_recursively(
-    pool: &SqlitePool,
-    outline_ids: Vec<Base64>,
-    card_ids: Vec<Base64>,
-) -> anyhow::Result<Vec<LinkCount>> {
-    let query = format!(
-        r#"
-                WITH RECURSIVE tree AS (
-                    SELECT id, id AS root_id
-                    FROM outlines
-                    WHERE id IN ({}) AND is_deleted = false
-                    UNION ALL
-                    SELECT child.id, parent.root_id AS root_id
-                    FROM tree AS parent
-                    JOIN outlines AS child ON parent.id = child.parent_id
-                    WHERE child.is_deleted = false
-                ),
-                tree_cards AS (
-                    SELECT cards.id, tree.root_id
-                    FROM cards
-                    INNER JOIN tree ON cards.outline_id = tree.id
-                )
-                SELECT
-                    id,
-                    (
-                        (
-                            SELECT COUNT(*)
-                            FROM outline_links
-                            WHERE outline_links.id_to IN ((
-                                SELECT id
-                                FROM tree
-                                WHERE tree.root_id = this.id
-                            ))
-                        )
-                        +
-                        (
-                            SELECT COUNT(*)
-                            FROM card_links
-                            WHERE card_links.id_to IN ((
-                                SELECT id
-                                FROM tree
-                                WHERE tree.root_id = this.id
-                            ))
-                        )
-                        +
-                        (
-                            SELECT COUNT(*)
-                            FROM card_quotes
-                            WHERE card_quotes.id_to IN ((
-                                SELECT id
-                                FROM tree_cards
-                                WHERE tree_cards.root_id = this.id
-                            ))
-                        )
-                    ) AS back,
-                    (
-                        SELECT COUNT(*)
-                        FROM outline_links
-                        WHERE outline_links.id_from IN ((
-                            SELECT id
-                            FROM tree
-                            WHERE tree.root_id = this.id
-                        ))
-                    )
-                    +
-                    (
-                        (
-                            SELECT COUNT(*)
-                            FROM card_links
-                            WHERE card_links.id_from IN ((
-                                SELECT id
-                                FROM tree_cards
-                                WHERE tree_cards.root_id = this.id
-                            ))
-                        )
-                        +
-                        (
-                            SELECT COUNT(*)
-                            FROM card_quotes
-                            WHERE card_quotes.id_from IN ((
-                                SELECT id
-                                FROM tree_cards
-                                WHERE tree_cards.root_id = this.id
-                            ))
-                        )
-                    ) AS forward
-                FROM tree AS this
-                WHERE id = root_id
-                UNION ALL
-                SELECT DISTINCT
-                    id,
-                    (
-                        SELECT COUNT(*)
-                        FROM card_quotes
-                        WHERE card_quotes.id_to = this.id
-                    ) AS back,
-                    (
-                        (
-                            SELECT COUNT(*)
-                            FROM card_links
-                            WHERE card_links.id_from = this.id
-                        )
-                        +
-                        (
-                            SELECT COUNT(*)
-                            FROM card_quotes
-                            WHERE card_quotes.id_from = this.id
-                        )
-                    ) AS forward
-                FROM tree_cards AS this
-                WHERE id IN ({});
-            "#,
-        outline_ids
-            .iter()
-            .map(|_| "?".to_string())
-            .collect::<Vec<String>>()
-            .join(", "),
-        card_ids
-            .iter()
-            .map(|_| "?".to_string())
-            .collect::<Vec<String>>()
-            .join(", "),
-    );
-
-    let mut query_builder = sqlx::query_as::<_, LinkCount>(&query);
-
-    for id in outline_ids.iter() {
-        query_builder = query_builder.bind(id);
-    }
-
-    for id in card_ids.iter() {
-        query_builder = query_builder.bind(id);
-    }
-
-    query_builder.fetch_all(pool).await.map_err(|e| anyhow!(e))
 }
 
 #[cfg(test)]
@@ -286,16 +63,16 @@ mod test {
         // card1 → card2
         let ((o1, o2), (c1, c2)) = insert_test_data_for_test_count(app_handle, pool).await;
 
-        let mut result = count_relation(pool, vec![o1.id], vec![]).await.unwrap();
+        let mut result = count_relation(pool, &[o1.id], &[]).await.unwrap();
         assert_eq!(result.pop().unwrap().forward, 1);
 
-        let mut result = count_relation(pool, vec![o2.id], vec![]).await.unwrap();
+        let mut result = count_relation(pool, &[o2.id], &[]).await.unwrap();
         assert_eq!(result.pop().unwrap().back, 2);
 
-        let mut result = count_relation(pool, vec![], vec![c1.id]).await.unwrap();
+        let mut result = count_relation(pool, &[], &[c1.id]).await.unwrap();
         assert_eq!(result.pop().unwrap().forward, 2);
 
-        let mut result = count_relation(pool, vec![], vec![c2.id]).await.unwrap();
+        let mut result = count_relation(pool, &[], &[c2.id]).await.unwrap();
         assert_eq!(result.pop().unwrap().back, 1);
     }
 
@@ -309,13 +86,10 @@ mod test {
         let ((o1, o2, _, _, _, _, _), (c1, _, _)) =
             insert_test_data_for_test_count_recursively(app_handle, pool).await;
 
-        let result = count_relation_recursively(
-            pool,
-            vec![o1.id.clone(), o2.id.clone()],
-            vec![c1.id.clone()],
-        )
-        .await
-        .unwrap();
+        let result =
+            count_relation_recursively(pool, &[o1.id.clone(), o2.id.clone()], &[c1.id.clone()])
+                .await
+                .unwrap();
 
         assert_eq!(result.len(), 3);
 

@@ -79,3 +79,10 @@ pub struct CardYUpdate {
     pub created_at: i64,
     pub is_checkpoint: i64,
 }
+
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct LinkCount {
+    pub id: Base64,
+    pub back: i64,
+    pub forward: i64,
+}
