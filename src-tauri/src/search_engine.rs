@@ -219,9 +219,8 @@ pub async fn search(query: &str, pot_id: &str, limit: u8) -> anyhow::Result<Vec<
 
 #[cfg(test)]
 mod tests {
-    use crate::test::*;
-
     use super::*;
+    use crate::test::run_in_mock_app;
     use tauri::test::MockRuntime;
 
     #[test]

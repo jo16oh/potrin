@@ -69,7 +69,8 @@ mod test {
     use crate::database::table::Outline;
     use crate::database::table::OutlineYUpdate;
     use crate::database::test::create_mock_user_and_pot;
-    use crate::test::*;
+    use crate::test::run_in_mock_app;
+    use tauri::test::MockRuntime;
     use tauri::AppHandle;
 
     #[test]

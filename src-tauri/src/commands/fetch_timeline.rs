@@ -111,8 +111,9 @@ mod test {
     use super::*;
     use crate::database::test::create_mock_user_and_pot;
     use crate::database::test::create_tree;
-    use crate::test::*;
+    use crate::test::run_in_mock_app;
     use chrono::Duration;
+    use tauri::test::MockRuntime;
 
     #[test]
     fn test_fetch_timeline() {

@@ -109,7 +109,8 @@ async fn fetch_outline_tree(
 mod test {
     use super::*;
     use crate::database::test::{create_mock_user_and_pot, create_tree};
-    use crate::test::*;
+    use crate::test::run_in_mock_app;
+    use tauri::test::MockRuntime;
 
     #[test]
     fn test_fetch_tree() {

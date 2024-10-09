@@ -257,7 +257,8 @@ mod test {
     use crate::database::table::{Card, CardYUpdate, Outline, OutlineYUpdate};
     use crate::database::test::create_mock_user_and_pot;
     use crate::database::types::NullableBase64;
-    use crate::test::*;
+    use crate::test::run_in_mock_app;
+    use tauri::test::MockRuntime;
 
     #[test]
     fn test_fetch_relation_count() {
