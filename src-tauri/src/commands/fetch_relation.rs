@@ -1,6 +1,6 @@
-use crate::database::table::Card;
-use crate::database::table::Outline;
-use crate::database::types::Base64;
+use crate::types::model::Card;
+use crate::types::model::Outline;
+use crate::types::util::Base64;
 use anyhow::anyhow;
 use serde::Deserialize;
 use serde::Serialize;
@@ -251,10 +251,10 @@ async fn fetch_relation_forward(
 mod test {
     use super::*;
     use crate::commands::insert_card;
-    use crate::database::table::{Card, CardYUpdate};
     use crate::database::test::create_mock_user_and_pot;
     use crate::database::test::create_tree;
     use crate::test::run_in_mock_app;
+    use crate::types::model::CardYUpdate;
     use tauri::test::MockRuntime;
 
     #[test]

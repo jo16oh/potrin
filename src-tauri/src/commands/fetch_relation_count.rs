@@ -1,4 +1,4 @@
-use crate::database::types::Base64;
+use crate::types::util::Base64;
 use anyhow::anyhow;
 use serde::Deserialize;
 use serde::Serialize;
@@ -254,10 +254,10 @@ async fn count_relation_recursively(
 mod test {
     use super::*;
     use crate::commands::{insert_card, insert_outline};
-    use crate::database::table::{Card, CardYUpdate, Outline, OutlineYUpdate};
     use crate::database::test::create_mock_user_and_pot;
-    use crate::database::types::NullableBase64;
     use crate::test::run_in_mock_app;
+    use crate::types::model::{Card, CardYUpdate, Outline, OutlineYUpdate};
+    use crate::types::util::NullableBase64;
     use tauri::test::MockRuntime;
 
     #[test]

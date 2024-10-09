@@ -1,6 +1,5 @@
 pub mod query;
 pub mod table;
-pub mod types;
 
 use anyhow::anyhow;
 use sqlx::migrate::{MigrateDatabase, Migrator};
@@ -41,11 +40,11 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
 #[cfg(test)]
 pub mod test {
-    use super::table::{Card, CardYUpdate, Outline, OutlineYUpdate, Pot, User};
-    use crate::commands::{insert_card, insert_outline, insert_pot, insert_user};
-    use crate::database::types::Base64;
-    use crate::state::types::{PotState, UserState};
-    use crate::state::update_app_state;
+    use crate::commands::{insert_card, insert_outline, insert_pot, insert_user, update_app_state};
+    use crate::state::AppStateValues;
+    use crate::types::model::{Card, CardYUpdate, Outline, OutlineYUpdate, Pot, User};
+    use crate::types::state::{PotState, UserState};
+    use crate::types::util::Base64;
     use tauri::{test::MockRuntime, AppHandle};
 
     pub async fn create_tree(
@@ -93,7 +92,7 @@ pub mod test {
 
         update_app_state(
             app_handle.clone(),
-            crate::state::AppStateValues::User(Some(UserState {
+            AppStateValues::User(Some(UserState {
                 id: user.id.clone().to_string(),
                 name: user.name.clone(),
             })),
@@ -111,7 +110,7 @@ pub mod test {
 
         update_app_state(
             app_handle.clone(),
-            crate::state::AppStateValues::Pot(Some(PotState {
+            AppStateValues::Pot(Some(PotState {
                 id: pot.id.to_string(),
                 sync: false,
             })),

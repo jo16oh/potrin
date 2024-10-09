@@ -1,5 +1,4 @@
-use crate::database::types::Base64;
-use crate::database::types::NullableBase64;
+use crate::types::util::{Base64, NullableBase64};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use sqlx::query_as;
@@ -66,10 +65,9 @@ pub async fn fetch_breadcrumbs<R: Runtime>(
 mod test {
     use super::*;
     use crate::commands::insert_outline;
-    use crate::database::table::Outline;
-    use crate::database::table::OutlineYUpdate;
     use crate::database::test::create_mock_user_and_pot;
     use crate::test::run_in_mock_app;
+    use crate::types::model::{Outline, OutlineYUpdate};
     use tauri::test::MockRuntime;
     use tauri::AppHandle;
 

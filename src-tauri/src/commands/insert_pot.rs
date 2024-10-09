@@ -1,4 +1,4 @@
-use crate::database::table::Pot;
+use crate::types::model::Pot;
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};

@@ -1,7 +1,5 @@
-use crate::database::{
-    table::{CardYUpdate, OutlineYUpdate},
-    types::Base64,
-};
+use crate::types::model::{CardYUpdate, OutlineYUpdate};
+use crate::types::util::Base64;
 use anyhow::anyhow;
 use sqlx::{Sqlite, Transaction};
 

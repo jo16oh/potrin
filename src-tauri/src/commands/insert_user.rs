@@ -1,4 +1,4 @@
-use crate::database::table::User;
+use crate::types::model::User;
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};

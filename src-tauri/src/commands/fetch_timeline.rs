@@ -1,5 +1,4 @@
-use crate::database::table::Card;
-use crate::database::table::Outline;
+use crate::types::model::{Card, Outline};
 use anyhow::anyhow;
 use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;

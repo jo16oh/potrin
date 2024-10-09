@@ -1,12 +1,10 @@
-pub mod types;
-
-use crate::database::types::Base64;
+use crate::types::state::*;
+use crate::types::util::Base64;
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::sync::RwLock;
 use tauri::{AppHandle, Manager, Runtime};
-use types::*;
 
 struct QueryResult {
     value: Vec<u8>,
@@ -112,7 +110,7 @@ pub async fn update_app_state<R: Runtime>(
                     UPDATE kv
                     SET value = jsonb_set(
                         (
-                            SELECT value 
+                            SELECT value
                             FROM kv
                             WHERE key = "app_state"
                         ),
@@ -139,7 +137,7 @@ pub async fn update_app_state<R: Runtime>(
                     UPDATE kv
                     SET value = jsonb_set(
                         (
-                            SELECT value 
+                            SELECT value
                             FROM kv
                             WHERE key = "app_state"
                         ),
@@ -171,7 +169,7 @@ pub async fn update_app_state<R: Runtime>(
                         QueryResult,
                         r#"
                             SELECT value
-                            FROM workspaces 
+                            FROM workspaces
                             WHERE pot_id = ?;
                         "#,
                         id
@@ -190,7 +188,7 @@ pub async fn update_app_state<R: Runtime>(
                     UPDATE kv
                     SET value = jsonb_set(
                         (
-                            SELECT value 
+                            SELECT value
                             FROM kv
                             WHERE key = "app_state"
                         ),
@@ -210,7 +208,7 @@ pub async fn update_app_state<R: Runtime>(
                     UPDATE kv
                     SET value = jsonb_set(
                         (
-                            SELECT value 
+                            SELECT value
                             FROM kv
                             WHERE key = "app_state"
                         ),
@@ -239,7 +237,7 @@ pub async fn update_app_state<R: Runtime>(
                     UPDATE kv
                     SET value = jsonb_set(
                         (
-                            SELECT value 
+                            SELECT value
                             FROM kv
                             WHERE key = "app_state"
                         ),
@@ -304,7 +302,7 @@ pub async fn update_app_state<R: Runtime>(
                     UPDATE kv
                     SET value = jsonb_set(
                         (
-                            SELECT value 
+                            SELECT value
                             FROM kv
                             WHERE key = "app_state"
                         ),
@@ -312,7 +310,7 @@ pub async fn update_app_state<R: Runtime>(
                         jsonb_set(
                             json_extract(
                                 (
-                                    SELECT value 
+                                    SELECT value
                                     FROM kv
                                     WHERE key = "app_state"
                                 ),
@@ -357,7 +355,7 @@ pub async fn update_app_state<R: Runtime>(
                     UPDATE kv
                     SET value = jsonb_set(
                         (
-                            SELECT value 
+                            SELECT value
                             FROM kv
                             WHERE key = "app_state"
                         ),

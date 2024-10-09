@@ -1,8 +1,6 @@
-use crate::database::{
-    query::insert_card_y_updates,
-    table::{Card, CardChangeEvent, CardYUpdate},
-    types::{Operation::*, Origin},
-};
+use crate::database::query::insert_card_y_updates;
+use crate::types::model::{Card, CardChangeEvent, CardYUpdate};
+use crate::types::util::{Operation, Origin};
 use anyhow::anyhow;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};
@@ -42,7 +40,7 @@ pub async fn insert_card<R: tauri::Runtime>(
 
     tx.commit().await?;
 
-    CardChangeEvent::new(Insert, Origin::Local, &[card.clone()]).emit(&app_handle)?;
+    CardChangeEvent::new(Operation::Insert, Origin::Local, &[card.clone()]).emit(&app_handle)?;
 
     Ok(card)
 }

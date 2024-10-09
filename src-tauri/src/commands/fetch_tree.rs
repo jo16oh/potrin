@@ -1,6 +1,6 @@
-use crate::database::table::Card;
-use crate::database::table::Outline;
-use crate::database::types::Base64;
+use crate::types::model::Card;
+use crate::types::model::Outline;
+use crate::types::util::Base64;
 use anyhow::anyhow;
 use sqlx::query_as;
 use sqlx::SqlitePool;

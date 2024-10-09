@@ -1,45 +1,35 @@
-use crate::types::model::{Outline, OutlineChangeEvent, OutlineYUpdate};
-use crate::types::state::AppState;
-use crate::types::util::{Operation, Origin};
-use crate::{database::query::insert_outline_y_updates, types::util::Base64};
+use crate::{
+    database::{
+        query::insert_outline_y_updates,
+        table::{Outline, OutlineChangeEvent, OutlineYUpdate, PotsTable},
+        types::{Operation::*, Origin},
+    },
+    state::types::PotState,
+};
 use anyhow::anyhow;
 use sqlx::SqlitePool;
-use std::sync::RwLock;
 use tauri::{AppHandle, Manager, Runtime};
 use tauri_specta::Event;
 
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
-pub async fn insert_outline<R: Runtime>(
+pub async fn insert_pot<R: Runtime>(
     app_handle: AppHandle<R>,
-    outline: Outline,
+    pot: PotsTable,
     y_updates: Vec<OutlineYUpdate>,
 ) -> anyhow::Result<Outline> {
+    let pot = app_handle
+        .try_state::<PotState>()
+        .ok_or(anyhow!("pot state is not set"))?
+        .inner();
+
     let pool = app_handle
         .try_state::<SqlitePool>()
         .ok_or(anyhow!("failed to get SqlitePool"))?
         .inner();
 
     let mut tx = pool.begin().await?;
-
-    let pot_id = {
-        let lock = app_handle
-            .try_state::<RwLock<AppState>>()
-            .ok_or(anyhow!("failed to get app state"))?
-            .inner();
-
-        let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
-
-        let id = app_state
-            .pot
-            .as_ref()
-            .ok_or(anyhow!("failed to get pot state"))?
-            .id
-            .clone();
-
-        Base64::from(id)
-    };
 
     let outline: Outline = sqlx::query_as!(
         Outline,
@@ -48,7 +38,7 @@ pub async fn insert_outline<R: Runtime>(
             VALUES (?, ?, ?, ?, ?)
             RETURNING id, parent_id, fractional_index, text;"#,
         outline.id,
-        pot_id,
+        pot.id,
         outline.parent_id,
         outline.fractional_index,
         outline.text
@@ -60,8 +50,7 @@ pub async fn insert_outline<R: Runtime>(
 
     tx.commit().await?;
 
-    OutlineChangeEvent::new(Operation::Insert, Origin::Local, &[outline.clone()])
-        .emit(&app_handle)?;
+    OutlineChangeEvent::new(Insert, Origin::Local, &[outline.clone()]).emit(&app_handle)?;
 
     Ok(outline)
 }
