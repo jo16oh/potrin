@@ -39,7 +39,7 @@ pub async fn insert_outline<R: Runtime>(
         Base64::from(pot.id.clone())
     };
 
-    query::insert_outline_y_updates(&mut *tx, &outline.id, y_updates).await?;
+    query::insert_outline_y_updates(&mut *tx, &outline.id, &y_updates).await?;
     query::insert_outline(&mut *tx, &outline, &pot_id).await?;
 
     tx.commit().await?;

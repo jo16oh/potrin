@@ -6,7 +6,7 @@ use sqlx::SqliteExecutor;
 pub async fn insert_outline_y_updates<'a, E>(
     conn: E,
     outline_id: &Base64,
-    y_updates: Vec<OutlineYUpdate>,
+    y_updates: &[OutlineYUpdate],
 ) -> anyhow::Result<()>
 where
     E: SqliteExecutor<'a>,
@@ -30,9 +30,9 @@ where
     let mut query_builder = sqlx::query(&query);
 
     for update in y_updates {
-        query_builder = query_builder.bind(update.id);
+        query_builder = query_builder.bind(&update.id);
         query_builder = query_builder.bind(outline_id);
-        query_builder = query_builder.bind(update.data);
+        query_builder = query_builder.bind(&update.data);
         query_builder = query_builder.bind(update.created_at);
         query_builder = query_builder.bind(update.is_checkpoint);
     }
@@ -45,9 +45,10 @@ where
 pub async fn insert_card_y_updates<'a, E>(
     conn: E,
     card_id: &Base64,
-    y_updates: Vec<CardYUpdate>,
-) -> anyhow::Result<()> 
-where E: SqliteExecutor<'a>,
+    y_updates: &[CardYUpdate],
+) -> anyhow::Result<()>
+where
+    E: SqliteExecutor<'a>,
 {
     if y_updates.is_empty() {
         return Err(anyhow!("no y-update provided"));
@@ -68,9 +69,9 @@ where E: SqliteExecutor<'a>,
     let mut query_builder = sqlx::query(&query);
 
     for update in y_updates {
-        query_builder = query_builder.bind(update.id);
+        query_builder = query_builder.bind(&update.id);
         query_builder = query_builder.bind(card_id);
-        query_builder = query_builder.bind(update.data);
+        query_builder = query_builder.bind(&update.data);
         query_builder = query_builder.bind(update.created_at);
         query_builder = query_builder.bind(update.is_checkpoint);
     }

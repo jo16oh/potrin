@@ -22,7 +22,7 @@ pub async fn insert_card<R: tauri::Runtime>(
     let mut tx = pool.begin().await?;
 
     query::insert_card(&mut *tx, &card).await?;
-    query::insert_card_y_updates(&mut *tx, &card.id, y_updates).await?;
+    query::insert_card_y_updates(&mut *tx, &card.id, &y_updates).await?;
 
     tx.commit().await?;
 
