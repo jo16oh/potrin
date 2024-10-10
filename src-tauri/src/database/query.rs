@@ -1,9 +1,9 @@
 mod fetch_breadcrumbs;
-mod fetch_cards_by_id;
+mod fetch_cards_by_outline_id;
 mod fetch_cards_by_time;
 mod fetch_descendant_ids;
-mod fetch_outlines_by_id;
 mod fetch_outline_tree;
+mod fetch_outlines_by_id;
 mod fetch_relation;
 mod fetch_relation_count;
 mod insert_card;
@@ -14,11 +14,11 @@ mod insert_y_updates;
 mod select_oplog;
 
 pub use fetch_breadcrumbs::*;
-pub use fetch_cards_by_id::*;
+pub use fetch_cards_by_outline_id::*;
 pub use fetch_cards_by_time::*;
 pub use fetch_descendant_ids::*;
-pub use fetch_outlines_by_id::*;
 pub use fetch_outline_tree::*;
+pub use fetch_outlines_by_id::*;
 pub use fetch_relation::*;
 pub use fetch_relation_count::*;
 pub use insert_card::*;

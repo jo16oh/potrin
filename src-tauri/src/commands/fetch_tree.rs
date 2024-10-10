@@ -1,4 +1,4 @@
-use crate::database::query::fetch_cards_by_id;
+use crate::database::query::fetch_cards_by_outline_id;
 use crate::database::query::fetch_outline_tree;
 use crate::types::model::Card;
 use crate::types::model::Outline;
@@ -22,7 +22,7 @@ pub async fn fetch_tree<R: Runtime>(
 
     let outlines = fetch_outline_tree(&id, depth, pool).await?;
     let outline_ids = outlines.iter().map(|o| &o.id).collect::<Vec<&Base64>>();
-    let cards = fetch_cards_by_id(pool, &outline_ids).await?;
+    let cards = fetch_cards_by_outline_id(pool, &outline_ids).await?;
 
     Ok((outlines, cards))
 }

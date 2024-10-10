@@ -11,8 +11,7 @@ pub async fn fetch_relation_back(
     let outlines = {
         let query = format!(
             r#"
-                SELECT
-                    id, parent_id, fractional_index, text
+                SELECT id, parent_id, fractional_index, text
                 FROM outline_links
                 INNER JOIN outlines ON outline_links.id_from = outlines.id
                 WHERE outlines.is_deleted = false AND id_to IN ({});
@@ -33,14 +32,23 @@ pub async fn fetch_relation_back(
         query_builder.fetch_all(pool).await?
     };
 
+    // fetch quoted cards together
+    // to avoid layout shift
     let cards: Vec<Card> = {
         let query = format!(
             r#"
-                SELECT
-                    id, outline_id, fractional_index, text, quote
+                WITH c1 AS (
+                    SELECT id, outline_id, fractional_index, text, quote
+                    FROM cards
+                    INNER JOIN card_links ON card_links.id_from = cards.id
+                    WHERE (card_links.id_to IN ({}) OR cards.quote IN ({})) AND cards.is_deleted = false
+                )
+                SELECT * FROM c1
+                UNION 
+                SELECT id, outline_id, fractional_index, text, quote
                 FROM cards
-                INNER JOIN card_links ON card_links.id_from = cards.id
-                WHERE (card_links.id_to IN ({}) OR cards.quote IN ({})) AND cards.is_deleted = false;
+                WHERE id IN ((SELECT quote FROM c1)) AND is_deleted = false;
+
             "#,
             outline_ids
                 .iter()
@@ -74,8 +82,7 @@ pub async fn fetch_relation_forward(
     let outlines = {
         let query = format!(
             r#"
-                SELECT
-                    id, parent_id, fractional_index, text
+                SELECT id, parent_id, fractional_index, text
                 FROM outlines
                 INNER JOIN outline_links ON outline_links.id_to = outlines.id
                 INNER JOIN card_links ON card_links.id_to = outlines.id
@@ -97,17 +104,28 @@ pub async fn fetch_relation_forward(
         query_builder.fetch_all(pool).await?
     };
 
+    // fetch quoted cards together
+    // to avoid layout shift
     let cards: Vec<Card> = {
         let query = format!(
             r#"
-                SELECT
-                    c1.id, c1.outline_id, c1.fractional_index, c1.text, c1.quote
-                FROM
-                    cards c1
-                INNER JOIN
-                    cards c2 ON c1.id = c2.quote
-                WHERE
-                    c1.is_deleted = false AND c2.id IN ({});
+                WITH c1 AS (
+                    SELECT id, outline_id, fractional_index, text, quote 
+                    FROM cards 
+                    WHERE 
+                        id IN ((
+                            SELECT quote
+                            FROM cards AS c1
+                            WHERE id IN ({})
+                        )) 
+                        AND is_deleted = false
+                )
+                SELECT *
+                FROM c1
+                UNION 
+                SELECT id, outline_id, fractional_index, text, quote 
+                FROM cards 
+                WHERE id IN ((SELECT quote FROM c1)) AND is_deleted = false;
             "#,
             card_ids
                 .iter()

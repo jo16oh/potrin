@@ -75,22 +75,26 @@ mod test {
     async fn test(app_handle: &AppHandle<MockRuntime>) {
         let pool = app_handle.state::<SqlitePool>().inner();
 
-        let root = create_tree(app_handle, None, 3, 0).await;
-        let outline = create_tree(app_handle, None, 3, 0).await;
+        let r1 = create_tree(app_handle, None, 3, 0).await;
+        let r2 = create_tree(app_handle, None, 3, 0).await;
 
-        let card2 = Card::new(outline.id.clone(), None);
-        query::insert_card(pool, &card2).await.unwrap();
+        let c3 = Card::new(r1.id.clone(), None);
+        query::insert_card(pool, &c3).await.unwrap();
 
-        let card1 = Card::new(root.id.clone(), Some(card2.id.clone()));
-        query::insert_card(pool, &card1).await.unwrap();
+        let c2 = Card::new(r2.id.clone(), Some(c3.id.clone()));
+        query::insert_card(pool, &c2).await.unwrap();
+
+        let c1 = Card::new(r1.id.clone(), Some(c2.id.clone()));
+        query::insert_card(pool, &c1).await.unwrap();
+
 
         sqlx::query!(
             r#"
                 INSERT INTO outline_links (id_from, id_to)
                 VALUES (?, ?);
             "#,
-            root.id,
-            outline.id
+            r1.id,
+            r2.id
         )
         .execute(pool)
         .await
@@ -101,8 +105,8 @@ mod test {
                 INSERT INTO card_links (id_from, id_to)
                 VALUES (?, ?);
             "#,
-            card1.id,
-            outline.id
+            c1.id,
+            r2.id
         )
         .execute(pool)
         .await
@@ -110,7 +114,7 @@ mod test {
 
         let (outlines, cards) = fetch_relation(
             app_handle.clone(),
-            vec![outline.id],
+            vec![r2.id],
             vec![],
             RelationOption {
                 direction: Direction::Back,
@@ -123,11 +127,11 @@ mod test {
         .unwrap();
 
         assert_eq!(outlines.len(), 1);
-        assert_eq!(cards.len(), 1);
+        assert_eq!(cards.len(), 2);
 
         let (outlines, cards) = fetch_relation(
             app_handle.clone(),
-            vec![root.id],
+            vec![r1.id],
             vec![],
             RelationOption {
                 direction: Direction::Forward,
@@ -140,6 +144,6 @@ mod test {
         .unwrap();
 
         assert_eq!(outlines.len(), 1);
-        assert_eq!(cards.len(), 1);
+        assert_eq!(cards.len(), 2);
     }
 }
