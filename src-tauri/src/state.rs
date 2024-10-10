@@ -12,8 +12,6 @@ struct QueryResult {
 
 #[derive(Serialize, Deserialize, Clone, specta::Type)]
 pub enum AppStateValues {
-    App(AppState),
-    Client(ClientState),
     User(Option<UserState>),
     Pot(Option<PotState>),
     Workspace(Option<WorkspaceState>),
@@ -84,52 +82,6 @@ pub async fn update_app_state<R: Runtime>(
         .inner();
 
     match value {
-        AppStateValues::App(value) => {
-            let jsonb = serde_sqlite_jsonb::to_vec(&value)?;
-            sqlx::query!(
-                r#"
-                    UPDATE kv
-                    SET value = ?
-                    WHERE key = "app_state";
-                "#,
-                jsonb
-            )
-            .execute(pool)
-            .await?;
-
-            let lock = app_handle
-                .try_state::<RwLock<AppState>>()
-                .ok_or(anyhow!("failed to get state"))?;
-            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-            *app_state = value;
-        }
-        AppStateValues::Client(client_state) => {
-            let jsonb = serde_sqlite_jsonb::to_vec(&client_state)?;
-            sqlx::query!(
-                r#"
-                    UPDATE kv
-                    SET value = jsonb_set(
-                        (
-                            SELECT value
-                            FROM kv
-                            WHERE key = "app_state"
-                        ),
-                        '$.client',
-                        ?
-                    )
-                    WHERE key = "app_state";
-                "#,
-                jsonb
-            )
-            .execute(pool)
-            .await?;
-
-            let lock = app_handle
-                .try_state::<RwLock<AppState>>()
-                .ok_or(anyhow!("failed to get state"))?;
-            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
-            app_state.client = client_state;
-        }
         AppStateValues::User(user_state) => {
             let jsonb = serde_sqlite_jsonb::to_vec(&user_state)?;
             sqlx::query!(
