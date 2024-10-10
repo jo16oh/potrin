@@ -5,12 +5,14 @@ use sqlx::FromRow;
 use tauri_specta::Event;
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: Base64,
     pub name: String,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct Pot {
     pub id: Base64,
     pub name: String,
@@ -19,6 +21,7 @@ pub struct Pot {
 
 #[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct Outline {
     pub id: Base64,
     pub parent_id: NullableBase64,
@@ -43,6 +46,7 @@ impl Outline {
 
 #[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct OutlineYUpdate {
     pub id: Base64,
     pub data: Base64,
@@ -52,6 +56,7 @@ pub struct OutlineYUpdate {
 
 #[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct Card {
     pub id: Base64,
     pub outline_id: Base64,
@@ -73,6 +78,7 @@ impl Card {
 
 #[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct CardYUpdate {
     pub id: Base64,
     pub data: Base64,
@@ -81,6 +87,7 @@ pub struct CardYUpdate {
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct Breadcrumb {
     pub id: Base64,
     pub parent_id: NullableBase64,
@@ -88,6 +95,7 @@ pub struct Breadcrumb {
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct LinkCount {
     pub id: Base64,
     pub back: i64,

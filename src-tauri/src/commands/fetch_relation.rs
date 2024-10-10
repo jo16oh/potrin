@@ -1,4 +1,5 @@
 use crate::database::query::fetch_descendant_ids;
+use crate::database::query::{fetch_relation_back, fetch_relation_forward};
 use crate::types::model::Card;
 use crate::types::model::Outline;
 use crate::types::util::Base64;
@@ -7,21 +8,23 @@ use serde::Deserialize;
 use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
-use crate::database::query::{fetch_relation_back, fetch_relation_forward};
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub struct RelationOption {
     direction: Direction,
     include_children: Option<IncludeChildrenOption>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
 enum Direction {
     Back,
     Forward,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
 struct IncludeChildrenOption {
     include_cards: bool,
 }
@@ -42,9 +45,7 @@ pub async fn fetch_relation<R: Runtime>(
         .inner();
 
     let (outline_ids, card_ids) = match option.include_children {
-        Some(opt) => {
-            fetch_descendant_ids(pool, &outline_ids, opt.include_cards).await?
-        }
+        Some(opt) => fetch_descendant_ids(pool, &outline_ids, opt.include_cards).await?,
         None => (outline_ids, card_ids),
     };
 
@@ -53,7 +54,6 @@ pub async fn fetch_relation<R: Runtime>(
         Direction::Forward => fetch_relation_forward(pool, outline_ids, card_ids).await,
     }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -126,7 +126,9 @@ mod test {
             vec![],
             RelationOption {
                 direction: Direction::Back,
-                include_children: Some(IncludeChildrenOption { include_cards: true }),
+                include_children: Some(IncludeChildrenOption {
+                    include_cards: true,
+                }),
             },
         )
         .await
@@ -141,7 +143,9 @@ mod test {
             vec![],
             RelationOption {
                 direction: Direction::Forward,
-                include_children: Some(IncludeChildrenOption { include_cards: true }),
+                include_children: Some(IncludeChildrenOption {
+                    include_cards: true,
+                }),
             },
         )
         .await

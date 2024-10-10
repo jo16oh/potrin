@@ -12,6 +12,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, Runtime};
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub enum TlOption {
     CreatedAt,
     UpdatedAt,

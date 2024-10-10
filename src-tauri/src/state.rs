@@ -11,6 +11,7 @@ struct QueryResult {
 }
 
 #[derive(Serialize, Deserialize, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub enum AppStateValues {
     User(Option<UserState>),
     Pot(Option<PotState>),
