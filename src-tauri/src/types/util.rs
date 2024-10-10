@@ -28,8 +28,43 @@ pub enum Operation {
     Delete,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, specta::Type)]
+#[derive(Clone, Debug, PartialEq, Eq, specta::Type)]
 pub struct SqliteBool(bool);
+
+impl Serialize for SqliteBool {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_bool(self.0)
+    }
+}
+
+impl<'de> Deserialize<'de> for SqliteBool {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SqliteBoolVisitor;
+
+        impl<'de> Visitor<'de> for SqliteBoolVisitor {
+            type Value = SqliteBool;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a boolean value")
+            }
+
+            fn visit_bool<E>(self, value: bool) -> Result<SqliteBool, E>
+            where
+                E: de::Error,
+            {
+                Ok(SqliteBool(value))
+            }
+        }
+
+        deserializer.deserialize_bool(SqliteBoolVisitor)
+    }
+}
 
 impl sqlx::Type<Sqlite> for SqliteBool {
     fn type_info() -> <Sqlite as Database>::TypeInfo {
