@@ -1,4 +1,9 @@
+use crate::database::query::{
+    fetch_cards_by_created_at, fetch_cards_by_created_at_and_updated_at, fetch_cards_by_updated_at,
+    fetch_outlines_by_id,
+};
 use crate::types::model::{Card, Outline};
+use crate::types::util::Base64;
 use anyhow::anyhow;
 use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;
@@ -21,8 +26,7 @@ pub async fn fetch_timeline<R: Runtime>(
     from: DateTime<Utc>,
     option: TlOption,
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
-    let to = (from + Duration::days(1)).timestamp_millis();
-    let from = from.timestamp_millis();
+    let to = from + Duration::days(1);
 
     let pool = app_handle
         .try_state::<SqlitePool>()
@@ -30,77 +34,13 @@ pub async fn fetch_timeline<R: Runtime>(
         .inner();
 
     let cards = match option {
-        TlOption::CreatedAt => {
-            sqlx::query_as!(
-                Card,
-                r#"
-                    SELECT id, outline_id, fractional_index, text
-                    FROM cards
-                    WHERE ? <= created_at AND created_at < ? AND is_deleted = false;
-                "#,
-                from,
-                to,
-            )
-            .fetch_all(pool)
-            .await
-        }
-        TlOption::UpdatedAt => {
-            sqlx::query_as!(
-                Card,
-                r#"
-                    SELECT id, outline_id, fractional_index, text
-                    FROM cards
-                    WHERE ? <= updated_at AND updated_at < ? AND is_deleted = false;
-                "#,
-                from,
-                to,
-            )
-            .fetch_all(pool)
-            .await
-        }
-        TlOption::Both => {
-            sqlx::query_as!(
-                Card,
-                r#"
-                    SELECT id, outline_id, fractional_index, text
-                    FROM cards
-                    WHERE
-                        ((? <= updated_at AND updated_at < ?) OR (? <= created_at AND created_at < ?))
-                        AND is_deleted = false;
-                "#,
-                from,
-                to,
-                from,
-                to
-            )
-            .fetch_all(pool)
-            .await
-        }
-    }
-    .map_err(|e| anyhow!(e.to_string()))?;
-
-    let outlines = {
-        let query = format!(
-            r#"
-                SELECT id, parent_id, fractional_index, text
-                FROM outlines
-                WHERE id IN ({}) AND is_deleted = false;
-            "#,
-            cards
-                .iter()
-                .map(|_| "?".to_string())
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-
-        let mut query_builder = sqlx::query_as::<_, Outline>(&query);
-
-        for card in cards.iter() {
-            query_builder = query_builder.bind(&card.outline_id);
-        }
-
-        query_builder.fetch_all(pool).await?
+        TlOption::CreatedAt => fetch_cards_by_created_at(pool, from, to).await?,
+        TlOption::UpdatedAt => fetch_cards_by_updated_at(pool, from, to).await?,
+        TlOption::Both => fetch_cards_by_created_at_and_updated_at(pool, from, to).await?,
     };
+
+    let outline_ids: Vec<&Base64> = cards.iter().map(|c| &c.outline_id).collect();
+    let outlines = fetch_outlines_by_id(pool, &outline_ids).await?;
 
     Ok((outlines, cards))
 }

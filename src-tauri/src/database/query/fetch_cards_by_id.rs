@@ -2,7 +2,7 @@ use crate::types::{model::Card, util::Base64};
 use anyhow::anyhow;
 use sqlx::{query_as, SqlitePool};
 
-pub async fn fetch_cards(
+pub async fn fetch_cards_by_id(
     pool: &SqlitePool,
     outline_ids: &[&Base64],
 ) -> anyhow::Result<Vec<Card>> {
