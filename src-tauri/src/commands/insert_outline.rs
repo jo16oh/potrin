@@ -1,7 +1,6 @@
 use crate::database::query;
 use crate::types::model::{Outline, OutlineChangeEvent, OutlineYUpdate};
 use crate::types::state::AppState;
-use crate::types::util::Base64;
 use crate::types::util::{Operation, Origin};
 use anyhow::anyhow;
 use sqlx::SqlitePool;
@@ -36,7 +35,7 @@ pub async fn insert_outline<R: Runtime>(
             .pot
             .as_ref()
             .ok_or(anyhow!("failed to get pot state"))?;
-        Base64::from(pot.id.clone())
+        pot.id.clone()
     };
 
     query::insert_outline_y_updates(&mut *tx, &outline.id, &y_updates).await?;

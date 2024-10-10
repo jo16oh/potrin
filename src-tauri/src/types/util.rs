@@ -1,12 +1,17 @@
 use base64::prelude::*;
 use base64::DecodeError;
 use derive_more::derive::Deref;
+use serde::de;
+use serde::de::Visitor;
+use serde::Deserializer;
+use serde::Serializer;
 use serde::{Deserialize, Serialize};
 use sqlx::{
     encode::IsNull,
     sqlite::{SqliteTypeInfo, SqliteValueRef},
     Database, Decode, Encode, Sqlite,
 };
+use std::fmt;
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -62,8 +67,43 @@ impl From<i64> for SqliteBool {
 //     }
 // }
 
-#[derive(Serialize, Deserialize, Clone, Debug, specta::Type, Deref, PartialEq)]
+#[derive(Clone, Debug, specta::Type, Deref, PartialEq)]
 pub struct Base64(String);
+
+impl Serialize for Base64 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+impl<'de> Deserialize<'de> for Base64 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct Base64Visitor;
+
+        impl<'de> Visitor<'de> for Base64Visitor {
+            type Value = Base64;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a base64 encoded string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Base64, E>
+            where
+                E: de::Error,
+            {
+                Ok(Base64(value.to_string()))
+            }
+        }
+
+        deserializer.deserialize_str(Base64Visitor)
+    }
+}
 
 impl Base64 {
     pub fn to_bytes(&self) -> Result<Vec<u8>, DecodeError> {

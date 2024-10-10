@@ -44,7 +44,7 @@ pub async fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
         None => {
             let app_state = AppState {
                 client: ClientState {
-                    id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
+                    id: Base64::from(uuidv7::create_raw().to_vec()),
                 },
                 user: None,
                 pot: None,
@@ -164,7 +164,7 @@ pub async fn update_app_state<R: Runtime>(
 
             let workspace_state = match pot_state {
                 Some(ref pot) => {
-                    let id = Base64::from(pot.id.clone());
+                    let id = pot.id.clone();
                     sqlx::query_as!(
                         QueryResult,
                         r#"
@@ -258,7 +258,7 @@ pub async fn update_app_state<R: Runtime>(
                         .pot
                         .as_ref()
                         .ok_or(anyhow!("pot state is not set"))?;
-                    Base64::from(pot.id.clone())
+                    pot.id.clone()
                 };
 
                 let value = serde_sqlite_jsonb::to_vec(&workspace)?;
@@ -292,7 +292,7 @@ pub async fn update_app_state<R: Runtime>(
                     .pot
                     .as_ref()
                     .ok_or(anyhow!("pot state is not set"))?;
-                Base64::from(pot.id.clone())
+                pot.id.clone()
             };
 
             let value = serde_sqlite_jsonb::to_vec(&tabs)?;
@@ -402,7 +402,7 @@ mod test {
             let pool = app_handle.state::<SqlitePool>().inner();
 
             let user = UserState {
-                id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
+                id: Base64::from(uuidv7::create_raw().to_vec()),
                 name: "updated".to_string(),
             };
 
@@ -437,7 +437,7 @@ mod test {
 
             // update pot state
             let pot = PotState {
-                id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
+                id: Base64::from(uuidv7::create_raw().to_vec()),
                 sync: true,
             };
 
@@ -453,7 +453,7 @@ mod test {
             // update workspace state
             let workspace = WorkspaceState {
                 tabs: vec![TabState {
-                    id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
+                    id: Base64::from(uuidv7::create_raw().to_vec()),
                     view: "view".to_string(),
                     scroll_pos: 32,
                 }],
@@ -473,7 +473,7 @@ mod test {
 
             // is workspace updated after pot state changed?
             let pot2 = PotState {
-                id: Base64::from(uuidv7::create_raw().to_vec()).to_string(),
+                id: Base64::from(uuidv7::create_raw().to_vec()),
                 sync: true,
             };
 

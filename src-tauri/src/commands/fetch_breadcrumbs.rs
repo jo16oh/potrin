@@ -50,7 +50,7 @@ mod test {
         let pot_id = {
             let app_state = lock.read().unwrap();
             let pot = app_state.pot.as_ref().unwrap();
-            Base64::from(pot.id.clone())
+            pot.id.clone()
         };
 
         let root = Outline::new(None);

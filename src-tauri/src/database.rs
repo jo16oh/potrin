@@ -77,7 +77,7 @@ pub mod test {
                 .as_ref()
                 .ok_or(anyhow!("pot state is not set"))
                 .unwrap();
-            Base64::from(pot.id.clone())
+            pot.id.clone()
         };
 
         let outline = Outline::new(parent_id.as_ref());
@@ -114,7 +114,7 @@ pub mod test {
         update_app_state(
             app_handle.clone(),
             AppStateValues::User(Some(UserState {
-                id: user.id.clone().to_string(),
+                id: user.id.clone(),
                 name: user.name.clone(),
             })),
         )
@@ -132,7 +132,7 @@ pub mod test {
         update_app_state(
             app_handle.clone(),
             AppStateValues::Pot(Some(PotState {
-                id: pot.id.to_string(),
+                id: pot.id,
                 sync: false,
             })),
         )

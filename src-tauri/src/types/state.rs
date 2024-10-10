@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::util::Base64;
+
 #[derive(Serialize, Deserialize, Clone, specta::Type)]
 pub struct AppState {
     pub client: ClientState,
@@ -11,18 +13,18 @@ pub struct AppState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 pub struct ClientState {
-    pub id: String,
+    pub id: Base64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 pub struct UserState {
-    pub id: String,
+    pub id: Base64,
     pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 pub struct PotState {
-    pub id: String,
+    pub id: Base64,
     pub sync: bool,
 }
 
@@ -34,7 +36,7 @@ pub struct WorkspaceState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 pub struct TabState {
-    pub id: String,
+    pub id: Base64,
     pub view: String,
     pub scroll_pos: i64,
 }

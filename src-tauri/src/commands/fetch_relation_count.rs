@@ -124,7 +124,7 @@ mod test {
                 .ok_or(anyhow!("failed to get pot state"))
                 .unwrap();
 
-            Base64::from(pot.id.clone())
+            pot.id.clone()
         };
 
         let o1 = Outline::new(None);
@@ -198,7 +198,7 @@ mod test {
         let pot_id = {
             let app_state = lock.read().unwrap();
             let pot = app_state.pot.as_ref().unwrap();
-            Base64::from(pot.id.clone())
+            pot.id.clone()
         };
 
         let o1 = Outline {
