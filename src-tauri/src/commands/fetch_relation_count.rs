@@ -133,11 +133,11 @@ mod test {
         let o2 = Outline::new(None);
         query::insert_outline(pool, &o2, &pot_id).await.unwrap();
 
-        let c1 = Card::new(o1.id.clone());
-        query::insert_card(pool, &c1).await.unwrap();
-
-        let c2 = Card::new(o2.id.clone());
+        let c2 = Card::new(o2.id.clone(), None);
         query::insert_card(pool, &c2).await.unwrap();
+
+        let c1 = Card::new(o1.id.clone(), Some(c2.id.clone()));
+        query::insert_card(pool, &c1).await.unwrap();
 
         sqlx::query!(
             r#"
@@ -158,18 +158,6 @@ mod test {
             "#,
             c1.id,
             o2.id
-        )
-        .execute(pool)
-        .await
-        .unwrap();
-
-        sqlx::query!(
-            r#"
-                INSERT INTO card_quotes (id_from, id_to)
-                VALUES (?, ?);
-            "#,
-            c1.id,
-            c2.id
         )
         .execute(pool)
         .await
@@ -256,28 +244,13 @@ mod test {
         };
         query::insert_outline(pool, &o7, &pot_id).await.unwrap();
 
-        let c1 = Card {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            outline_id: o2.id.clone(),
-            fractional_index: String::new(),
-            text: String::new(),
-        };
+        let c1 = Card::new(o2.id.clone(), None);
         query::insert_card(pool, &c1).await.unwrap();
 
-        let c2 = Card {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            outline_id: o3.id.clone(),
-            fractional_index: String::new(),
-            text: String::new(),
-        };
+        let c2 = Card::new(o3.id.clone(), None);
         query::insert_card(pool, &c2).await.unwrap();
 
-        let c3 = Card {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            outline_id: o4.id.clone(),
-            fractional_index: String::new(),
-            text: String::new(),
-        };
+        let c3 = Card::new(o4.id.clone(), Some(c1.id.clone()));
         query::insert_card(pool, &c3).await.unwrap();
 
         sqlx::query!(
@@ -307,18 +280,6 @@ mod test {
             o2.id,
             c1.id,
             o7.id
-        )
-        .execute(pool)
-        .await
-        .unwrap();
-
-        sqlx::query!(
-            r#"
-                INSERT INTO card_quotes (id_from, id_to)
-                VALUES (?, ?);
-            "#,
-            c3.id,
-            c1.id
         )
         .execute(pool)
         .await

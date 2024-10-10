@@ -8,16 +8,16 @@ where
     sqlx::query_as!(
         Card,
         r#"
-            INSERT INTO cards (id, outline_id, fractional_index, text)
-            VALUES (?, ?, ?, ?)
-            RETURNING id, outline_id, fractional_index, text;
+            INSERT INTO cards (id, outline_id, fractional_index, text, quote)
+            VALUES (?, ?, ?, ?, ?);
         "#,
         card.id,
         card.outline_id,
         card.fractional_index,
         card.text,
+        card.quote
     )
-    .fetch_one(conn)
+    .execute(conn)
     .await?;
 
     Ok(())

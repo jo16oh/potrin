@@ -78,11 +78,11 @@ mod test {
         let root = create_tree(app_handle, None, 3, 0).await;
         let outline = create_tree(app_handle, None, 3, 0).await;
 
-        let card1 = Card::new(root.id.clone());
-        query::insert_card(pool, &card1).await.unwrap();
-
-        let card2 = Card::new(outline.id.clone());
+        let card2 = Card::new(outline.id.clone(), None);
         query::insert_card(pool, &card2).await.unwrap();
+
+        let card1 = Card::new(root.id.clone(), Some(card2.id.clone()));
+        query::insert_card(pool, &card1).await.unwrap();
 
         sqlx::query!(
             r#"
@@ -103,18 +103,6 @@ mod test {
             "#,
             card1.id,
             outline.id
-        )
-        .execute(pool)
-        .await
-        .unwrap();
-
-        sqlx::query!(
-            r#"
-                INSERT INTO card_quotes (id_from, id_to)
-                VALUES (?, ?);
-            "#,
-            card1.id,
-            card2.id
         )
         .execute(pool)
         .await

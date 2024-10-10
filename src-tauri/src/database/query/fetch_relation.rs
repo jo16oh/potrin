@@ -37,11 +37,10 @@ pub async fn fetch_relation_back(
         let query = format!(
             r#"
                 SELECT
-                    id, outline_id, fractional_index, text
+                    id, outline_id, fractional_index, text, quote
                 FROM cards
                 INNER JOIN card_links ON card_links.id_from = cards.id
-                INNER JOIN card_quotes ON card_links.id_from = cards.id
-                WHERE (card_links.id_to IN ({}) OR card_quotes.id_to IN ({})) AND cards.is_deleted = false;
+                WHERE (card_links.id_to IN ({}) OR cards.quote IN ({})) AND cards.is_deleted = false;
             "#,
             outline_ids
                 .iter()
@@ -102,10 +101,13 @@ pub async fn fetch_relation_forward(
         let query = format!(
             r#"
                 SELECT
-                    id, outline_id, fractional_index, text
-                FROM card_quotes
-                INNER JOIN cards ON card_quotes.id_to = cards.id
-                WHERE cards.is_deleted = false AND card_quotes.id_from IN ({});
+                    c1.id, c1.outline_id, c1.fractional_index, c1.text, c1.quote
+                FROM
+                    cards c1
+                INNER JOIN
+                    cards c2 ON c1.id = c2.quote
+                WHERE
+                    c1.is_deleted = false AND c2.id IN ({});
             "#,
             card_ids
                 .iter()

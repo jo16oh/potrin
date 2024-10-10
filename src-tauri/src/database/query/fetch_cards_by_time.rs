@@ -14,7 +14,7 @@ pub async fn fetch_cards_by_created_at(
     sqlx::query_as!(
         Card,
         r#"
-            SELECT id, outline_id, fractional_index, text
+            SELECT id, outline_id, fractional_index, text, quote
             FROM cards
             WHERE ? <= created_at AND created_at < ? AND is_deleted = false;
         "#,
@@ -36,7 +36,7 @@ pub async fn fetch_cards_by_updated_at(
     sqlx::query_as!(
         Card,
         r#"
-            SELECT id, outline_id, fractional_index, text
+            SELECT id, outline_id, fractional_index, text, quote
             FROM cards
             WHERE ? <= updated_at AND updated_at < ? AND is_deleted = false;
         "#,
@@ -58,7 +58,7 @@ pub async fn fetch_cards_by_created_at_and_updated_at(
     sqlx::query_as!(
         Card,
         r#"
-            SELECT id, outline_id, fractional_index, text
+            SELECT id, outline_id, fractional_index, text, quote
             FROM cards
             WHERE
                 ((? <= updated_at AND updated_at < ?) OR (? <= created_at AND created_at < ?))

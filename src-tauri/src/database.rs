@@ -85,7 +85,7 @@ pub mod test {
             .await
             .unwrap();
 
-        let card = Card::new(outline.id.clone());
+        let card = Card::new(outline.id.clone(), None);
         query::insert_card(pool, &card).await.unwrap();
 
         if current < limit {

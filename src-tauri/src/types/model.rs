@@ -62,16 +62,18 @@ pub struct Card {
     pub outline_id: Base64,
     pub fractional_index: String,
     pub text: String,
+    pub quote: NullableBase64,
 }
 
 #[cfg(test)]
 impl Card {
-    pub fn new(outline_id: Base64) -> Self {
+    pub fn new(outline_id: Base64, quote: Option<Base64>) -> Self {
         Self {
             id: Base64::from(uuidv7::create_raw().to_vec()),
             outline_id,
             fractional_index: String::new(),
             text: String::new(),
+            quote: NullableBase64::from(quote),
         }
     }
 }
