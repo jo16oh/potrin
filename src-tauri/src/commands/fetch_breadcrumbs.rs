@@ -1,7 +1,7 @@
+use crate::database::query;
 use crate::types::model::Breadcrumb;
 use crate::types::util::Base64;
 use anyhow::anyhow;
-use sqlx::query_as;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
 use tauri::Manager;
@@ -19,39 +19,7 @@ pub async fn fetch_breadcrumbs<R: Runtime>(
         .ok_or(anyhow!("failed to get SqlitePool"))?
         .inner();
 
-    let query = format!(
-        r#"
-            WITH RECURSIVE breadcrumbs AS (
-                SELECT
-                    id, parent_id, text
-                FROM outlines
-                WHERE id IN ({}) AND is_deleted = false
-                UNION ALL
-                SELECT
-                    parent.id, parent.parent_id, parent.text
-                FROM breadcrumbs AS child
-                JOIN outlines AS parent ON parent.id = child.parent_id
-                WHERE parent.is_deleted = false
-            )
-            SELECT DISTINCT id, parent_id, text FROM breadcrumbs;
-        "#,
-        parent_ids
-            .iter()
-            .map(|_| "?".to_string())
-            .collect::<Vec<String>>()
-            .join(", ")
-    );
-
-    let mut query_builder = query_as::<_, Breadcrumb>(&query);
-
-    for id in parent_ids {
-        query_builder = query_builder.bind(id);
-    }
-
-    query_builder
-        .fetch_all(pool)
-        .await
-        .map_err(|e| anyhow::anyhow!(e.to_string()))
+    query::fetch_breadcrumbs(pool, parent_ids).await
 }
 
 #[cfg(test)]

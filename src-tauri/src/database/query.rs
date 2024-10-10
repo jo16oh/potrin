@@ -1,3 +1,4 @@
+mod fetch_breadcrumbs;
 mod fetch_cards;
 mod fetch_descendant_ids;
 mod fetch_outline_tree;
@@ -10,6 +11,7 @@ mod insert_user;
 mod insert_y_updates;
 mod select_oplog;
 
+pub use fetch_breadcrumbs::*;
 pub use fetch_cards::*;
 pub use fetch_descendant_ids::*;
 pub use fetch_outline_tree::*;
