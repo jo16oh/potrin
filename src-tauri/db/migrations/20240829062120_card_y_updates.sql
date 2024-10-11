@@ -2,8 +2,7 @@ CREATE TABLE card_y_updates (
   id BLOB PRIMARY KEY,
   card_id BLOB REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
   data BLOB NOT NULL,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000) ,
-  is_checkpoint INTEGER NOT NULL DEFAULT 0
+  created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000)
 ) STRICT;
 
 CREATE INDEX card_y_updates$card_id_idx ON card_y_updates(card_id);
@@ -55,3 +54,11 @@ BEGIN
     )
   );
 END;
+
+CREATE TABLE card_y_update_version (
+  card_y_update_id BLOB REFERENCES card_y_updates(id) ON DELETE CASCADE NOT NULL,
+  version_id BLOB REFERENCES versions(id) ON DELETE RESTRICT NOT NULL,
+  PRIMARY KEY (card_y_update_id, version_id)
+);
+
+CREATE INDEX card_y_update_version$card_y_update_id ON card_y_update_version(card_y_update_id);

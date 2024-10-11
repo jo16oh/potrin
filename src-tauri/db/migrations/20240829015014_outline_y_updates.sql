@@ -2,8 +2,7 @@ CREATE TABLE outline_y_updates (
   id BLOB PRIMARY KEY,
   outline_id BLOB REFERENCES outlines(id) ON DELETE CASCADE NOT NULL,
   data BLOB NOT NULL,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000),
-  is_checkpoint INTEGER NOT NULL DEFAULT 0
+  created_at INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000)
 ) STRICT;
 
 CREATE INDEX outline_y_updates$outline_id_idx ON outline_y_updates(outline_id);
@@ -55,3 +54,11 @@ BEGIN
     )
   );
 END;
+
+CREATE TABLE version_outline_y_update (
+  outline_y_update_id BLOB REFERENCES outline_y_updates(id) ON DELETE CASCADE NOT NULL,
+  version_id BLOB REFERENCES versions(id) ON DELETE RESTRICT NOT NULL,
+  PRIMARY KEY (outline_y_update_id, version_id)
+);
+
+CREATE INDEX version_outline_y_update$card_y_update_id ON version_outline_y_update(outline_y_update_id);
