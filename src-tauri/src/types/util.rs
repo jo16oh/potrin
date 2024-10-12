@@ -195,10 +195,13 @@ impl From<Option<Base64>> for NullableBase64 {
     }
 }
 
-#[cfg(test)]
 impl NullableBase64 {
-    pub fn inner(&self) -> Option<&Base64> {
+    pub fn as_ref(&self) -> Option<&Base64> {
         self.0.as_ref()
+    }
+
+    pub fn into_option(self) -> Option<Base64> {
+        self.0
     }
 
     pub fn none() -> Self {
@@ -243,5 +246,11 @@ impl From<Option<Vec<u8>>> for NullableBase64 {
 impl From<Base64> for NullableBase64 {
     fn from(base64: Base64) -> Self {
         NullableBase64(Some(base64))
+    }
+}
+
+impl From<Vec<u8>> for NullableBase64 {
+    fn from(value: Vec<u8>) -> Self {
+        NullableBase64::from(Base64::from(value))
     }
 }

@@ -70,7 +70,7 @@ mod test {
             .await
             .unwrap();
 
-        let parent_id = grand_child.parent_id.inner().unwrap().clone();
+        let parent_id = grand_child.parent_id.as_ref().unwrap().clone();
 
         let breadcrumbs = fetch_breadcrumbs(app_handle.clone(), vec![parent_id])
             .await

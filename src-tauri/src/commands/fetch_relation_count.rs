@@ -33,7 +33,7 @@ mod test {
 
     use super::*;
     use crate::database::query;
-    use crate::database::test::create_mock_user_and_pot;
+    use crate::database::test::{create_mock_user_and_pot, insert_quote_without_versioning};
     use crate::test::run_in_mock_app;
     use crate::types::model::{Card, Outline};
     use crate::types::state::AppState;
@@ -133,11 +133,15 @@ mod test {
         let o2 = Outline::new(None);
         query::insert_outline(pool, &o2, &pot_id).await.unwrap();
 
+        let c1 = Card::new(o1.id.clone(), None);
+        query::insert_card(pool, &c1).await.unwrap();
+
         let c2 = Card::new(o2.id.clone(), None);
         query::insert_card(pool, &c2).await.unwrap();
 
-        let c1 = Card::new(o1.id.clone(), Some(c2.id.clone()));
-        query::insert_card(pool, &c1).await.unwrap();
+        insert_quote_without_versioning(app_handle.clone(), &c1.id, &c2.id)
+            .await
+            .unwrap();
 
         sqlx::query!(
             r#"
@@ -250,8 +254,12 @@ mod test {
         let c2 = Card::new(o3.id.clone(), None);
         query::insert_card(pool, &c2).await.unwrap();
 
-        let c3 = Card::new(o4.id.clone(), Some(c1.id.clone()));
+        let c3 = Card::new(o4.id.clone(), None);
         query::insert_card(pool, &c3).await.unwrap();
+
+        insert_quote_without_versioning(app_handle.clone(), &c2.id, &c1.id)
+            .await
+            .unwrap();
 
         sqlx::query!(
             r#"

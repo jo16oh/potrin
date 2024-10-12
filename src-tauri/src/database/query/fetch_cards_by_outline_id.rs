@@ -1,4 +1,7 @@
-use crate::types::{model::Card, util::Base64};
+use crate::types::{
+    model::{Card, RawCard},
+    util::Base64,
+};
 use anyhow::anyhow;
 use sqlx::{query_as, SqlitePool};
 
@@ -9,16 +12,27 @@ pub async fn fetch_cards_by_outline_id(
     let query = format!(
         r#"
             WITH c1 AS (
-                SELECT id, outline_id, fractional_index, text, quote
-                FROM cards AS c1
+                SELECT
+                    cards.id, cards.outline_id, cards.fractional_index, cards.text,
+                    cards.version_id AS version_id,
+                    quotes.quoted_card_id AS quoted_card_id,
+                    quotes.version_id AS quote_version_id
+                FROM cards
+                LEFT JOIN quotes ON cards.id = quotes.card_id
                 WHERE outline_id IN ({}) AND is_deleted = false
+                UNION
+                SELECT
+                    cards.id, cards.outline_id, cards.fractional_index, cards.text,
+                    cards.version_id AS version_id,
+                    quotes.quoted_card_id AS quoted_card_id,
+                    quotes.version_id AS quote_version_id
+                FROM cards
+                JOIN c1 ON cards.id = c1.quoted_card_id
+                LEFT JOIN quotes ON cards.id = quotes.card_id
+                WHERE is_deleted = false
             )
             SELECT *
-            FROM c1
-            UNION 
-            SELECT id, outline_id, fractional_index, text, quote 
-            FROM cards 
-            WHERE id IN ((SELECT quote FROM c1)) AND is_deleted = false;
+            FROM c1;
         "#,
         outline_ids
             .iter()
@@ -27,13 +41,17 @@ pub async fn fetch_cards_by_outline_id(
             .join(", ")
     );
 
-    let mut query_builder = query_as::<_, Card>(&query);
+    let mut query_builder = query_as::<_, RawCard>(&query);
 
     for id in outline_ids {
         query_builder = query_builder.bind(id)
     }
 
-    query_builder.fetch_all(pool).await.map_err(|e| anyhow!(e))
+    query_builder
+        .fetch_all(pool)
+        .await
+        .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
+        .map_err(|e| anyhow!(e))
 }
 
 #[cfg(test)]
@@ -42,7 +60,7 @@ mod test {
     use crate::{
         database::{
             query::{insert_card, insert_outline},
-            test::create_mock_user_and_pot,
+            test::{create_mock_user_and_pot, insert_quote_without_versioning},
         },
         run_in_mock_app,
         types::{model::Outline, state::AppState},
@@ -73,9 +91,13 @@ mod test {
         insert_outline(pool, &o1, &pot_id).await.unwrap();
         insert_outline(pool, &o2, &pot_id).await.unwrap();
         let c1 = Card::new(o1.id.clone(), None);
-        let c2 = Card::new(o2.id.clone(), Some(c1.id.clone()));
+        let c2 = Card::new(o2.id.clone(), None);
         insert_card(pool, &c1).await.unwrap();
         insert_card(pool, &c2).await.unwrap();
+
+        insert_quote_without_versioning(app_handle.clone(), &c2.id, &c1.id)
+            .await
+            .unwrap();
 
         let outline_ids = vec![&o2.id];
         let result = fetch_cards_by_outline_id(pool, &outline_ids).await.unwrap();

@@ -51,7 +51,7 @@ pub async fn fetch_relation<R: Runtime>(
 
     match option.direction {
         Direction::Back => fetch_relation_back(pool, &outline_ids, &card_ids).await,
-        Direction::Forward => fetch_relation_forward(pool, outline_ids, card_ids).await,
+        Direction::Forward => fetch_relation_forward(pool, &outline_ids, &card_ids).await,
     }
 }
 
@@ -61,6 +61,7 @@ mod test {
     use crate::database::query;
     use crate::database::test::create_mock_user_and_pot;
     use crate::database::test::create_tree;
+    use crate::database::test::insert_quote_without_versioning;
     use crate::test::run_in_mock_app;
     use tauri::test::MockRuntime;
 
@@ -78,15 +79,14 @@ mod test {
         let r1 = create_tree(app_handle, None, 3, 0).await;
         let r2 = create_tree(app_handle, None, 3, 0).await;
 
-        let c3 = Card::new(r1.id.clone(), None);
-        query::insert_card(pool, &c3).await.unwrap();
-
-        let c2 = Card::new(r2.id.clone(), Some(c3.id.clone()));
-        query::insert_card(pool, &c2).await.unwrap();
-
-        let c1 = Card::new(r1.id.clone(), Some(c2.id.clone()));
+        let c1 = Card::new(r1.id.clone(), None);
         query::insert_card(pool, &c1).await.unwrap();
 
+        let c2 = Card::new(r2.id.clone(), None);
+        query::insert_card(pool, &c2).await.unwrap();
+
+        let c3 = Card::new(r1.id.clone(), None);
+        query::insert_card(pool, &c3).await.unwrap();
 
         sqlx::query!(
             r#"
@@ -111,6 +111,13 @@ mod test {
         .execute(pool)
         .await
         .unwrap();
+
+        insert_quote_without_versioning(app_handle.clone(), &c1.id, &c2.id)
+            .await
+            .unwrap();
+        insert_quote_without_versioning(app_handle.clone(), &c2.id, &c3.id)
+            .await
+            .unwrap();
 
         let (outlines, cards) = fetch_relation(
             app_handle.clone(),

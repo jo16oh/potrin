@@ -8,14 +8,13 @@ where
     sqlx::query_as!(
         Card,
         r#"
-            INSERT INTO cards (id, outline_id, fractional_index, text, quote)
-            VALUES (?, ?, ?, ?, ?);
+            INSERT INTO cards (id, outline_id, fractional_index, text)
+            VALUES (?, ?, ?, ?);
         "#,
         card.id,
         card.outline_id,
         card.fractional_index,
-        card.text,
-        card.quote
+        card.text
     )
     .execute(conn)
     .await?;

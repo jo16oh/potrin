@@ -37,8 +37,8 @@ pub async fn count_relation(
                 id,
                 (
                     SELECT COUNT(*)
-                    FROM cards
-                    WHERE quote = this.id
+                    FROM quotes
+                    WHERE quoted_card_id = this.id
                 ) AS back,
                 (
                     (
@@ -49,8 +49,8 @@ pub async fn count_relation(
                     +
                     (
                         SELECT COUNT(*)
-                        FROM cards
-                        WHERE id = this.id AND quote IS NOT NULL
+                        FROM quotes
+                        WHERE card_id = this.id
                     )
                 ) AS forward
             FROM cards AS this
@@ -128,8 +128,9 @@ pub async fn count_relation_recursively(
                         +
                         (
                             SELECT COUNT(*)
-                            FROM cards
-                            WHERE cards.quote IN ((
+                            FROM quotes
+                            WHERE quoted_card_id
+                             IN ((
                                 SELECT id
                                 FROM tree_cards
                                 WHERE tree_cards.root_id = this.id
@@ -159,14 +160,13 @@ pub async fn count_relation_recursively(
                         +
                         (
                             SELECT COUNT(*)
-                            FROM cards
+                            FROM quotes
                             WHERE 
-                                id IN ((
+                                card_id IN ((
                                     SELECT id
                                     FROM tree_cards
                                     WHERE tree_cards.root_id = this.id
                                 )) 
-                                AND quote IS NOT NULL
                         )
                     ) AS forward
                 FROM tree AS this
@@ -176,8 +176,8 @@ pub async fn count_relation_recursively(
                     id,
                     (
                         SELECT COUNT(*)
-                        FROM cards
-                        WHERE quote = this.id
+                        FROM quotes
+                        WHERE quoted_card_id = this.id
                     ) AS back,
                     (
                         (
@@ -188,8 +188,8 @@ pub async fn count_relation_recursively(
                         +
                         (
                             SELECT COUNT(*)
-                            FROM cards
-                            WHERE id = this.id AND quote IS NOT NULL
+                            FROM quotes
+                            WHERE card_id = this.id
                         )
                     ) AS forward
                 FROM tree_cards AS this

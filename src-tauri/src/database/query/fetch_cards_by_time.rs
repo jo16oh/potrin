@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use chrono::{DateTime, Utc};
 use sqlx::SqlitePool;
 
-use crate::types::model::Card;
+use crate::types::model::{Card, RawCard};
 
 pub async fn fetch_cards_by_created_at(
     pool: &SqlitePool,
@@ -12,10 +12,15 @@ pub async fn fetch_cards_by_created_at(
     let from = from.timestamp_millis();
     let to = to.timestamp_millis();
     sqlx::query_as!(
-        Card,
+        RawCard,
         r#"
-            SELECT id, outline_id, fractional_index, text, quote
+            SELECT
+                cards.id, cards.outline_id, cards.fractional_index, cards.text,
+                cards.version_id AS version_id,
+                quotes.quoted_card_id AS quoted_card_id,
+                quotes.version_id AS quote_version_id
             FROM cards
+            LEFT JOIN quotes ON cards.id = quotes.card_id
             WHERE ? <= created_at AND created_at < ? AND is_deleted = false;
         "#,
         from,
@@ -23,6 +28,7 @@ pub async fn fetch_cards_by_created_at(
     )
     .fetch_all(pool)
     .await
+    .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
     .map_err(|e| anyhow!(e))
 }
 
@@ -34,17 +40,23 @@ pub async fn fetch_cards_by_updated_at(
     let from = from.timestamp_millis();
     let to = to.timestamp_millis();
     sqlx::query_as!(
-        Card,
+        RawCard,
         r#"
-            SELECT id, outline_id, fractional_index, text, quote
+            SELECT
+                cards.id, cards.outline_id, cards.fractional_index, cards.text,
+                cards.version_id AS version_id,
+                quotes.quoted_card_id AS quoted_card_id,
+                quotes.version_id AS quote_version_id
             FROM cards
-            WHERE ? <= updated_at AND updated_at < ? AND is_deleted = false;
+            LEFT JOIN quotes ON cards.id = quotes.card_id
+            WHERE ? <= cards.created_at AND cards.updated_at < ? AND is_deleted = false;
         "#,
         from,
         to,
     )
     .fetch_all(pool)
     .await
+    .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
     .map_err(|e| anyhow!(e))
 }
 
@@ -56,10 +68,15 @@ pub async fn fetch_cards_by_created_at_and_updated_at(
     let from = from.timestamp_millis();
     let to = to.timestamp_millis();
     sqlx::query_as!(
-        Card,
+        RawCard,
         r#"
-            SELECT id, outline_id, fractional_index, text, quote
+            SELECT
+                cards.id, cards.outline_id, cards.fractional_index, cards.text,
+                cards.version_id AS version_id,
+                quotes.quoted_card_id AS quoted_card_id,
+                quotes.version_id AS quote_version_id
             FROM cards
+            LEFT JOIN quotes ON cards.id = quotes.card_id
             WHERE
                 ((? <= updated_at AND updated_at < ?) OR (? <= created_at AND created_at < ?))
                 AND is_deleted = false;
@@ -71,5 +88,6 @@ pub async fn fetch_cards_by_created_at_and_updated_at(
     )
     .fetch_all(pool)
     .await
+    .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
     .map_err(|e| anyhow!(e))
 }

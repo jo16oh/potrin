@@ -45,10 +45,11 @@ pub mod test {
     use crate::commands::update_app_state;
     use crate::database::query;
     use crate::state::AppStateValues;
-    use crate::types::model::{Card, Outline, Pot, User};
+    use crate::types::model::{Card, Outline, Pot, Quote, User};
     use crate::types::state::{AppState, PotState, UserState};
     use crate::types::util::Base64;
     use anyhow::anyhow;
+    use chrono::Utc;
     use sqlx::SqlitePool;
     use tauri::Manager;
     use tauri::{test::MockRuntime, AppHandle};
@@ -138,5 +139,53 @@ pub mod test {
         )
         .await
         .unwrap();
+    }
+
+    pub async fn insert_quote_without_versioning(
+        app_handle: AppHandle<MockRuntime>,
+        card_id: &Base64,
+        quoted_card_id: &Base64,
+    ) -> anyhow::Result<()> {
+        let pool = app_handle
+            .try_state::<SqlitePool>()
+            .ok_or(anyhow!("failed to get SqlitePool"))?
+            .inner();
+        let lock = app_handle.state::<RwLock<AppState>>().inner();
+
+        let pot_id = {
+            let app_state = lock.read().unwrap();
+            let pot = app_state.pot.as_ref().unwrap();
+            pot.id.clone()
+        };
+
+        let now = Utc::now().timestamp_millis();
+
+        let version_id = uuidv7::create_raw().to_vec();
+
+        sqlx::query!(
+            r#"
+                INSERT INTO versions (id, pot_id, timestamp)
+                VALUES (?, ?, ?);
+            "#,
+            version_id,
+            pot_id,
+            now
+        )
+        .execute(pool)
+        .await?;
+
+        sqlx::query!(
+            r#"
+                INSERT INTO quotes (card_id, quoted_card_id, version_id)
+                VALUES (?, ?, ?);
+            "#,
+            card_id,
+            quoted_card_id,
+            version_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
     }
 }

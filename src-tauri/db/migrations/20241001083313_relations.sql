@@ -18,9 +18,9 @@ CREATE INDEX card_links$to_idx ON card_links(id_to);
 
 CREATE TABLE quotes (
     card_id BLOB REFERENCES cards(id) ON DELETE CASCADE PRIMARY KEY,
-    quote BLOB REFERENCES cards(id) ON DELETE SET NULL,
-    version_id BLOB REFERENCES versions(id) ON DELETE RESTRICT
+    quoted_card_id BLOB REFERENCES cards(id) ON DELETE SET NULL,
+    version_id BLOB REFERENCES versions(id) ON DELETE RESTRICT NOT NULL
 ) STRICT;
 
-CREATE INDEX quotes$quote_idx ON quotes(quote);
+CREATE INDEX quotes$quote_idx ON quotes(quoted_card_id);
 CREATE INDEX quotes$version_id_idx ON quotes(version_id);

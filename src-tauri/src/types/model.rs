@@ -54,6 +54,17 @@ pub struct OutlineYUpdate {
     pub is_checkpoint: i64,
 }
 
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
+pub struct RawCard {
+    pub id: Base64,
+    pub outline_id: Base64,
+    pub fractional_index: String,
+    pub text: String,
+    pub version_id: NullableBase64,
+    pub quoted_card_id: NullableBase64,
+    pub quote_version_id: NullableBase64,
+}
+
 #[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -62,18 +73,47 @@ pub struct Card {
     pub outline_id: Base64,
     pub fractional_index: String,
     pub text: String,
-    pub quote: NullableBase64,
+    pub version_id: NullableBase64,
+    pub quote: Option<Quote>,
+}
+
+impl From<RawCard> for Card {
+    fn from(value: RawCard) -> Self {
+        Self {
+            id: value.id,
+            outline_id: value.outline_id,
+            fractional_index: value.fractional_index,
+            text: value.text,
+            version_id: value.version_id,
+            quote: if let Some(version_id) = value.quote_version_id.into_option() {
+                Some(Quote {
+                    id: value.quoted_card_id,
+                    version_id,
+                })
+            } else {
+                None
+            },
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct Quote {
+    pub id: NullableBase64,
+    pub version_id: Base64,
 }
 
 #[cfg(test)]
 impl Card {
-    pub fn new(outline_id: Base64, quote: Option<Base64>) -> Self {
+    pub fn new(outline_id: Base64, quote: Option<Quote>) -> Self {
         Self {
             id: Base64::from(uuidv7::create_raw().to_vec()),
             outline_id,
             fractional_index: String::new(),
             text: String::new(),
-            quote: NullableBase64::from(quote),
+            version_id: NullableBase64::none(),
+            quote,
         }
     }
 }
