@@ -196,6 +196,7 @@ impl From<Option<Base64>> for NullableBase64 {
 }
 
 impl NullableBase64 {
+    #[cfg(test)]
     pub fn as_ref(&self) -> Option<&Base64> {
         self.0.as_ref()
     }
@@ -204,6 +205,7 @@ impl NullableBase64 {
         self.0
     }
 
+    #[cfg(test)]
     pub fn none() -> Self {
         Self(None)
     }

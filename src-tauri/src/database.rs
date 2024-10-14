@@ -45,7 +45,7 @@ pub mod test {
     use crate::commands::update_app_state;
     use crate::database::query;
     use crate::state::AppStateValues;
-    use crate::types::model::{Card, Outline, Pot, Quote, User};
+    use crate::types::model::{Card, Outline, Pot, User};
     use crate::types::state::{AppState, PotState, UserState};
     use crate::types::util::Base64;
     use anyhow::anyhow;
