@@ -40,7 +40,6 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
 #[cfg(test)]
 pub mod test {
-    use std::sync::RwLock;
 
     use crate::commands::update_app_state;
     use crate::database::query;
@@ -51,6 +50,7 @@ pub mod test {
     use anyhow::anyhow;
     use chrono::Utc;
     use sqlx::SqlitePool;
+    use tauri::async_runtime::RwLock;
     use tauri::Manager;
     use tauri::{test::MockRuntime, AppHandle};
 
@@ -71,20 +71,16 @@ pub mod test {
             .ok_or(anyhow!("failed to get state"))
             .unwrap();
 
-        let pot_id = {
-            let app_state = lock.read().map_err(|e| anyhow!(e.to_string())).unwrap();
-            let pot = app_state
-                .pot
-                .as_ref()
-                .ok_or(anyhow!("pot state is not set"))
-                .unwrap();
-            pot.id.clone()
-        };
+        let app_state = lock.read().await;
+        let pot_id = &app_state
+            .pot
+            .as_ref()
+            .ok_or(anyhow!("pot state is not set"))
+            .unwrap()
+            .id;
 
         let outline = Outline::new(parent_id.as_ref());
-        query::insert_outline(pool, &outline, &pot_id)
-            .await
-            .unwrap();
+        query::insert_outline(pool, &outline, pot_id).await.unwrap();
 
         let card = Card::new(outline.id.clone(), None);
         query::insert_card(pool, &card).await.unwrap();
@@ -152,11 +148,13 @@ pub mod test {
             .inner();
         let lock = app_handle.state::<RwLock<AppState>>().inner();
 
-        let pot_id = {
-            let app_state = lock.read().unwrap();
-            let pot = app_state.pot.as_ref().unwrap();
-            pot.id.clone()
-        };
+        let app_state = lock.read().await;
+        let pot_id = &app_state
+            .pot
+            .as_ref()
+            .ok_or(anyhow!("pot state is not set"))
+            .unwrap()
+            .id;
 
         let now = Utc::now().timestamp_millis();
 

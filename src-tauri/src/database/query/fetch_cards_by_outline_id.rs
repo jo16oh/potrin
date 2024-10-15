@@ -65,7 +65,7 @@ mod test {
         run_in_mock_app,
         types::{model::Outline, state::AppState},
     };
-    use std::sync::RwLock;
+    use tauri::async_runtime::RwLock;
     use tauri::{test::MockRuntime, AppHandle, Manager};
 
     #[test]
@@ -80,16 +80,18 @@ mod test {
         let pool = app_handle.state::<SqlitePool>().inner();
         let lock = app_handle.state::<RwLock<AppState>>().inner();
 
-        let pot_id = {
-            let app_state = lock.read().unwrap();
-            let pot = app_state.pot.as_ref().unwrap();
-            pot.id.clone()
-        };
+        let app_state = lock.read().await;
+        let pot_id = &app_state
+            .pot
+            .as_ref()
+            .ok_or(anyhow!("pot state is not set"))
+            .unwrap()
+            .id;
 
         let o1 = Outline::new(None);
         let o2 = Outline::new(None);
-        insert_outline(pool, &o1, &pot_id).await.unwrap();
-        insert_outline(pool, &o2, &pot_id).await.unwrap();
+        insert_outline(pool, &o1, pot_id).await.unwrap();
+        insert_outline(pool, &o2, pot_id).await.unwrap();
         let c1 = Card::new(o1.id.clone(), None);
         let c2 = Card::new(o2.id.clone(), None);
         insert_card(pool, &c1).await.unwrap();

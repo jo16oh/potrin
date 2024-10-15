@@ -1,10 +1,9 @@
-use crate::types::state::*;
 use crate::types::util::Base64;
+use crate::{types::state::*, utils::get_rw_state};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use std::sync::RwLock;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{async_runtime::RwLock, AppHandle, Manager, Runtime};
 
 struct QueryResult {
     value: Vec<u8>,
@@ -104,17 +103,11 @@ pub async fn update_app_state<R: Runtime>(
             .execute(pool)
             .await?;
 
-            let lock = app_handle
-                .try_state::<RwLock<AppState>>()
-                .ok_or(anyhow!("failed to get state"))?;
-            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            let lock = get_rw_state::<R, AppState>(&app_handle)?;
+            let mut app_state = lock.write().await;
             app_state.user = user_state;
         }
         AppStateValues::Pot(pot_state) => {
-            let lock = app_handle
-                .try_state::<RwLock<AppState>>()
-                .ok_or(anyhow!("failed to get state"))?;
-
             let workspace_state = match pot_state {
                 Some(ref pot) => {
                     let id = pot.id.clone();
@@ -175,14 +168,13 @@ pub async fn update_app_state<R: Runtime>(
             .execute(pool)
             .await?;
 
-            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            let lock = get_rw_state::<R, AppState>(&app_handle)?;
+            let mut app_state = lock.write().await;
             app_state.pot = pot_state;
             app_state.workspace = workspace_state;
         }
         AppStateValues::Workspace(workspace_state) => {
-            let lock = app_handle
-                .try_state::<RwLock<AppState>>()
-                .ok_or(anyhow!("failed to get state"))?;
+            let lock = get_rw_state::<R, AppState>(&app_handle)?;
 
             let value = serde_sqlite_jsonb::to_vec(&workspace_state)?;
             sqlx::query!(
@@ -205,14 +197,12 @@ pub async fn update_app_state<R: Runtime>(
             .await?;
 
             if let Some(ref workspace) = workspace_state {
-                let pot_id = {
-                    let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
-                    let pot = app_state
-                        .pot
-                        .as_ref()
-                        .ok_or(anyhow!("pot state is not set"))?;
-                    pot.id.clone()
-                };
+                let app_state = lock.read().await;
+                let pot_id = &app_state
+                    .pot
+                    .as_ref()
+                    .ok_or(anyhow!("pot state is not set"))?
+                    .id;
 
                 let value = serde_sqlite_jsonb::to_vec(&workspace)?;
 
@@ -231,23 +221,10 @@ pub async fn update_app_state<R: Runtime>(
                 .await?;
             }
 
-            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            let mut app_state = lock.write().await;
             app_state.workspace = workspace_state;
         }
         AppStateValues::Tabs(tabs) => {
-            let lock = app_handle
-                .try_state::<RwLock<AppState>>()
-                .ok_or(anyhow!("failed to get state"))?;
-
-            let pot_id = {
-                let app_state = lock.read().map_err(|e| anyhow!(e.to_string()))?;
-                let pot = app_state
-                    .pot
-                    .as_ref()
-                    .ok_or(anyhow!("pot state is not set"))?;
-                pot.id.clone()
-            };
-
             let value = serde_sqlite_jsonb::to_vec(&tabs)?;
 
             sqlx::query!(
@@ -280,21 +257,32 @@ pub async fn update_app_state<R: Runtime>(
             .execute(pool)
             .await?;
 
-            sqlx::query!(
-                r#"
-                    INSERT INTO workspaces (pot_id, value)
-                    VALUES (?, ?)
-                    ON CONFLICT (pot_id)
-                    DO UPDATE
-                    SET value = excluded.value;
-                "#,
-                pot_id,
-                value
-            )
-            .execute(pool)
-            .await?;
+            let lock = get_rw_state::<R, AppState>(&app_handle)?;
 
-            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            {
+                let app_state = lock.read().await;
+                let pot_id = &app_state
+                    .pot
+                    .as_ref()
+                    .ok_or(anyhow!("pot state is not set"))?
+                    .id;
+
+                sqlx::query!(
+                    r#"
+                        INSERT INTO workspaces (pot_id, value)
+                        VALUES (?, ?)
+                        ON CONFLICT (pot_id)
+                        DO UPDATE
+                        SET value = excluded.value;
+                    "#,
+                    pot_id,
+                    value
+                )
+                .execute(pool)
+                .await?;
+            }
+
+            let mut app_state = lock.write().await;
             app_state
                 .workspace
                 .as_mut()
@@ -322,10 +310,8 @@ pub async fn update_app_state<R: Runtime>(
             .execute(pool)
             .await?;
 
-            let lock = app_handle
-                .try_state::<RwLock<AppState>>()
-                .ok_or(anyhow!("failed to get state"))?;
-            let mut app_state = lock.write().map_err(|e| anyhow!(e.to_string()))?;
+            let lock = get_rw_state::<R, AppState>(&app_handle)?;
+            let mut app_state = lock.write().await;
             app_state.setting = setting;
         }
     }

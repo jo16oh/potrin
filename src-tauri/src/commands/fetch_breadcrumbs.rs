@@ -31,7 +31,7 @@ mod test {
     use crate::types::model::Outline;
     use crate::types::state::AppState;
     use crate::types::util::NullableBase64;
-    use std::sync::RwLock;
+    use tauri::async_runtime::RwLock;
     use tauri::test::MockRuntime;
     use tauri::AppHandle;
 
@@ -47,17 +47,19 @@ mod test {
         let pool = app_handle.state::<SqlitePool>().inner();
         let lock = app_handle.state::<RwLock<AppState>>().inner();
 
-        let pot_id = {
-            let app_state = lock.read().unwrap();
-            let pot = app_state.pot.as_ref().unwrap();
-            pot.id.clone()
-        };
+        let app_state = lock.read().await;
+        let pot_id = &app_state
+            .pot
+            .as_ref()
+            .ok_or(anyhow!("pot state is not set"))
+            .unwrap()
+            .id;
 
         let root = Outline::new(None);
-        query::insert_outline(pool, &root, &pot_id).await.unwrap();
+        query::insert_outline(pool, &root, pot_id).await.unwrap();
 
         let child = Outline::new(Some(&root.id));
-        query::insert_outline(pool, &child, &pot_id).await.unwrap();
+        query::insert_outline(pool, &child, pot_id).await.unwrap();
 
         let grand_child = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -66,7 +68,7 @@ mod test {
             text: Some(String::new()),
         };
 
-        query::insert_outline(pool, &grand_child, &pot_id)
+        query::insert_outline(pool, &grand_child, pot_id)
             .await
             .unwrap();
 

@@ -29,8 +29,6 @@ pub async fn fetch_relation_count<R: Runtime>(
 
 #[cfg(test)]
 mod test {
-    use std::sync::RwLock;
-
     use super::*;
     use crate::database::query;
     use crate::database::test::{create_mock_user_and_pot, insert_quote_without_versioning};
@@ -38,6 +36,7 @@ mod test {
     use crate::types::model::{Card, Outline};
     use crate::types::state::AppState;
     use crate::types::util::NullableBase64;
+    use tauri::async_runtime::RwLock;
     use tauri::test::MockRuntime;
 
     #[test]
@@ -115,23 +114,19 @@ mod test {
     ) -> ((Outline, Outline), (Card, Card)) {
         let lock = app_handle.state::<RwLock<AppState>>().inner();
 
-        let pot_id = {
-            let app_state = lock.read().unwrap();
-
-            let pot = app_state
-                .pot
-                .as_ref()
-                .ok_or(anyhow!("failed to get pot state"))
-                .unwrap();
-
-            pot.id.clone()
-        };
+        let app_state = lock.read().await;
+        let pot_id = &app_state
+            .pot
+            .as_ref()
+            .ok_or(anyhow!("pot state is not set"))
+            .unwrap()
+            .id;
 
         let o1 = Outline::new(None);
-        query::insert_outline(pool, &o1, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o1, pot_id).await.unwrap();
 
         let o2 = Outline::new(None);
-        query::insert_outline(pool, &o2, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o2, pot_id).await.unwrap();
 
         let c1 = Card::new(o1.id.clone(), None);
         query::insert_card(pool, &c1).await.unwrap();
@@ -187,11 +182,13 @@ mod test {
     ) {
         let lock = app_handle.state::<RwLock<AppState>>().inner();
 
-        let pot_id = {
-            let app_state = lock.read().unwrap();
-            let pot = app_state.pot.as_ref().unwrap();
-            pot.id.clone()
-        };
+        let app_state = lock.read().await;
+        let pot_id = &app_state
+            .pot
+            .as_ref()
+            .ok_or(anyhow!("pot state is not set"))
+            .unwrap()
+            .id;
 
         let o1 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -199,7 +196,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        query::insert_outline(pool, &o1, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o1, pot_id).await.unwrap();
 
         let o2 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -207,7 +204,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        query::insert_outline(pool, &o2, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o2, pot_id).await.unwrap();
 
         let o3 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -215,7 +212,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        query::insert_outline(pool, &o3, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o3, pot_id).await.unwrap();
 
         let o4 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -223,7 +220,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        query::insert_outline(pool, &o4, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o4, pot_id).await.unwrap();
 
         let o5 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -231,14 +228,14 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        query::insert_outline(pool, &o5, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o5, pot_id).await.unwrap();
         let o6 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
             parent_id: NullableBase64::none(),
             fractional_index: String::new(),
             text: None,
         };
-        query::insert_outline(pool, &o6, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o6, pot_id).await.unwrap();
 
         let o7 = Outline {
             id: Base64::from(uuidv7::create_raw().to_vec()),
@@ -246,7 +243,7 @@ mod test {
             fractional_index: String::new(),
             text: None,
         };
-        query::insert_outline(pool, &o7, &pot_id).await.unwrap();
+        query::insert_outline(pool, &o7, pot_id).await.unwrap();
 
         let c1 = Card::new(o2.id.clone(), None);
         query::insert_card(pool, &c1).await.unwrap();
