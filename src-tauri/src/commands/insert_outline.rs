@@ -26,8 +26,7 @@ pub async fn insert_outline<R: Runtime>(
     let pot_id = &app_state
         .pot
         .as_ref()
-        .ok_or(anyhow!("pot state is not set"))
-        .unwrap()
+        .ok_or(anyhow!("pot state is not set"))?
         .id;
 
     query::insert_outline_y_updates(&mut *tx, &outline.id, &y_updates).await?;

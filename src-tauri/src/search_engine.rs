@@ -2,7 +2,7 @@ mod cjk_bigram_tokenizer;
 
 use crate::types::state::AppState;
 use crate::types::util::Base64;
-use crate::utils::set_rw_state;
+use crate::utils::{get_rw_state, set_rw_state};
 use anyhow::anyhow;
 use cjk_bigram_tokenizer::CJKBigramTokenizer;
 use diacritics::remove_diacritics;
@@ -17,7 +17,6 @@ use tantivy::tokenizer::{Language, LowerCaser, Stemmer};
 use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
-use tauri::async_runtime::RwLock;
 use tauri::test::MockRuntime;
 use tauri::{AppHandle, Manager, Runtime};
 use unicode_normalization::UnicodeNormalization;
@@ -75,13 +74,18 @@ pub async fn load_index<R: Runtime>(
         Ok(Index::create_in_ram(schema))
     } else {
         let mut path = app_handle.path().app_data_dir()?;
-        let lock = app_handle.state::<RwLock<AppState>>().inner();
+
+        let lock = match get_rw_state::<R, AppState>(app_handle) {
+            Ok(lock) => lock,
+            Err(_) => return Ok(()),
+        };
+
         let app_state = lock.read().await;
-        let pot_id = &app_state
-            .pot
-            .as_ref()
-            .ok_or(anyhow!("pot is not initialized"))?
-            .id;
+        let pot_id = match app_state.pot {
+            Some(ref pot) => &pot.id,
+            None => return Ok(()),
+        };
+
         path.push("search_engine");
         path.push(pot_id.to_string());
         if !path.exists() {
