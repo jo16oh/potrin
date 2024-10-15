@@ -7,7 +7,6 @@ mod fetch_relation;
 mod fetch_relation_count;
 mod fetch_timeline;
 mod fetch_tree;
-mod index;
 mod insert_card;
 mod insert_outline;
 mod insert_pot;
@@ -26,7 +25,6 @@ pub use fetch_relation::*;
 pub use fetch_relation_count::*;
 pub use fetch_timeline::*;
 pub use fetch_tree::*;
-pub use index::*;
 pub use insert_card::*;
 pub use insert_outline::*;
 pub use insert_pot::*;
@@ -61,8 +59,7 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         delete_outline_physically::<tauri::Wry>,
         delete_card_logically::<tauri::Wry>,
         delete_outline_logically::<tauri::Wry>,
-        index,
-        search,
+        search::<tauri::Wry>,
         update_app_state::<tauri::Wry>
     ]
 }

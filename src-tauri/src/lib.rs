@@ -41,25 +41,23 @@ fn setup<R: Runtime>(
     builder.mount_events(app);
     let app_handle = app.handle();
 
-    let handle = async_runtime::spawn({
+    let database_handle = async_runtime::spawn({
         let app_handle = app_handle.clone();
         async move { database::init(&app_handle).await }
     });
+    async_runtime::block_on(database_handle)??;
 
-    let handle2 = async_runtime::spawn({
-        let app_handle = app_handle.clone();
-        async move { search_engine::init(&app_handle, 0).await }
-    });
-
-    async_runtime::block_on(handle)??;
-
-    let handle3 = async_runtime::spawn({
+    let state_handle = async_runtime::spawn({
         let app_handle = app_handle.clone();
         async move { state::init(app_handle).await }
     });
+    async_runtime::block_on(state_handle)??;
 
-    async_runtime::block_on(handle2)??;
-    async_runtime::block_on(handle3)??;
+    let search_engine_handle = async_runtime::spawn({
+        let app_handle = app_handle.clone();
+        async move { search_engine::load_index(&app_handle, 0).await }
+    });
+    async_runtime::block_on(search_engine_handle)??;
 
     Ok(())
 }

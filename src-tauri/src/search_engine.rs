@@ -1,6 +1,8 @@
 mod cjk_bigram_tokenizer;
 
-use crate::utils::{get_once_lock, set_once_lock};
+use crate::types::state::AppState;
+use crate::types::util::Base64;
+use crate::utils::set_rw_state;
 use anyhow::anyhow;
 use cjk_bigram_tokenizer::CJKBigramTokenizer;
 use diacritics::remove_diacritics;
@@ -8,19 +10,14 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::any::TypeId;
 use std::fs;
-use std::sync::Mutex;
-use std::sync::OnceLock;
-use std::sync::RwLock;
 use tantivy::collector::TopDocs;
 use tantivy::directory::{ManagedDirectory, MmapDirectory};
-use tantivy::query::BooleanQuery;
-use tantivy::query::Occur;
 use tantivy::query::QueryParser;
-use tantivy::query::TermQuery;
 use tantivy::tokenizer::{Language, LowerCaser, Stemmer};
 use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, IndexReader};
 use tantivy::{Index, IndexWriter};
+use tauri::async_runtime::RwLock;
 use tauri::test::MockRuntime;
 use tauri::{AppHandle, Manager, Runtime};
 use unicode_normalization::UnicodeNormalization;
@@ -29,7 +26,6 @@ use unicode_normalization::UnicodeNormalization;
 #[derive(Serialize, Deserialize)]
 pub struct IndexTarget {
     pub id: String,
-    pub pot_id: String,
     pub doc_type: String,
     pub text: String,
 }
@@ -41,16 +37,13 @@ pub struct SearchResult {
     doc_type: String,
 }
 
-static INDEX: OnceLock<Index> = OnceLock::new();
-static READER: OnceLock<IndexReader> = OnceLock::new();
-static WRITER: OnceLock<Mutex<IndexWriter>> = OnceLock::new();
-static ID_FIELD: OnceLock<Field> = OnceLock::new();
-static POT_ID_FIELD: OnceLock<Field> = OnceLock::new();
-static TYPE_FIELD: OnceLock<Field> = OnceLock::new();
-static TEXT_FIELD: OnceLock<Field> = OnceLock::new();
-static QUERY_PARSER: OnceLock<RwLock<QueryParser>> = OnceLock::new();
+pub struct Fields {
+    id_field: Field,
+    type_field: Field,
+    text_field: Field,
+}
 
-pub async fn init<R: Runtime>(
+pub async fn load_index<R: Runtime>(
     app_handle: &AppHandle<R>,
     levenshtein_distance: u8,
 ) -> anyhow::Result<()> {
@@ -60,7 +53,6 @@ pub async fn init<R: Runtime>(
 
     let mut schema_builder = Schema::builder();
     schema_builder.add_text_field("id", STRING | STORED);
-    schema_builder.add_text_field("pot_id", STRING);
     schema_builder.add_text_field("type", STORED);
     schema_builder.add_text_field(
         "text",
@@ -72,16 +64,26 @@ pub async fn init<R: Runtime>(
     );
 
     let schema = schema_builder.build();
-    let id_field = schema.get_field("id")?;
-    let pot_id_field = schema.get_field("pot_id")?;
-    let type_field = schema.get_field("type")?;
-    let text_field = schema.get_field("text")?;
+
+    let fields = Fields {
+        id_field: schema.get_field("id")?,
+        type_field: schema.get_field("type")?,
+        text_field: schema.get_field("text")?,
+    };
 
     let index: Index = if TypeId::of::<R>() == TypeId::of::<MockRuntime>() {
         Ok(Index::create_in_ram(schema))
     } else {
         let mut path = app_handle.path().app_data_dir()?;
-        path.push("tantivy");
+        let lock = app_handle.state::<RwLock<AppState>>().inner();
+        let app_state = lock.read().await;
+        let pot_id = &app_state
+            .pot
+            .as_ref()
+            .ok_or(anyhow!("pot is not initialized"))?
+            .id;
+        path.push("search_engine");
+        path.push(pot_id.to_string());
         if !path.exists() {
             fs::create_dir_all(&path)?;
         }
@@ -107,59 +109,50 @@ pub async fn init<R: Runtime>(
 
     let mut query_parser = QueryParser::new(
         index.schema(),
-        vec![text_field],
+        vec![fields.text_field],
         tokenizer_manager_for_query,
     );
-    query_parser.set_field_fuzzy(text_field, true, levenshtein_distance, true);
+    query_parser.set_field_fuzzy(fields.text_field, true, levenshtein_distance, true);
     query_parser.set_conjunction_by_default();
 
-    let _ = set_once_lock(&INDEX, index);
-    let _ = set_once_lock(&READER, reader);
-    let _ = set_once_lock(&WRITER, Mutex::new(writer));
-    let _ = set_once_lock(&ID_FIELD, id_field);
-    let _ = set_once_lock(&POT_ID_FIELD, pot_id_field);
-    let _ = set_once_lock(&TYPE_FIELD, type_field);
-    let _ = set_once_lock(&TEXT_FIELD, text_field);
-    let _ = set_once_lock(&QUERY_PARSER, RwLock::new(query_parser));
+    set_rw_state::<R, Fields>(app_handle, fields).await?;
+    set_rw_state::<R, IndexReader>(app_handle, reader).await?;
+    set_rw_state::<R, IndexWriter>(app_handle, writer).await?;
+    set_rw_state::<R, QueryParser>(app_handle, query_parser).await?;
 
     Ok(())
 }
 
-pub async fn set_levenstein_distance(levenshtein_distance: u8) -> anyhow::Result<()> {
+pub async fn set_levenstein_distance(
+    fields: &Fields,
+    query_parser: &mut QueryParser,
+    levenshtein_distance: u8,
+) -> anyhow::Result<()> {
     if levenshtein_distance != 0 && levenshtein_distance != 1 && levenshtein_distance != 2 {
         return Err(anyhow!("Levenstein distance must be between 0 and 2"));
     }
 
-    let text_field = get_once_lock(&TEXT_FIELD)?;
-    let mut query_parser = get_once_lock(&QUERY_PARSER)?
-        .write()
-        .map_err(|e| anyhow!(e.to_string()))?;
-    query_parser.set_field_fuzzy(*text_field, true, levenshtein_distance, true);
+    query_parser.set_field_fuzzy(fields.text_field, true, levenshtein_distance, true);
     query_parser.set_conjunction_by_default();
 
     Ok(())
 }
 
-pub async fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
-    let id_field = get_once_lock(&ID_FIELD)?;
-    let pot_id_field = get_once_lock(&POT_ID_FIELD)?;
-    let type_field = get_once_lock(&TYPE_FIELD)?;
-    let text_field = get_once_lock(&TEXT_FIELD)?;
-    let mut writer = get_once_lock(&WRITER)?
-        .lock()
-        .map_err(|e| anyhow!(e.to_string()))?;
-
+pub async fn add_index(
+    fields: &Fields,
+    writer: &mut IndexWriter,
+    input: Vec<IndexTarget>,
+) -> anyhow::Result<()> {
     for item in input {
-        let term = Term::from_field_text(*id_field, &item.id);
+        let term = Term::from_field_text(fields.id_field, &item.id);
         writer.delete_term(term);
 
         let text = remove_diacritics(item.text.nfc().collect::<String>().as_str());
 
         writer.add_document(doc!(
-            *id_field => item.id,
-            *pot_id_field => item.pot_id,
-            *type_field => item.doc_type,
-            *text_field => text
+            fields.id_field => item.id,
+            fields.type_field => item.doc_type,
+            fields.text_field => text
         ))?;
     }
 
@@ -167,43 +160,45 @@ pub async fn index(input: Vec<IndexTarget>) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn search(query: &str, pot_id: &str, limit: u8) -> anyhow::Result<Vec<SearchResult>> {
-    let mut results: Vec<SearchResult> = vec![];
+pub async fn remove_index(
+    fields: &Fields,
+    writer: &mut IndexWriter,
+    target_ids: Vec<Base64>,
+) -> anyhow::Result<()> {
+    for id in target_ids {
+        let term = Term::from_field_text(fields.id_field, &id.to_string());
+        writer.delete_term(term);
+    }
+
+    writer.commit()?;
+    Ok(())
+}
+
+pub async fn search(
+    fields: &Fields,
+    reader: &IndexReader,
+    query_parser: &QueryParser,
+    query: &str,
+    limit: u8,
+) -> anyhow::Result<Vec<SearchResult>> {
     let query = remove_diacritics(query.nfc().collect::<String>().as_str());
-
-    let searcher = get_once_lock(&READER)?.searcher();
-    let id_field = get_once_lock(&ID_FIELD)?;
-    let pot_id_field = get_once_lock(&POT_ID_FIELD)?;
-    let type_field = get_once_lock(&TYPE_FIELD)?;
-
-    let query_parser = get_once_lock(&QUERY_PARSER)?
-        .read()
-        .map_err(|e| anyhow!(e.to_string()))?;
-
     let parsed_query = query_parser.parse_query(&query)?;
+    let searcher = reader.searcher();
 
-    let pot_id_query = Box::new(TermQuery::new(
-        Term::from_field_text(*pot_id_field, pot_id),
-        IndexRecordOption::Basic,
-    ));
+    let top_docs = searcher.search(&parsed_query, &TopDocs::with_limit(limit as usize))?;
 
-    let combined_query = BooleanQuery::new(vec![
-        (Occur::Must, pot_id_query),
-        (Occur::Must, parsed_query),
-    ]);
-
-    let top_docs = searcher.search(&combined_query, &TopDocs::with_limit(limit as usize))?;
+    let mut results: Vec<SearchResult> = vec![];
 
     for (_, doc_addres) in top_docs {
         let retreived_doc = searcher.doc::<TantivyDocument>(doc_addres)?;
         let id_value = retreived_doc
-            .get_first(*id_field)
+            .get_first(fields.id_field)
             .ok_or(anyhow!("id field of the search result is not defined!"))?
             .as_str()
             .ok_or(anyhow!("id field of the search result is not defined!"))?;
 
         let type_value = retreived_doc
-            .get_first(*type_field)
+            .get_first(fields.type_field)
             .ok_or(anyhow!("type field of the search result is not defined!"))?
             .as_str()
             .ok_or(anyhow!("type field of the search result is not defined!"))?;
@@ -220,7 +215,7 @@ pub async fn search(query: &str, pot_id: &str, limit: u8) -> anyhow::Result<Vec<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::run_in_mock_app;
+    use crate::{test::run_in_mock_app, utils::get_rw_state};
     use tauri::test::MockRuntime;
 
     #[test]
@@ -229,60 +224,41 @@ mod tests {
             let input = vec![
                 IndexTarget {
                     id: String::from("1"),
-                    pot_id: String::from("1"),
-                    doc_type: String::from("card"),
-                    text: String::from("content brûlée connection"),
-                },
-                IndexTarget {
-                    id: String::from("1.1"),
-                    pot_id: String::from("2"),
                     doc_type: String::from("card"),
                     text: String::from("content brûlée connection"),
                 },
                 IndexTarget {
                     id: String::from("2"),
-                    pot_id: String::from("1"),
                     doc_type: String::from("thread"),
                     text: String::from("東京国際空港（とうきょうこくさいくうこう、英語: Tokyo International Airport）は、東京都大田区にある日本最大の空港。通称は羽田空港（はねだくうこう、英語: Haneda Airport）であり、単に「羽田」と呼ばれる場合もある。空港コードはHND。"),
                 },
                 IndexTarget {
                     id: String::from("3"),
-                    pot_id: String::from("1"),
                     doc_type: String::from("thread"),
                     text: String::from("股份有限公司"),
                 },
                 IndexTarget {
                     id: String::from("4"),
-                    pot_id: String::from("1"),
                     doc_type: String::from("card"),
                     text: String::from("デカすぎで草"),
                 },
             ];
 
-            let _ = index(input).await;
-            READER.get().unwrap().reload().unwrap();
+            let fields_lock = get_rw_state::<MockRuntime, Fields>(app_handle).unwrap();
+            let reader_lock = get_rw_state::<MockRuntime, IndexReader>(app_handle).unwrap();
+            let writer_lock = get_rw_state::<MockRuntime, IndexWriter>(app_handle).unwrap();
+            let query_parser_lock = get_rw_state::<MockRuntime, QueryParser>(app_handle).unwrap();
+            let fields = fields_lock.read().await;
+            let reader = reader_lock.read().await;
+            let mut writer = writer_lock.write().await;
+            let mut query_parser = query_parser_lock.write().await;
+
+            add_index(&fields, &mut writer, input).await.unwrap();
+            reader.reload().unwrap();
 
             // prefix search
             assert_eq!(
-                search("c", "1", 100).await.unwrap(),
-                vec![SearchResult {
-                    id: String::from("1"),
-                    doc_type: String::from("card")
-                },]
-            );
-
-            // remove diacritics
-            assert_eq!(
-                search("brulee", "1", 100).await.unwrap(),
-                vec![SearchResult {
-                    id: String::from("1"),
-                    doc_type: String::from("card")
-                },]
-            );
-
-            // NFC normalization
-            assert_eq!(
-                search("brûlée".nfd().collect::<String>().as_str(), "1", 100)
+                search(&fields, &reader, &query_parser, "c", 100)
                     .await
                     .unwrap(),
                 vec![SearchResult {
@@ -291,29 +267,67 @@ mod tests {
                 },]
             );
 
-            // english stemming
+            // remove diacritics
             assert_eq!(
-                search("connected", "1", 100).await.unwrap(),
+                search(&fields, &reader, &query_parser, "brulee", 100)
+                    .await
+                    .unwrap(),
                 vec![SearchResult {
                     id: String::from("1"),
                     doc_type: String::from("card")
                 },]
             );
 
-            set_levenstein_distance(2).await.unwrap();
-            // fuzzy search
+            // NFC normalization
             assert_eq!(
-                search("cantnt", "1", 100).await.unwrap(),
+                search(
+                    &fields,
+                    &reader,
+                    &query_parser,
+                    "brûlée".nfd().collect::<String>().as_str(),
+                    100
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: String::from("1"),
                     doc_type: String::from("card")
                 },]
             );
-            set_levenstein_distance(0).await.unwrap();
+
+            // english stemming
+            assert_eq!(
+                search(&fields, &reader, &query_parser, "connected", 100)
+                    .await
+                    .unwrap(),
+                vec![SearchResult {
+                    id: String::from("1"),
+                    doc_type: String::from("card")
+                },]
+            );
+
+            set_levenstein_distance(&fields, &mut query_parser, 2)
+                .await
+                .unwrap();
+            // fuzzy search
+            assert_eq!(
+                search(&fields, &reader, &query_parser, "cantnt", 100)
+                    .await
+                    .unwrap(),
+                vec![SearchResult {
+                    id: String::from("1"),
+                    doc_type: String::from("card")
+                },]
+            );
+            set_levenstein_distance(&fields, &mut query_parser, 0)
+                .await
+                .unwrap();
 
             // japanese bigram
             assert_eq!(
-                search("はねだ", "1", 100).await.unwrap(),
+                search(&fields, &reader, &query_parser, "はねだ", 100)
+                    .await
+                    .unwrap(),
                 vec![SearchResult {
                     id: String::from("2"),
                     doc_type: String::from("thread")
@@ -322,7 +336,9 @@ mod tests {
 
             // english and japanese compound
             assert_eq!(
-                search("羽田Airport", "1", 100).await.unwrap(),
+                search(&fields, &reader, &query_parser, "羽田Airport", 100)
+                    .await
+                    .unwrap(),
                 vec![SearchResult {
                     id: String::from("2"),
                     doc_type: String::from("thread")
@@ -331,7 +347,9 @@ mod tests {
 
             // lowercase
             assert_eq!(
-                search("hnd", "1", 100).await.unwrap(),
+                search(&fields, &reader, &query_parser, "hnd", 100)
+                    .await
+                    .unwrap(),
                 vec![SearchResult {
                     id: String::from("2"),
                     doc_type: String::from("thread")
@@ -340,7 +358,9 @@ mod tests {
 
             // chinese bigram
             assert_eq!(
-                search("份有", "1", 100).await.unwrap(),
+                search(&fields, &reader, &query_parser, "份有", 100)
+                    .await
+                    .unwrap(),
                 vec![SearchResult {
                     id: String::from("3"),
                     doc_type: String::from("thread")
@@ -349,7 +369,9 @@ mod tests {
 
             // search one character word on the end of the sentence
             assert_eq!(
-                search("草", "1", 100).await.unwrap(),
+                search(&fields, &reader, &query_parser, "草", 100)
+                    .await
+                    .unwrap(),
                 vec![SearchResult {
                     id: String::from("4"),
                     doc_type: String::from("card")
