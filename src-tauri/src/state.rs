@@ -20,8 +20,8 @@ pub enum AppStateValues {
     Setting(SettingState),
 }
 
-pub async fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
-    let pool = get_state::<R, SqlitePool>(&app_handle)?;
+pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
+    let pool = get_state::<R, SqlitePool>(app_handle)?;
 
     let initial = sqlx::query_as!(
         QueryResult,
@@ -71,10 +71,10 @@ pub async fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
 }
 
 pub async fn update_app_state<R: Runtime>(
-    app_handle: AppHandle<R>,
+    app_handle: &AppHandle<R>,
     value: AppStateValues,
 ) -> anyhow::Result<()> {
-    let pool = get_state::<R, SqlitePool>(&app_handle)?;
+    let pool = get_state::<R, SqlitePool>(app_handle)?;
 
     match value {
         AppStateValues::User(user_state) => {
@@ -98,7 +98,7 @@ pub async fn update_app_state<R: Runtime>(
             .execute(pool)
             .await?;
 
-            let lock = get_rw_state::<R, AppState>(&app_handle)?;
+            let lock = get_rw_state::<R, AppState>(app_handle)?;
             let mut app_state = lock.write().await;
             app_state.user = user_state;
         }
@@ -163,13 +163,13 @@ pub async fn update_app_state<R: Runtime>(
             .execute(pool)
             .await?;
 
-            let lock = get_rw_state::<R, AppState>(&app_handle)?;
+            let lock = get_rw_state::<R, AppState>(app_handle)?;
             let mut app_state = lock.write().await;
             app_state.pot = pot_state;
             app_state.workspace = workspace_state;
         }
         AppStateValues::Workspace(workspace_state) => {
-            let lock = get_rw_state::<R, AppState>(&app_handle)?;
+            let lock = get_rw_state::<R, AppState>(app_handle)?;
 
             let value = serde_sqlite_jsonb::to_vec(&workspace_state)?;
             sqlx::query!(
@@ -252,7 +252,7 @@ pub async fn update_app_state<R: Runtime>(
             .execute(pool)
             .await?;
 
-            let lock = get_rw_state::<R, AppState>(&app_handle)?;
+            let lock = get_rw_state::<R, AppState>(app_handle)?;
 
             {
                 let app_state = lock.read().await;
@@ -305,7 +305,7 @@ pub async fn update_app_state<R: Runtime>(
             .execute(pool)
             .await?;
 
-            let lock = get_rw_state::<R, AppState>(&app_handle)?;
+            let lock = get_rw_state::<R, AppState>(app_handle)?;
             let mut app_state = lock.write().await;
             app_state.setting = setting;
         }
@@ -340,7 +340,7 @@ mod test {
                 name: "updated".to_string(),
             };
 
-            update_app_state(app_handle.clone(), AppStateValues::User(Some(user)))
+            update_app_state(app_handle, AppStateValues::User(Some(user)))
                 .await
                 .unwrap();
 
@@ -375,7 +375,7 @@ mod test {
                 sync: true,
             };
 
-            update_app_state(app_handle.clone(), AppStateValues::Pot(Some(pot.clone())))
+            update_app_state(app_handle, AppStateValues::Pot(Some(pot.clone())))
                 .await
                 .unwrap();
 
@@ -394,12 +394,9 @@ mod test {
                 focused_tab_idx: Some(1),
             };
 
-            update_app_state(
-                app_handle.clone(),
-                AppStateValues::Workspace(Some(workspace)),
-            )
-            .await
-            .unwrap();
+            update_app_state(app_handle, AppStateValues::Workspace(Some(workspace)))
+                .await
+                .unwrap();
 
             let app_state = get_app_state(pool).await;
 
@@ -411,7 +408,7 @@ mod test {
                 sync: true,
             };
 
-            update_app_state(app_handle.clone(), AppStateValues::Pot(Some(pot2.clone())))
+            update_app_state(app_handle, AppStateValues::Pot(Some(pot2.clone())))
                 .await
                 .unwrap();
 
@@ -419,7 +416,7 @@ mod test {
             assert_eq!(app_state.pot.unwrap().id, pot2.id);
             assert!(app_state.workspace.is_none());
 
-            update_app_state(app_handle.clone(), AppStateValues::Pot(Some(pot.clone())))
+            update_app_state(app_handle, AppStateValues::Pot(Some(pot.clone())))
                 .await
                 .unwrap();
 

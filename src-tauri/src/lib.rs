@@ -49,7 +49,7 @@ fn setup<R: Runtime>(
 
     let state_handle = async_runtime::spawn({
         let app_handle = app_handle.clone();
-        async move { state::init(app_handle).await }
+        async move { state::init(&app_handle).await }
     });
     async_runtime::block_on(state_handle)??;
 
