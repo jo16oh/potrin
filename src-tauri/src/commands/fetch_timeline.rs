@@ -4,12 +4,12 @@ use crate::database::query::{
 };
 use crate::types::model::{Card, Outline};
 use crate::types::util::Base64;
-use anyhow::anyhow;
+use crate::utils::get_state;
 use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;
 use serde::Serialize;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -29,10 +29,7 @@ pub async fn fetch_timeline<R: Runtime>(
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let to = from + Duration::days(1);
 
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("failed to get SqlitePool"))?
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let cards = match option {
         TlOption::CreatedAt => fetch_cards_by_created_at(pool, from, to).await?,
@@ -82,7 +79,7 @@ mod test {
         assert_eq!(outlines.len(), 0);
         assert_eq!(cards.len(), 0);
 
-        let pool = app_handle.state::<SqlitePool>().inner();
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
         let time = (Utc::now() + Duration::days(3)).timestamp_millis();
         sqlx::query!(

@@ -2,10 +2,10 @@ use crate::database::query;
 use crate::types::model::{Outline, OutlineChangeEvent, OutlineYUpdate};
 use crate::types::state::AppState;
 use crate::types::util::{Operation, Origin};
+use crate::utils::{get_rw_state, get_state};
 use anyhow::anyhow;
 use sqlx::SqlitePool;
-use tauri::async_runtime::RwLock;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 use tauri_specta::Event;
 
 #[tauri::command]
@@ -16,17 +16,11 @@ pub async fn insert_outline<R: Runtime>(
     outline: Outline,
     y_updates: Vec<OutlineYUpdate>,
 ) -> anyhow::Result<()> {
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("failed to get SqlitePool"))?
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let mut tx = pool.begin().await?;
 
-    let lock = app_handle
-        .try_state::<RwLock<AppState>>()
-        .ok_or(anyhow!("failed to get app state"))?
-        .inner();
+    let lock = get_rw_state::<R, AppState>(&app_handle)?;
 
     let app_state = lock.read().await;
     let pot_id = &app_state

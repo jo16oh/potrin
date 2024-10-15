@@ -1,10 +1,9 @@
 use crate::database::query;
 use crate::types::model::Breadcrumb;
 use crate::types::util::Base64;
-use anyhow::anyhow;
+use crate::utils::get_state;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
-use tauri::Manager;
 use tauri::Runtime;
 
 #[tauri::command]
@@ -14,10 +13,7 @@ pub async fn fetch_breadcrumbs<R: Runtime>(
     app_handle: AppHandle<R>,
     parent_ids: Vec<Base64>,
 ) -> anyhow::Result<Vec<Breadcrumb>> {
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("failed to get SqlitePool"))?
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     query::fetch_breadcrumbs(pool, parent_ids).await
 }
@@ -31,7 +27,7 @@ mod test {
     use crate::types::model::Outline;
     use crate::types::state::AppState;
     use crate::types::util::NullableBase64;
-    use tauri::async_runtime::RwLock;
+    use crate::utils::get_rw_state;
     use tauri::test::MockRuntime;
     use tauri::AppHandle;
 
@@ -44,16 +40,11 @@ mod test {
     }
 
     async fn test(app_handle: &AppHandle<MockRuntime>) {
-        let pool = app_handle.state::<SqlitePool>().inner();
-        let lock = app_handle.state::<RwLock<AppState>>().inner();
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
+        let lock = get_rw_state::<MockRuntime, AppState>(app_handle).unwrap();
         let app_state = lock.read().await;
-        let pot_id = &app_state
-            .pot
-            .as_ref()
-            .ok_or(anyhow!("pot state is not set"))
-            .unwrap()
-            .id;
+        let pot_id = &app_state.pot.as_ref().unwrap().id;
 
         let root = Outline::new(None);
         query::insert_outline(pool, &root, pot_id).await.unwrap();

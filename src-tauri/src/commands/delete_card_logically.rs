@@ -1,9 +1,9 @@
 use crate::database::query;
 use crate::types::model::{Card, CardChangeEvent};
 use crate::types::util::{Operation, Origin};
-use anyhow::anyhow;
+use crate::utils::get_state;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tauri_specta::Event;
 
 #[tauri::command]
@@ -13,10 +13,7 @@ pub async fn delete_card_logically<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     card: Card,
 ) -> anyhow::Result<()> {
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("failed to get SqlitePool"))?
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     query::delete_outline_logically(pool, &card.id).await?;
 

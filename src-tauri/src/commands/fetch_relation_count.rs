@@ -1,9 +1,9 @@
 use crate::database::query::count_relation;
 use crate::types::util::Base64;
+use crate::utils::get_state;
 use crate::{database::query::count_relation_recursively, types::model::LinkCount};
-use anyhow::anyhow;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 #[tauri::command]
 #[specta::specta]
@@ -14,11 +14,7 @@ pub async fn fetch_relation_count<R: Runtime>(
     card_ids: Vec<Base64>,
     count_children: bool,
 ) -> anyhow::Result<Vec<LinkCount>> {
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("failed to get SqlitePool"))
-        .unwrap()
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     if count_children {
         count_relation_recursively(pool, &outline_ids, &card_ids).await
@@ -36,7 +32,8 @@ mod test {
     use crate::types::model::{Card, Outline};
     use crate::types::state::AppState;
     use crate::types::util::NullableBase64;
-    use tauri::async_runtime::RwLock;
+    use crate::utils::get_rw_state;
+    use anyhow::anyhow;
     use tauri::test::MockRuntime;
 
     #[test]
@@ -56,7 +53,7 @@ mod test {
     }
 
     async fn test_count(app_handle: &AppHandle<MockRuntime>) {
-        let pool = app_handle.state::<SqlitePool>().inner();
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
         // outline1, card1 → outline2
         // card1 → card2
@@ -76,7 +73,7 @@ mod test {
     }
 
     async fn test_count_recursively(app_handle: &AppHandle<MockRuntime>) {
-        let pool = app_handle.state::<SqlitePool>().inner();
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
         // o3 → o1 → o6         back: 4, forward: 3
         // o4 → |_o2 → o7       back: 3, forward: 2
@@ -112,8 +109,7 @@ mod test {
         app_handle: &AppHandle<MockRuntime>,
         pool: &SqlitePool,
     ) -> ((Outline, Outline), (Card, Card)) {
-        let lock = app_handle.state::<RwLock<AppState>>().inner();
-
+        let lock = get_rw_state::<MockRuntime, AppState>(app_handle).unwrap();
         let app_state = lock.read().await;
         let pot_id = &app_state
             .pot
@@ -180,8 +176,7 @@ mod test {
         ),
         (Card, Card, Card),
     ) {
-        let lock = app_handle.state::<RwLock<AppState>>().inner();
-
+        let lock = get_rw_state::<MockRuntime, AppState>(app_handle).unwrap();
         let app_state = lock.read().await;
         let pot_id = &app_state
             .pot

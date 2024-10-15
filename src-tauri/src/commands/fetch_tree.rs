@@ -3,9 +3,9 @@ use crate::database::query::fetch_outline_tree;
 use crate::types::model::Card;
 use crate::types::model::Outline;
 use crate::types::util::Base64;
-use anyhow::anyhow;
+use crate::utils::get_state;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 #[tauri::command]
 #[specta::specta]
@@ -15,10 +15,7 @@ pub async fn fetch_tree<R: Runtime>(
     id: Base64,
     depth: Option<u32>,
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("failed to get SqlitePool"))?
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let outlines = fetch_outline_tree(&id, depth, pool).await?;
     let outline_ids = outlines.iter().map(|o| &o.id).collect::<Vec<&Base64>>();

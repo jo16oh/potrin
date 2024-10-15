@@ -28,3 +28,13 @@ where
         .try_state::<RwLock<T>>()
         .ok_or(anyhow!("failed to get state"))
 }
+
+pub fn get_state<R: Runtime, T>(app_handle: &AppHandle<R>) -> anyhow::Result<&T>
+where
+    T: 'static + Sync + Send,
+{
+    app_handle
+        .try_state::<T>()
+        .map(|r| r.inner())
+        .ok_or(anyhow!("failed to get state"))
+}

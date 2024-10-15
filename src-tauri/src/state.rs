@@ -1,4 +1,5 @@
 use crate::types::util::Base64;
+use crate::utils::get_state;
 use crate::{types::state::*, utils::get_rw_state};
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
@@ -20,10 +21,7 @@ pub enum AppStateValues {
 }
 
 pub async fn init<R: Runtime>(app_handle: AppHandle<R>) -> anyhow::Result<()> {
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("sqlite is not initialized"))?
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let initial = sqlx::query_as!(
         QueryResult,
@@ -76,10 +74,7 @@ pub async fn update_app_state<R: Runtime>(
     app_handle: AppHandle<R>,
     value: AppStateValues,
 ) -> anyhow::Result<()> {
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("sqlite is not initialized"))?
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     match value {
         AppStateValues::User(user_state) => {
@@ -330,8 +325,8 @@ mod test {
     #[test]
     fn test_init() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let app_state = app_handle.try_state::<RwLock<AppState>>();
-            assert!(app_state.is_some());
+            let app_state = get_rw_state::<MockRuntime, AppState>(app_handle);
+            assert!(app_state.is_ok());
         });
     }
 

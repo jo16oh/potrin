@@ -47,6 +47,7 @@ pub mod test {
     use crate::types::model::{Card, Outline, Pot, User};
     use crate::types::state::{AppState, PotState, UserState};
     use crate::types::util::Base64;
+    use crate::utils::{get_rw_state, get_state};
     use anyhow::anyhow;
     use chrono::Utc;
     use sqlx::SqlitePool;
@@ -60,17 +61,8 @@ pub mod test {
         limit: u8,
         current: u8,
     ) -> Outline {
-        let pool = app_handle
-            .try_state::<SqlitePool>()
-            .ok_or(anyhow!("failed to get SqlitePool"))
-            .unwrap()
-            .inner();
-
-        let lock = app_handle
-            .try_state::<RwLock<AppState>>()
-            .ok_or(anyhow!("failed to get state"))
-            .unwrap();
-
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
+        let lock = get_rw_state::<MockRuntime, AppState>(app_handle).unwrap();
         let app_state = lock.read().await;
         let pot_id = &app_state
             .pot
@@ -142,10 +134,7 @@ pub mod test {
         card_id: &Base64,
         quoted_card_id: &Base64,
     ) -> anyhow::Result<()> {
-        let pool = app_handle
-            .try_state::<SqlitePool>()
-            .ok_or(anyhow!("failed to get SqlitePool"))?
-            .inner();
+        let pool = get_state::<MockRuntime, SqlitePool>(&app_handle).unwrap();
         let lock = app_handle.state::<RwLock<AppState>>().inner();
 
         let app_state = lock.read().await;

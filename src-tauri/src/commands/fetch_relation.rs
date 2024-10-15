@@ -3,11 +3,11 @@ use crate::database::query::{fetch_relation_back, fetch_relation_forward};
 use crate::types::model::Card;
 use crate::types::model::Outline;
 use crate::types::util::Base64;
-use anyhow::anyhow;
+use crate::utils::get_state;
 use serde::Deserialize;
 use serde::Serialize;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -38,11 +38,7 @@ pub async fn fetch_relation<R: Runtime>(
     card_ids: Vec<Base64>,
     option: RelationOption,
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
-    let pool = app_handle
-        .try_state::<SqlitePool>()
-        .ok_or(anyhow!("failed to get SqlitePool"))
-        .unwrap()
-        .inner();
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let (outline_ids, card_ids) = match option.include_children {
         Some(opt) => fetch_descendant_ids(pool, &outline_ids, opt.include_cards).await?,
@@ -74,7 +70,7 @@ mod test {
     }
 
     async fn test(app_handle: &AppHandle<MockRuntime>) {
-        let pool = app_handle.state::<SqlitePool>().inner();
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
         let r1 = create_tree(app_handle, None, 3, 0).await;
         let r2 = create_tree(app_handle, None, 3, 0).await;
