@@ -18,11 +18,13 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
             .map_err(|e| anyhow!(e.to_string()))?
     } else {
         let mut path = app_handle.path().app_data_dir()?;
-        path.extend(["sqlite", "data.db"].iter());
+        path.push("sqlite");
 
-        if !path.parent().unwrap().exists() {
-            fs::create_dir_all(path.parent().unwrap())?;
+        if !path.exists() {
+            fs::create_dir_all(path.as_path())?;
         }
+
+        path.push("data.db");
 
         let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
         Sqlite::create_database(url).await?;
