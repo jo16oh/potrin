@@ -15,7 +15,7 @@ pub async fn delete_card_logically<R: tauri::Runtime>(
 ) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
-    query::delete_outline_logically(pool, &card.id).await?;
+    query::delete_card_logically(pool, &card.id).await?;
 
     CardChangeEvent::new(Operation::Delete, Origin::Local, &[card]).emit(&app_handle)?;
 

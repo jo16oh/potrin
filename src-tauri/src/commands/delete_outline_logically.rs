@@ -14,8 +14,11 @@ pub async fn delete_outline_logically<R: tauri::Runtime>(
     outline: Outline,
 ) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
+    let mut tx = pool.begin().await?;
 
-    query::delete_outline_logically(pool, &outline.id).await?;
+    query::delete_outline_logically(&mut tx, &outline.id).await?;
+
+    tx.commit().await?;
 
     OutlineChangeEvent::new(Operation::Delete, Origin::Local, &[outline]).emit(&app_handle)?;
 
