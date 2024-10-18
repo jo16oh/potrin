@@ -18,12 +18,12 @@ CREATE TRIGGER after_insert_outlines$oplog
 AFTER INSERT ON outlines
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
     VALUES (
       NEW.id,
       "outlines",
+      "insert",
       NEW.updated_at,
-      0,
       jsonb_object(
         'is_synced', jsonb('false'),
         'is_indexed', jsonb('false'),
@@ -48,12 +48,12 @@ CREATE TRIGGER after_update_outlines$oplog
 AFTER UPDATE ON outlines
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "outlines",
+    "update",
     NEW.updated_at,
-    0,
     jsonb_object(
       'is_synced', jsonb('false'),
       'is_indexed', jsonb('false'),
@@ -78,12 +78,12 @@ CREATE TRIGGER after_delete_outlines$oplog
 AFTER DELETE ON outlines
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     OLD.id,
     "outlines",
+    "delete",
     unixepoch('now', 'subsec') * 1000,
-    1,
     jsonb_object(
       'is_synced', jsonb('false'),
       'is_indexed', jsonb('false'),

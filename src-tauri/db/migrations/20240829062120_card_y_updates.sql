@@ -11,12 +11,12 @@ CREATE TRIGGER after_insert_card_y_updates$oplog
 AFTER INSERT ON card_y_updates
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "card_y_updates",
+    "insert",
     NEW.created_at,
-    0,
     jsonb_object(
       'is_synced', jsonb(false)
     )
@@ -27,28 +27,19 @@ CREATE TRIGGER after_update_card_y_updates$oplog
 AFTER UPDATE ON card_y_updates
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
-  VALUES (
-    NEW.id,
-    "card_y_updates",
-    NEW.created_at,
-    0,
-    jsonb_object(
-      'is_synced', jsonb(false)
-    )
-  );
+  SELECT RAISE(FAIL, 'update is not allowed');
 END;
 
 CREATE TRIGGER after_delete_card_y_updates$oplog
 AFTER DELETE ON card_y_updates
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     OLD.id,
     "card_y_updates",
+    "delete",
     unixepoch('now', 'subsec') * 1000,
-    1,
     jsonb_object(
       'is_synced', jsonb(false)
     )
@@ -62,3 +53,53 @@ CREATE TABLE card_y_update_version (
 );
 
 CREATE INDEX card_y_update_version$card_y_update_id ON card_y_update_version(card_y_update_id);
+
+CREATE TABLE card_y_updates_versions (
+  version_id BLOB REFERENCES versions(id),
+  y_update_id BLOB REFERENCES card_y_updates(id),
+  UNIQUE (version_id, y_update_id)
+) STRICT;
+
+CREATE INDEX card_y_updates_versions$version_id ON card_y_updates_versions(version_id);
+CREATE INDEX card_y_updates_versions$y_update_id ON card_y_updates_versions(y_update_id);
+
+CREATE TRIGGER after_insert_card_y_updates_versions$oplog
+AFTER INSERT ON card_y_updates_versions
+FOR EACH ROW
+BEGIN
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  VALUES (
+    NEW.version_id,
+    "card_y_updates_versions",
+    "insert",
+    unixepoch('now', 'subsec') * 1000,
+    jsonb_object(
+      'rowid', NEW.rowid,
+      'is_synced', jsonb(false)
+    )
+  );
+END;
+
+CREATE TRIGGER after_update_card_y_updates_versions$oplog
+AFTER UPDATE ON card_y_updates_versions
+FOR EACH ROW
+BEGIN
+  SELECT RAISE(FAIL, 'update is not allowed');
+END;
+
+CREATE TRIGGER after_delete_card_y_updates_versions$oplog
+AFTER DELETE ON card_y_updates_versions
+FOR EACH ROW
+BEGIN
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  VALUES (
+    OLD.version_id,
+    "card_y_updates_versions",
+    "delete",
+    unixepoch('now', 'subsec') * 1000,
+    jsonb_object(
+      'rowid', OLD.rowid,
+      'is_synced', jsonb(false)
+    )
+  );
+END;

@@ -17,12 +17,12 @@ CREATE TRIGGER after_insert_cards$oplog
 AFTER INSERT ON cards
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "cards",
+    "insert",
     NEW.updated_at,
-    0,
     jsonb_object(
       'is_synced', jsonb('false'),
       'is_indexed', jsonb('false')
@@ -34,12 +34,12 @@ CREATE TRIGGER after_update_cards$oplog
 AFTER UPDATE ON cards
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
+    "update",
     "cards",
     NEW.updated_at,
-    0,
     jsonb_object(
       'is_synced', jsonb('false'),
       'is_indexed', jsonb('false')
@@ -51,12 +51,12 @@ CREATE TRIGGER after_delete_cards$oplog
 AFTER DELETE ON cards
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     OLD.id,
     "cards",
+    "delete",
     unixepoch('now', 'subsec') * 1000,
-    1,
     jsonb_object(
       'is_synced', jsonb('false'),
       'is_indexed', jsonb('false')

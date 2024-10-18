@@ -11,12 +11,12 @@ CREATE TRIGGER after_insert_outline_y_updates$oplog
 AFTER INSERT ON outline_y_updates
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "outline_y_updates",
+    "insert",
     NEW.created_at,
-    1,
     jsonb_object(
       'is_synced', jsonb(false)
     )
@@ -27,28 +27,19 @@ CREATE TRIGGER after_update_outline_y_updates$oplog
 AFTER UPDATE ON outline_y_updates
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
-  VALUES (
-    NEW.id,
-    "outline_y_updates",
-    NEW.created_at,
-    1,
-    jsonb_object(
-      'is_synced', jsonb(false)
-    )
-  );
+  SELECT RAISE(FAIL, 'update is not allowed');
 END;
 
 CREATE TRIGGER after_delete_outline_y_updates$oplog
 AFTER DELETE ON outline_y_updates
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, updated_at, is_deleted, status)
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
   VALUES (
     OLD.id,
     "outline_y_updates",
+    "delete",
     unixepoch('now', 'subsec') * 1000,
-    1,
     jsonb_object(
       'is_synced', jsonb(false)
     )
@@ -62,3 +53,54 @@ CREATE TABLE version_outline_y_update (
 );
 
 CREATE INDEX version_outline_y_update$card_y_update_id ON version_outline_y_update(outline_y_update_id);
+
+CREATE TABLE outline_y_updates_versions (
+  rowid INTEGER PRIMARY KEY,
+  version_id BLOB REFERENCES versions(id),
+  y_update_id BLOB REFERENCES outline_y_updates(id),
+  UNIQUE (version_id, y_update_id)
+) STRICT;
+
+CREATE INDEX outline_y_updates_versions$version_id ON outline_y_updates_versions(version_id);
+CREATE INDEX outline_y_updates_versions$y_update_id ON outline_y_updates_versions(y_update_id);
+
+CREATE TRIGGER after_insert_outline_y_updates_versions$oplog
+AFTER INSERT ON outline_y_updates_versions
+FOR EACH ROW
+BEGIN
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  VALUES (
+    NEW.version_id,
+    "outline_y_updates_versions",
+    "insert",
+    unixepoch('now', 'subsec') * 1000,
+    jsonb_object(
+      'rowid', NEW.rowid,
+      'is_synced', jsonb(false)
+    )
+  );
+END;
+
+CREATE TRIGGER after_update_outline_y_updates_versions$oplog
+AFTER UPDATE ON outline_y_updates_versions
+FOR EACH ROW
+BEGIN
+  SELECT RAISE(FAIL, 'update is not allowed');
+END;
+
+CREATE TRIGGER after_delete_outline_y_updates_versions$oplog
+AFTER DELETE ON outline_y_updates_versions
+FOR EACH ROW
+BEGIN
+  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  VALUES (
+    OLD.version_id,
+    "outline_y_updates_versions",
+    "delete",
+    unixepoch('now', 'subsec') * 1000,
+    jsonb_object(
+      'rowid', OLD.rowid,
+      'is_synced', jsonb(false)
+    )
+  );
+END;
