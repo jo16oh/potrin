@@ -1,6 +1,6 @@
-use crate::database::query::fetch_descendant_ids;
+use crate::database::query::{fetch_descendant_ids, fetch_links};
 use crate::database::query::{fetch_relation_back, fetch_relation_forward};
-use crate::types::model::Card;
+use crate::types::model::{Card, Link};
 use crate::types::model::Outline;
 use crate::types::util::Base64;
 use crate::utils::get_state;
@@ -37,7 +37,7 @@ pub async fn fetch_relation<R: Runtime>(
     outline_ids: Vec<Base64>,
     card_ids: Vec<Base64>,
     option: RelationOption,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>, Vec<Link>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let (outline_ids, card_ids) = match option.include_children {
@@ -45,10 +45,17 @@ pub async fn fetch_relation<R: Runtime>(
         None => (outline_ids, card_ids),
     };
 
-    match option.direction {
+    let (outlines, cards) = match option.direction {
         Direction::Back => fetch_relation_back(pool, &outline_ids, &card_ids).await,
         Direction::Forward => fetch_relation_forward(pool, &outline_ids, &card_ids).await,
-    }
+    }?;
+
+    let outline_ids = outlines.iter().map(|o| &o.id).collect::<Vec<&Base64>>();
+    let card_ids = cards.iter().map(|o| &o.id).collect::<Vec<&Base64>>();
+
+    let links = fetch_links(pool, &outline_ids, &card_ids).await?;
+
+    Ok((outlines, cards, links))
 }
 
 #[cfg(test)]
@@ -115,7 +122,7 @@ mod test {
             .await
             .unwrap();
 
-        let (outlines, cards) = fetch_relation(
+        let (outlines, cards, _links) = fetch_relation(
             app_handle.clone(),
             vec![r2.id],
             vec![],
@@ -132,7 +139,7 @@ mod test {
         assert_eq!(outlines.len(), 1);
         assert_eq!(cards.len(), 2);
 
-        let (outlines, cards) = fetch_relation(
+        let (outlines, cards, _links) = fetch_relation(
             app_handle.clone(),
             vec![r1.id],
             vec![],

@@ -1,5 +1,5 @@
-use crate::database::query::{fetch_cards_by_created_at, fetch_outlines_by_id};
-use crate::types::model::{Card, Outline};
+use crate::database::query::{fetch_cards_by_created_at, fetch_links, fetch_outlines_by_id};
+use crate::types::model::{Card, Link, Outline};
 use crate::types::util::Base64;
 use crate::utils::get_state;
 use chrono::{DateTime, Duration, Utc};
@@ -20,16 +20,18 @@ use tauri::{AppHandle, Runtime};
 pub async fn fetch_timeline<R: Runtime>(
     app_handle: AppHandle<R>,
     from: DateTime<Utc>,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>, Vec<Link>)> {
     let to = from + Duration::days(1);
 
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let cards = fetch_cards_by_created_at(pool, from, to).await?;
+    let card_ids: Vec<&Base64> = cards.iter().map(|c| &c.id).collect();
     let outline_ids: Vec<&Base64> = cards.iter().map(|c| &c.outline_id).collect();
     let outlines = fetch_outlines_by_id(pool, &outline_ids).await?;
+    let links = fetch_links(pool, &outline_ids, &card_ids).await?;
 
-    Ok((outlines, cards))
+    Ok((outlines, cards, links))
 }
 
 #[cfg(test)]
@@ -162,7 +164,7 @@ mod test {
         // assert_eq!(outlines.len(), 0);
         // assert_eq!(cards.len(), 0);
 
-        let (outlines, cards) = fetch_timeline(
+        let (outlines, cards, _links) = fetch_timeline(
             app_handle.clone(),
             Utc::now() - Duration::minutes(1),
             // TlOption::CreatedAt,

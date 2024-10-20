@@ -143,3 +143,11 @@ pub struct LinkCount {
     pub back: i64,
     pub forward: i64,
 }
+
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct Link {
+    pub id: Base64,
+    pub parent_id: NullableBase64,
+    pub text: String,
+}
