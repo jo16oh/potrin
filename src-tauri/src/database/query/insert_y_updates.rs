@@ -17,12 +17,12 @@ where
 
     let query = format!(
         r#"
-            INSERT INTO outline_y_updates (id, outline_id, data, created_at, is_checkpoint)
+            INSERT INTO outline_y_updates (id, outline_id, data)
             VALUES {};
         "#,
         y_updates
             .iter()
-            .map(|_| "(?, ?, ?, ?, ?)".to_string())
+            .map(|_| "(?, ?, ?)".to_string())
             .collect::<Vec<String>>()
             .join(", ")
     );
@@ -33,8 +33,6 @@ where
         query_builder = query_builder.bind(&update.id);
         query_builder = query_builder.bind(outline_id);
         query_builder = query_builder.bind(&update.data);
-        query_builder = query_builder.bind(update.created_at);
-        query_builder = query_builder.bind(update.is_checkpoint);
     }
 
     query_builder.execute(conn).await?;
@@ -56,12 +54,12 @@ where
 
     let query = format!(
         r#"
-            INSERT INTO card_y_updates (id, card_id, data, created_at, is_checkpoint)
+            INSERT INTO card_y_updates (id, card_id, data)
             VALUES {};
         "#,
         y_updates
             .iter()
-            .map(|_| "(?, ?, ?, ?, ?)".to_string())
+            .map(|_| "(?, ?, ?)".to_string())
             .collect::<Vec<String>>()
             .join(", ")
     );
@@ -72,8 +70,6 @@ where
         query_builder = query_builder.bind(&update.id);
         query_builder = query_builder.bind(card_id);
         query_builder = query_builder.bind(&update.data);
-        query_builder = query_builder.bind(update.created_at);
-        query_builder = query_builder.bind(update.is_checkpoint);
     }
 
     query_builder.execute(conn).await?;
