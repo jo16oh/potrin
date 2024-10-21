@@ -46,15 +46,8 @@ BEGIN
   );
 END;
 
-CREATE TABLE card_y_update_version (
-  card_y_update_id BLOB REFERENCES card_y_updates(id) ON DELETE CASCADE NOT NULL,
-  version_id BLOB REFERENCES versions(id) ON DELETE RESTRICT NOT NULL,
-  PRIMARY KEY (card_y_update_id, version_id)
-);
-
-CREATE INDEX card_y_update_version$card_y_update_id ON card_y_update_version(card_y_update_id);
-
 CREATE TABLE card_y_updates_versions (
+  rowid INTEGER PRIMARY KEY,
   version_id BLOB REFERENCES versions(id),
   y_update_id BLOB REFERENCES card_y_updates(id),
   UNIQUE (version_id, y_update_id)

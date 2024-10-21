@@ -1,5 +1,5 @@
 use crate::database::query;
-use crate::types::model::{Outline, OutlineChangeEvent, OutlineYUpdate};
+use crate::types::model::{Outline, OutlineChangeEvent, YUpdate};
 use crate::types::state::AppState;
 use crate::types::util::{Operation, Origin};
 use crate::utils::{get_rw_state, get_state};
@@ -14,7 +14,7 @@ use tauri_specta::Event;
 pub async fn insert_outline<R: Runtime>(
     app_handle: AppHandle<R>,
     outline: Outline,
-    y_updates: Vec<OutlineYUpdate>,
+    y_updates: Vec<YUpdate>,
 ) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 

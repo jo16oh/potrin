@@ -10,7 +10,7 @@ mod utils;
 mod test;
 
 use specta_typescript::Typescript;
-use tauri::{async_runtime, App, Runtime};
+use tauri::{async_runtime, App, Manager, Runtime};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -27,11 +27,37 @@ pub fn run() {
         )
         .expect("Failed to export typescript bindings");
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .invoke_handler(specta_builder.invoke_handler())
         .setup(move |app| setup(specta_builder, app))
-        .run(tauri::generate_context!())
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                #[cfg(not(target_os = "macos"))]
+                {
+                    event.window().hide().unwrap();
+                }
+
+                #[cfg(target_os = "macos")]
+                {
+                    tauri::AppHandle::hide(window.app_handle()).unwrap();
+                }
+                api.prevent_close();
+            }
+        })
+        .build(tauri::generate_context!())
         .expect("error while running tauri application");
+
+    app.run(|_app_handle, event| match event {
+        tauri::RunEvent::Exit => {
+            println!("exit");
+        }
+        tauri::RunEvent::ExitRequested { code, api, .. } => {
+            println!("{:?}", code);
+
+            api.prevent_exit();
+        }
+        _ => {}
+    });
 }
 
 fn setup<R: Runtime>(

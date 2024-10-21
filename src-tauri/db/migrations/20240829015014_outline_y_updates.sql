@@ -46,14 +46,6 @@ BEGIN
   );
 END;
 
-CREATE TABLE version_outline_y_update (
-  outline_y_update_id BLOB REFERENCES outline_y_updates(id) ON DELETE CASCADE NOT NULL,
-  version_id BLOB REFERENCES versions(id) ON DELETE RESTRICT NOT NULL,
-  PRIMARY KEY (outline_y_update_id, version_id)
-);
-
-CREATE INDEX version_outline_y_update$card_y_update_id ON version_outline_y_update(outline_y_update_id);
-
 CREATE TABLE outline_y_updates_versions (
   rowid INTEGER PRIMARY KEY,
   version_id BLOB REFERENCES versions(id),

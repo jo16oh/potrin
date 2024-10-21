@@ -1,5 +1,5 @@
 use crate::database::query;
-use crate::types::model::{Card, CardChangeEvent, CardYUpdate};
+use crate::types::model::{Card, CardChangeEvent, YUpdate};
 use crate::types::util::{Operation, Origin};
 use crate::utils::get_state;
 use sqlx::SqlitePool;
@@ -12,7 +12,7 @@ use tauri_specta::Event;
 pub async fn insert_card<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     card: Card,
-    y_updates: Vec<CardYUpdate>,
+    y_updates: Vec<YUpdate>,
 ) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 

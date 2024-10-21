@@ -102,7 +102,7 @@ impl From<i64> for SqliteBool {
 //     }
 // }
 
-#[derive(Clone, Debug, specta::Type, Deref, PartialEq)]
+#[derive(Clone, Debug, specta::Type, Deref, PartialEq, Eq, Hash)]
 pub struct Base64(String);
 
 impl Serialize for Base64 {

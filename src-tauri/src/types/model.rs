@@ -44,16 +44,6 @@ impl Outline {
     }
 }
 
-#[macros::model_to_event]
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct OutlineYUpdate {
-    pub id: Base64,
-    pub data: Base64,
-    pub created_at: i64,
-    pub is_checkpoint: i64,
-}
-
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct RawCard {
     pub id: Base64,
@@ -121,11 +111,9 @@ impl Card {
 #[macros::model_to_event]
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct CardYUpdate {
+pub struct YUpdate {
     pub id: Base64,
     pub data: Base64,
-    pub created_at: i64,
-    pub is_checkpoint: i64,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]

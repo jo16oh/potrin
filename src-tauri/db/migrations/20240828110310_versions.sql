@@ -1,7 +1,7 @@
 CREATE TABLE versions (
   id BLOB PRIMARY KEY,
   pot_id BLOB REFERENCES pots(id) ON DELETE CASCADE NOT NULL,
-  timestamp INTEGER NOT NULL
+  timestamp INTEGER NOT NULL DEFAULT (unixepoch('now', 'subsec') * 1000)
 );
 
 CREATE TRIGGER after_insert_versions

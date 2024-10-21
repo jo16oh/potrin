@@ -1,5 +1,5 @@
 use crate::database::query;
-use crate::types::model::{Outline, OutlineChangeEvent, OutlineYUpdate};
+use crate::types::model::{Outline, OutlineChangeEvent, YUpdate};
 use crate::types::util::{Base64, Operation, Origin};
 use crate::utils::get_state;
 use sqlx::SqlitePool;
@@ -13,7 +13,7 @@ pub async fn update_outline<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     outline: Outline,
     links: Vec<Base64>,
-    y_updates: Vec<OutlineYUpdate>,
+    y_updates: Vec<YUpdate>,
 ) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 

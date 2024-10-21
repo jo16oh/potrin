@@ -10,6 +10,7 @@ mod fetch_tree;
 mod insert_card;
 mod insert_outline;
 mod insert_pot;
+mod insert_tree_version;
 mod insert_user;
 mod search;
 mod update_app_state;
@@ -28,6 +29,7 @@ pub use fetch_tree::*;
 pub use insert_card::*;
 pub use insert_outline::*;
 pub use insert_pot::*;
+pub use insert_tree_version::*;
 pub use insert_user::*;
 pub use search::*;
 pub use update_app_state::*;
@@ -60,6 +62,7 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         delete_card_logically::<tauri::Wry>,
         delete_outline_logically::<tauri::Wry>,
         search::<tauri::Wry>,
-        update_app_state::<tauri::Wry>
+        update_app_state::<tauri::Wry>,
+        insert_tree_version::<tauri::Wry>
     ]
 }
