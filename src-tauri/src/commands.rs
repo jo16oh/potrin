@@ -3,6 +3,8 @@ mod delete_card_physically;
 mod delete_outline_logically;
 mod delete_outline_physically;
 mod fetch_breadcrumbs;
+mod fetch_card_y_updates;
+mod fetch_outline_y_updates;
 mod fetch_relation;
 mod fetch_relation_count;
 mod fetch_timeline;
@@ -22,6 +24,8 @@ pub use delete_card_physically::*;
 pub use delete_outline_logically::*;
 pub use delete_outline_physically::*;
 pub use fetch_breadcrumbs::*;
+pub use fetch_card_y_updates::*;
+pub use fetch_outline_y_updates::*;
 pub use fetch_relation::*;
 pub use fetch_relation_count::*;
 pub use fetch_timeline::*;
@@ -63,6 +67,8 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         delete_outline_logically::<tauri::Wry>,
         search::<tauri::Wry>,
         update_app_state::<tauri::Wry>,
-        insert_tree_version::<tauri::Wry>
+        insert_tree_version::<tauri::Wry>,
+        fetch_outline_y_updates::<tauri::Wry>,
+        fetch_card_y_updates::<tauri::Wry>,
     ]
 }
