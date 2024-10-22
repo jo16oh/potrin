@@ -4,6 +4,7 @@ mod delete_outline_logically;
 mod delete_outline_physically;
 mod fetch_breadcrumbs;
 mod fetch_card_y_updates;
+mod fetch_conflicting_outline_ids;
 mod fetch_outline_y_updates;
 mod fetch_relation;
 mod fetch_relation_count;
@@ -25,6 +26,7 @@ pub use delete_outline_logically::*;
 pub use delete_outline_physically::*;
 pub use fetch_breadcrumbs::*;
 pub use fetch_card_y_updates::*;
+pub use fetch_conflicting_outline_ids::*;
 pub use fetch_outline_y_updates::*;
 pub use fetch_relation::*;
 pub use fetch_relation_count::*;
@@ -70,5 +72,6 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         insert_tree_version::<tauri::Wry>,
         fetch_outline_y_updates::<tauri::Wry>,
         fetch_card_y_updates::<tauri::Wry>,
+        fetch_conflicting_outline_ids::<tauri::Wry>,
     ]
 }

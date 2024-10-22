@@ -26,20 +26,7 @@ BEGIN
       NEW.updated_at,
       jsonb_object(
         'is_synced', jsonb('false'),
-        'is_indexed', jsonb('false'),
-        'is_conflicting', (
-          CASE
-            WHEN EXISTS (
-              SELECT 1 FROM outlines
-              WHERE
-                text = NEW.text
-                AND id != NEW.id
-                AND is_deleted = 0
-                AND (parent_id = NEW.parent_id OR (parent_id IS NULL AND NEW.parent_id IS NULL))
-            ) THEN jsonb('true')
-            ELSE jsonb('false')
-          END
-        )
+        'is_indexed', jsonb('false')
       )
     );
 END;
@@ -56,20 +43,7 @@ BEGIN
     NEW.updated_at,
     jsonb_object(
       'is_synced', jsonb('false'),
-      'is_indexed', jsonb('false'),
-      'is_conflicting', (
-        CASE
-          WHEN EXISTS (
-            SELECT 1 FROM outlines
-            WHERE
-              text = NEW.text
-              AND id != NEW.id
-              AND is_deleted = 0
-              AND (parent_id = NEW.parent_id OR (parent_id IS NULL AND NEW.parent_id IS NULL))
-          ) THEN jsonb('true')
-          ELSE jsonb('false')
-        END
-      )
+      'is_indexed', jsonb('false')
     )
   );
 END;
@@ -86,8 +60,7 @@ BEGIN
     unixepoch('now', 'subsec') * 1000,
     jsonb_object(
       'is_synced', jsonb('false'),
-      'is_indexed', jsonb('false'),
-      'is_conflicting', jsonb('false')
+      'is_indexed', jsonb('false')
     )
   );
 END;
