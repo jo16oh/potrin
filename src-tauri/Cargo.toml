@@ -28,5 +28,5 @@ tantivy = "^0.22"
 unicode-normalization = "^0.1.20"
 cjk = "^0.2"
 diacritics = "^0.2"
-sqlx = "^0.8.0"
+sqlx = "^0.8.1"
 
