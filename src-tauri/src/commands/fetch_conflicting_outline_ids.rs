@@ -1,5 +1,5 @@
-use crate::database::query;
-use crate::types::util::Base64;
+use crate::database::query::fetch;
+use crate::types::util::UUIDv7Base64;
 use crate::utils::get_state;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
@@ -10,9 +10,66 @@ use tauri::Runtime;
 #[macros::anyhow_to_string]
 pub async fn fetch_conflicting_outline_ids<R: Runtime>(
     app_handle: AppHandle<R>,
-    outline_ids: Vec<Base64>,
-) -> anyhow::Result<Vec<Base64>> {
+    outline_id: UUIDv7Base64,
+    parent_id: Option<UUIDv7Base64>,
+    text: &str,
+) -> anyhow::Result<Vec<(UUIDv7Base64, String)>> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
-    query::fetch_conflictint_outline_ids(pool, outline_ids.iter().collect()).await
+    fetch::conflicting_outline_ids(pool, outline_id, parent_id, text).await
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::*;
+    use crate::{
+        commands::upsert_outline::test::upsert_outline,
+        database::test::create_mock_user_and_pot,
+        run_in_mock_app,
+        types::{
+            model::{Links, Outline},
+            util::UUIDv7Base64,
+        },
+    };
+    use tauri::{test::MockRuntime, AppHandle};
+
+    #[test]
+    fn test() {
+        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
+
+            let outline = |text: &str| -> Outline {
+                let now = chrono::Utc::now().timestamp_millis();
+                Outline {
+                    id: UUIDv7Base64::new(),
+                    parent_id: None,
+                    fractional_index: "".to_string(),
+                    doc: "".to_string(),
+                    text: text.to_string(),
+                    links: Links::new(),
+                    created_at: now,
+                    updated_at: now,
+                }
+            };
+
+            let outlines = [
+                outline("text"),
+                outline("conflicting"),
+                outline("conflicting"),
+                outline("editing"),
+                outline(""),
+            ];
+
+            for o in outlines.iter() {
+                upsert_outline(app_handle, pot.id, o, vec![]).await.unwrap();
+            }
+
+            let result =
+                fetch_conflicting_outline_ids(app_handle.clone(), outlines[4].id, None, "editing")
+                    .await
+                    .unwrap();
+
+            assert_eq!(result.len(), 3);
+        })
+    }
 }

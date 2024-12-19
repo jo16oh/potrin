@@ -1,70 +1,21 @@
+use anyhow::anyhow;
 use base64::prelude::*;
-use base64::DecodeError;
 use derive_more::derive::Deref;
 use serde::de;
 use serde::de::Visitor;
 use serde::Deserializer;
 use serde::Serializer;
 use serde::{Deserialize, Serialize};
+use sqlx::prelude::FromRow;
 use sqlx::{
-    encode::IsNull,
     sqlite::{SqliteTypeInfo, SqliteValueRef},
     Database, Decode, Encode, Sqlite,
 };
 use std::fmt;
 
-#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub enum Origin {
-    Local,
-    Remote,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub enum Operation {
-    Insert,
-    Update,
-    Delete,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, specta::Type)]
+#[serde(transparent)]
 pub struct SqliteBool(bool);
-
-impl Serialize for SqliteBool {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_bool(self.0)
-    }
-}
-
-impl<'de> Deserialize<'de> for SqliteBool {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct SqliteBoolVisitor;
-
-        impl<'de> Visitor<'de> for SqliteBoolVisitor {
-            type Value = SqliteBool;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a boolean value")
-            }
-
-            fn visit_bool<E>(self, value: bool) -> Result<SqliteBool, E>
-            where
-                E: de::Error,
-            {
-                Ok(SqliteBool(value))
-            }
-        }
-
-        deserializer.deserialize_bool(SqliteBoolVisitor)
-    }
-}
 
 impl sqlx::Type<Sqlite> for SqliteBool {
     fn type_info() -> <Sqlite as Database>::TypeInfo {
@@ -102,157 +53,227 @@ impl From<i64> for SqliteBool {
 //     }
 // }
 
-#[derive(Clone, Debug, specta::Type, Deref, PartialEq, Eq, Hash)]
-pub struct Base64(String);
+#[derive(Debug, Clone, Deref, FromRow, specta::Type)]
+pub struct BytesBase64(#[specta(type = String)] Vec<u8>);
 
-impl Serialize for Base64 {
+impl From<Vec<u8>> for BytesBase64 {
+    fn from(value: Vec<u8>) -> Self {
+        BytesBase64(value)
+    }
+}
+
+impl Serialize for BytesBase64 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.0)
+        serializer.serialize_str(&BASE64_STANDARD.encode(&self.0))
     }
 }
 
-impl<'de> Deserialize<'de> for Base64 {
+impl<'de> Deserialize<'de> for BytesBase64 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct Base64Visitor;
+        struct UUIDv7Visitor;
 
-        impl<'de> Visitor<'de> for Base64Visitor {
-            type Value = Base64;
+        impl Visitor<'_> for UUIDv7Visitor {
+            type Value = BytesBase64;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a base64 encoded string")
             }
 
-            fn visit_str<E>(self, value: &str) -> Result<Base64, E>
+            fn visit_str<E>(self, value: &str) -> Result<BytesBase64, E>
             where
                 E: de::Error,
             {
-                Ok(Base64(value.to_string()))
+                let decoded = BASE64_STANDARD.decode(value).map_err(|e| {
+                    E::custom(format!("failed to decode uuid from base64 string: {}", e))
+                })?;
+                Ok(BytesBase64(decoded))
             }
         }
 
-        deserializer.deserialize_str(Base64Visitor)
+        deserializer.deserialize_str(UUIDv7Visitor)
     }
 }
 
-impl Base64 {
-    pub fn to_bytes(&self) -> Result<Vec<u8>, DecodeError> {
-        let string = self.as_bytes();
-        let mut buffer = Vec::<u8>::new();
-        BASE64_STANDARD.decode_vec(string, &mut buffer)?;
-        Ok(buffer)
-    }
-}
-
-impl sqlx::Type<Sqlite> for Base64 {
+impl sqlx::Type<Sqlite> for BytesBase64 {
     fn type_info() -> SqliteTypeInfo {
         <&[u8] as sqlx::Type<Sqlite>>::type_info()
     }
 }
 
-impl<'r> Decode<'r, Sqlite> for Base64 {
+impl<'r> Decode<'r, Sqlite> for BytesBase64 {
     fn decode(
         value: SqliteValueRef<'r>,
     ) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
         let bytes = <&[u8] as Decode<Sqlite>>::decode(value)?;
-        let base64 = BASE64_STANDARD.encode(bytes);
-        Ok(Base64(base64))
+
+        Ok(BytesBase64(bytes.to_vec()))
     }
 }
 
-impl<'r> Encode<'r, Sqlite> for Base64 {
+impl<'r> Encode<'r, Sqlite> for BytesBase64 {
     fn encode_by_ref(
         &self,
         buf: &mut <Sqlite as Database>::ArgumentBuffer<'r>,
     ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
-        <&Vec<u8> as Encode<Sqlite>>::encode(&self.to_bytes()?, buf)
+        let bytes = self.0.to_vec();
+        <&Vec<u8> as Encode<Sqlite>>::encode(&bytes, buf)
     }
 }
 
-impl From<Vec<u8>> for Base64 {
-    fn from(value: Vec<u8>) -> Self {
-        Base64(BASE64_STANDARD.encode(value))
+#[derive(Debug, Clone, Copy, Deref, PartialEq, Eq, Hash, FromRow, specta::Type)]
+pub struct UUIDv7Base64(#[specta(type = String)] [u8; 16]);
+
+impl UUIDv7Base64 {
+    pub fn new() -> Self {
+        UUIDv7Base64(uuidv7::create_raw())
     }
 }
 
-impl From<String> for Base64 {
-    fn from(value: String) -> Self {
-        Base64(value)
+impl Default for UUIDv7Base64 {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
-pub struct NullableBase64(Option<Base64>);
-
-impl From<Option<Base64>> for NullableBase64 {
-    fn from(value: Option<Base64>) -> Self {
-        Self(value)
+impl fmt::Display for UUIDv7Base64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", BASE64_STANDARD.encode(self.0))
     }
 }
 
-impl NullableBase64 {
-    #[cfg(test)]
-    pub fn as_ref(&self) -> Option<&Base64> {
-        self.0.as_ref()
-    }
+impl TryFrom<String> for UUIDv7Base64 {
+    type Error = anyhow::Error;
 
-    pub fn into_option(self) -> Option<Base64> {
-        self.0
-    }
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let decoded = BASE64_STANDARD.decode(value)?;
 
-    #[cfg(test)]
-    pub fn none() -> Self {
-        Self(None)
+        if decoded.len() != 16 {
+            return Err(anyhow!("invalid uuid length"));
+        }
+
+        let mut result_slice = [0u8; 16];
+        result_slice.copy_from_slice(&decoded);
+
+        Ok(UUIDv7Base64(result_slice))
     }
 }
 
-impl sqlx::Type<Sqlite> for NullableBase64 {
+impl TryFrom<&str> for UUIDv7Base64 {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let decoded = BASE64_STANDARD.decode(value)?;
+
+        if decoded.len() != 16 {
+            return Err(anyhow!("invalid uuid length"));
+        }
+
+        let mut result_slice = [0u8; 16];
+        result_slice.copy_from_slice(&decoded);
+
+        Ok(UUIDv7Base64(result_slice))
+    }
+}
+
+impl TryFrom<Vec<u8>> for UUIDv7Base64 {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        if value.len() != 16 {
+            return Err(anyhow!("invalid uuid length"));
+        }
+
+        let mut result_slice = [0u8; 16];
+        result_slice.copy_from_slice(&value);
+
+        Ok(UUIDv7Base64(result_slice))
+    }
+}
+
+impl Serialize for UUIDv7Base64 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&BASE64_STANDARD.encode(self.0))
+    }
+}
+
+impl<'de> Deserialize<'de> for UUIDv7Base64 {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct UUIDv7Visitor;
+
+        impl Visitor<'_> for UUIDv7Visitor {
+            type Value = UUIDv7Base64;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a base64 encoded string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<UUIDv7Base64, E>
+            where
+                E: de::Error,
+            {
+                let decoded = BASE64_STANDARD.decode(value).map_err(|e| {
+                    E::custom(format!("failed to decode uuid from base64 string: {}", e))
+                })?;
+
+                if decoded.len() != 16 {
+                    return Err(E::custom("invalid uuid length"));
+                }
+
+                let mut result_slice = [0u8; 16];
+                result_slice.copy_from_slice(&decoded);
+
+                Ok(UUIDv7Base64(result_slice))
+            }
+        }
+
+        deserializer.deserialize_str(UUIDv7Visitor)
+    }
+}
+
+impl sqlx::Type<Sqlite> for UUIDv7Base64 {
     fn type_info() -> SqliteTypeInfo {
         <&[u8] as sqlx::Type<Sqlite>>::type_info()
     }
 }
 
-impl<'r> Decode<'r, Sqlite> for NullableBase64 {
+impl<'r> Decode<'r, Sqlite> for UUIDv7Base64 {
     fn decode(
         value: SqliteValueRef<'r>,
     ) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
-        let base64string = <Option<Vec<u8>> as Decode<Sqlite>>::decode(value)?.map(Base64::from);
-        Ok(NullableBase64(base64string))
+        let bytes = <&[u8] as Decode<Sqlite>>::decode(value)?;
+
+        if bytes.len() != 16 {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Invalid UUID length",
+            )));
+        }
+
+        let mut result_slice = [0u8; 16];
+        result_slice.copy_from_slice(bytes);
+
+        Ok(UUIDv7Base64(result_slice))
     }
 }
 
-impl<'r> Encode<'r, Sqlite> for NullableBase64 {
+impl<'r> Encode<'r, Sqlite> for UUIDv7Base64 {
     fn encode_by_ref(
         &self,
         buf: &mut <Sqlite as Database>::ArgumentBuffer<'r>,
     ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
-        match &self.0 {
-            Some(base64_string) => base64_string.encode_by_ref(buf),
-            None => Ok(IsNull::Yes),
-        }
-    }
-}
-
-impl From<Option<Vec<u8>>> for NullableBase64 {
-    fn from(opt: Option<Vec<u8>>) -> Self {
-        let base64 = opt.map(Base64::from);
-        NullableBase64(base64)
-    }
-}
-
-impl From<Base64> for NullableBase64 {
-    fn from(base64: Base64) -> Self {
-        NullableBase64(Some(base64))
-    }
-}
-
-impl From<Vec<u8>> for NullableBase64 {
-    fn from(value: Vec<u8>) -> Self {
-        NullableBase64::from(Base64::from(value))
+        let bytes = self.0.to_vec();
+        <&Vec<u8> as Encode<Sqlite>>::encode(&bytes, buf)
     }
 }

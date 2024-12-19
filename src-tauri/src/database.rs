@@ -1,5 +1,4 @@
 pub mod query;
-pub mod table;
 
 use anyhow::anyhow;
 use sqlx::migrate::{MigrateDatabase, Migrator};
@@ -42,47 +41,41 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
 #[cfg(test)]
 pub mod test {
-
-    use crate::commands::update_app_state;
-    use crate::database::query;
-    use crate::state::AppStateValues;
+    use crate::commands::upsert_card::test::upsert_card;
+    use crate::commands::upsert_outline::test::upsert_outline;
     use crate::types::model::{Card, Outline, Pot, User};
-    use crate::types::state::{AppState, PotState, UserState};
-    use crate::types::util::Base64;
-    use crate::utils::{get_rw_state, get_state};
-    use anyhow::anyhow;
+    use crate::types::state::{AppState, PotState, UserState, WorkspaceState};
+    use crate::types::util::UUIDv7Base64;
+    use crate::utils::get_rw_state;
     use chrono::Utc;
     use sqlx::SqlitePool;
-    use tauri::async_runtime::RwLock;
     use tauri::Manager;
     use tauri::{test::MockRuntime, AppHandle};
 
+    use super::query::insert;
+
     pub async fn create_tree(
         app_handle: &AppHandle<MockRuntime>,
-        parent_id: Option<Base64>,
+        pot_id: UUIDv7Base64,
+        parent_id: Option<UUIDv7Base64>,
         limit: u8,
         current: u8,
     ) -> Outline {
-        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
-        let lock = get_rw_state::<MockRuntime, AppState>(app_handle).unwrap();
-        let app_state = lock.read().await;
-        let pot_id = &app_state
-            .pot
-            .as_ref()
-            .ok_or(anyhow!("pot state is not set"))
-            .unwrap()
-            .id;
+        let outline = Outline::new(parent_id);
+        upsert_outline(app_handle, pot_id, &outline, vec![])
+            .await
+            .unwrap();
 
-        let outline = Outline::new(parent_id.as_ref());
-        query::insert_outline(pool, &outline, pot_id).await.unwrap();
-
-        let card = Card::new(outline.id.clone(), None);
-        query::insert_card(pool, &card).await.unwrap();
+        let card = Card::new(outline.id, None);
+        upsert_card(app_handle, pot_id, &card, vec![])
+            .await
+            .unwrap();
 
         if current < limit {
             Box::pin(create_tree(
                 app_handle,
-                Some(outline.id.clone()),
+                pot_id,
+                Some(outline.id),
                 limit,
                 current + 1,
             ))
@@ -92,89 +85,32 @@ pub mod test {
         outline
     }
 
-    pub async fn create_mock_user_and_pot(app_handle: AppHandle<MockRuntime>) {
+    pub async fn create_mock_user_and_pot(app_handle: AppHandle<MockRuntime>) -> (User, Pot) {
         let pool = app_handle.state::<SqlitePool>().inner();
-
-        let user = User {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            name: "mock_user".to_string(),
-        };
-
-        query::insert_user(pool, &user).await.unwrap();
-
-        update_app_state(
-            app_handle.clone(),
-            AppStateValues::User(Some(UserState {
-                id: user.id.clone(),
-                name: user.name.clone(),
-            })),
-        )
-        .await
-        .unwrap();
-
-        let pot = Pot {
-            id: Base64::from(uuidv7::create_raw().to_vec()),
-            name: "mock".to_string(),
-            owner: user.id.clone(),
-        };
-
-        query::insert_pot(pool, &pot).await.unwrap();
-
-        update_app_state(
-            app_handle.clone(),
-            AppStateValues::Pot(Some(PotState {
-                id: pot.id,
-                sync: false,
-            })),
-        )
-        .await
-        .unwrap();
-    }
-
-    pub async fn insert_quote_without_versioning(
-        app_handle: AppHandle<MockRuntime>,
-        card_id: &Base64,
-        quoted_card_id: &Base64,
-    ) -> anyhow::Result<()> {
-        let pool = get_state::<MockRuntime, SqlitePool>(&app_handle).unwrap();
-        let lock = app_handle.state::<RwLock<AppState>>().inner();
-
-        let app_state = lock.read().await;
-        let pot_id = &app_state
-            .pot
-            .as_ref()
-            .ok_or(anyhow!("pot state is not set"))
-            .unwrap()
-            .id;
 
         let now = Utc::now().timestamp_millis();
 
-        let version_id = uuidv7::create_raw().to_vec();
+        let user = User {
+            id: UUIDv7Base64::new(),
+            name: "mock_user".to_string(),
+        };
+        insert::from_local::user(pool, &user, now).await.unwrap();
 
-        sqlx::query!(
-            r#"
-                INSERT INTO versions (id, pot_id, timestamp)
-                VALUES (?, ?, ?);
-            "#,
-            version_id,
-            pot_id,
-            now
-        )
-        .execute(pool)
-        .await?;
+        let pot = Pot {
+            id: UUIDv7Base64::new(),
+            name: "mock".to_string(),
+            owner: Some(user.id),
+        };
+        insert::from_local::pot(pool, &pot, now).await.unwrap();
 
-        sqlx::query!(
-            r#"
-                INSERT INTO quotes (card_id, quoted_card_id, version_id)
-                VALUES (?, ?, ?);
-            "#,
-            card_id,
-            quoted_card_id,
-            version_id
-        )
-        .execute(pool)
-        .await?;
+        let lock = get_rw_state::<MockRuntime, AppState>(&app_handle).unwrap();
 
-        Ok(())
+        let mut app_state = lock.write().await;
+        app_state.user = Some(UserState {
+            id: user.id,
+            name: user.name.clone(),
+        });
+
+        (user, pot)
     }
 }

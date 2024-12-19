@@ -1,5 +1,12 @@
 "$schema" = "../gen/schemas/desktop-schema.json"
 identifier = "main-capability"
 description = "Capability for the main window"
-windows = ["main"]
-permissions = ["core:app:default"]
+windows = ["*", "allow-show", ""]
+permissions = [
+  "core:app:default",
+  "core:window:allow-show",
+  "core:event:allow-listen",
+  "core:window:default",
+  "core:window:allow-start-dragging",
+  "core:event:default",
+]

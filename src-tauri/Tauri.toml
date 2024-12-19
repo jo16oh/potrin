@@ -8,10 +8,8 @@ devUrl = "http://localhost:1420"
 beforeBuildCommand = "export DATABASE_URL='sqlite:db/dev.db' cd src-tauri && cargo make setup-db && cd .. && pnpm build"
 frontendDist = "../build"
 
-[[app.windows]]
-title = "potrin"
-width = 800
-height = 600
+[app]
+macOSPrivateApi = true
 
 [app.security]
 capabilities = ["main-capability"]

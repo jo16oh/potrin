@@ -42,7 +42,7 @@ pub struct CJKBigramTokenStream<'a> {
     token: &'a mut Token,
 }
 
-impl<'a> TokenStream for CJKBigramTokenStream<'a> {
+impl TokenStream for CJKBigramTokenStream<'_> {
     fn advance(&mut self) -> bool {
         if let Some((offset_from, offset_to)) = self.iterator.next() {
             self.token.position = 0;
@@ -72,7 +72,7 @@ pub struct CJKBigramIterator<'a> {
     for_query: bool,
 }
 
-impl<'a> CJKBigramIterator<'a> {
+impl CJKBigramIterator<'_> {
     pub fn new(text: &str, for_query: bool) -> CJKBigramIterator {
         CJKBigramIterator {
             text,
@@ -144,7 +144,7 @@ impl<'a> CJKBigramIterator<'a> {
     }
 }
 
-impl<'a> Iterator for CJKBigramIterator<'a> {
+impl Iterator for CJKBigramIterator<'_> {
     type Item = (usize, usize);
 
     fn next(&mut self) -> Option<(usize, usize)> {

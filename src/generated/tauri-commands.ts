@@ -5,44 +5,86 @@
 
 
 export const commands = {
+async createChild() : Promise<void> {
+    await TAURI_INVOKE("create_child");
+},
 async greet(name: string) : Promise<string> {
     return await TAURI_INVOKE("greet", { name });
 },
-async insertUser(user: User) : Promise<null> {
-    return await TAURI_INVOKE("insert_user", { user });
+async createUser(user: User) : Promise<null> {
+    return await TAURI_INVOKE("create_user", { user });
 },
-async insertPot(pot: Pot) : Promise<null> {
-    return await TAURI_INVOKE("insert_pot", { pot });
+async createPot(pot: Pot) : Promise<null> {
+    return await TAURI_INVOKE("create_pot", { pot });
 },
-async insertOutline(outline: Outline, yUpdates: OutlineYUpdate[]) : Promise<null> {
-    return await TAURI_INVOKE("insert_outline", { outline, yUpdates });
+async upsertOutline(outline: Outline, yUpdates: BytesBase64[]) : Promise<null> {
+    return await TAURI_INVOKE("upsert_outline", { outline, yUpdates });
 },
-async insertCard(card: Card, yUpdates: CardYUpdate[]) : Promise<null> {
-    return await TAURI_INVOKE("insert_card", { card, yUpdates });
+async upsertCard(card: Card, yUpdates: BytesBase64[]) : Promise<null> {
+    return await TAURI_INVOKE("upsert_card", { card, yUpdates });
 },
-async fetchTree(id: Base64, depth: number | null) : Promise<[Outline[], Card[]]> {
+async createVersion(versionId: UUIDv7Base64) : Promise<null> {
+    return await TAURI_INVOKE("create_version", { versionId });
+},
+async insertPendingYUpdate(yDocId: UUIDv7Base64, yUpdate: BytesBase64) : Promise<null> {
+    return await TAURI_INVOKE("insert_pending_y_update", { yDocId, yUpdate });
+},
+async softDeleteCard(card: Card) : Promise<null> {
+    return await TAURI_INVOKE("soft_delete_card", { card });
+},
+async softDeleteOutline(outline: Outline) : Promise<null> {
+    return await TAURI_INVOKE("soft_delete_outline", { outline });
+},
+async hardDeleteOutline(outline: Outline) : Promise<null> {
+    return await TAURI_INVOKE("hard_delete_outline", { outline });
+},
+async hardDeleteCard(card: Card) : Promise<null> {
+    return await TAURI_INVOKE("hard_delete_card", { card });
+},
+async fetchPots() : Promise<Pot[]> {
+    return await TAURI_INVOKE("fetch_pots");
+},
+async fetchTree(id: UUIDv7Base64, depth: number | null) : Promise<[Outline[], Card[]]> {
     return await TAURI_INVOKE("fetch_tree", { id, depth });
 },
-async fetchTimeline(from: string, option: TlOption) : Promise<[Outline[], Card[]]> {
-    return await TAURI_INVOKE("fetch_timeline", { from, option });
+async fetchTimeline(from: string) : Promise<[Outline[], Card[]]> {
+    return await TAURI_INVOKE("fetch_timeline", { from });
 },
-async fetchRelation(outlineIds: Base64[], cardIds: Base64[], option: RelationOption) : Promise<[Outline[], Card[]]> {
+async fetchRelation(outlineIds: UUIDv7Base64[], cardIds: UUIDv7Base64[], option: RelationOption) : Promise<[Outline[], Card[]]> {
     return await TAURI_INVOKE("fetch_relation", { outlineIds, cardIds, option });
 },
-async fetchRelationCount(outlineIds: Base64[], cardIds: Base64[], countChildren: boolean) : Promise<LinkCount[]> {
+async fetchRelationCount(outlineIds: UUIDv7Base64[], cardIds: UUIDv7Base64[], countChildren: boolean) : Promise<LinkCount[]> {
     return await TAURI_INVOKE("fetch_relation_count", { outlineIds, cardIds, countChildren });
 },
-async fetchBreadcrumbs(parentIds: Base64[]) : Promise<Breadcrumb[]> {
-    return await TAURI_INVOKE("fetch_breadcrumbs", { parentIds });
+async fetchBreadcrumbs(parentId: UUIDv7Base64) : Promise<Breadcrumbs> {
+    return await TAURI_INVOKE("fetch_breadcrumbs", { parentId });
 },
-async index(input: IndexTarget[]) : Promise<null> {
-    return await TAURI_INVOKE("index", { input });
+async fetchYUpdatesByDocId(yDocId: UUIDv7Base64) : Promise<BytesBase64[]> {
+    return await TAURI_INVOKE("fetch_y_updates_by_doc_id", { yDocId });
 },
-async search(query: string, potId: string, limit: number) : Promise<SearchResult[]> {
-    return await TAURI_INVOKE("search", { query, potId, limit });
+async fetchConflictingOutlineIds(outlineId: UUIDv7Base64, parentId: UUIDv7Base64 | null, text: string) : Promise<([UUIDv7Base64, string])[]> {
+    return await TAURI_INVOKE("fetch_conflicting_outline_ids", { outlineId, parentId, text });
 },
-async updateAppState(value: AppStateValues) : Promise<null> {
-    return await TAURI_INVOKE("update_app_state", { value });
+async search(query: string, orderBy: OrderBy, limit: number) : Promise<[Outline[], Card[], SearchResult[]]> {
+    return await TAURI_INVOKE("search", { query, orderBy, limit });
+},
+async getAppState() : Promise<AppState> {
+    return await TAURI_INVOKE("get_app_state");
+},
+async updateAppState(patch: string) : Promise<null> {
+    return await TAURI_INVOKE("update_app_state", { patch });
+},
+async getWorkspaceState() : Promise<WorkspaceState> {
+    return await TAURI_INVOKE("get_workspace_state");
+},
+async updateWorkspaceState(patch: string) : Promise<null> {
+    return await TAURI_INVOKE("update_workspace_state", { patch });
+},
+async openPot(potId: UUIDv7Base64, potName: string) : Promise<null> {
+    return await TAURI_INVOKE("open_pot", { potId, potName });
+},
+async openPotSelector() : Promise<null> {
+    return await TAURI_INVOKE("open_pot_selector");
 }
 }
 
@@ -50,15 +92,15 @@ async updateAppState(value: AppStateValues) : Promise<null> {
 
 
 export const events = __makeEvents__<{
-cardChangeEvent: CardChangeEvent,
-cardYUpdateChangeEvent: CardYUpdateChangeEvent,
-outlineChangeEvent: OutlineChangeEvent,
-outlineYUpdateChangeEvent: OutlineYUpdateChangeEvent
+appStateChange: AppStateChange,
+cardChange: CardChange,
+outlineChange: OutlineChange,
+workspaceStateChange: WorkspaceStateChange
 }>({
-cardChangeEvent: "card-change-event",
-cardYUpdateChangeEvent: "card-y-update-change-event",
-outlineChangeEvent: "outline-change-event",
-outlineYUpdateChangeEvent: "outline-y-update-change-event"
+appStateChange: "app-state-change",
+cardChange: "card-change",
+outlineChange: "outline-change",
+workspaceStateChange: "workspace-state-change"
 })
 
 /** user-defined constants **/
@@ -67,34 +109,42 @@ outlineYUpdateChangeEvent: "outline-y-update-change-event"
 
 /** user-defined types **/
 
-export type AppStateValues = { user: UserState | null } | { pot: PotState | null } | { workspace: WorkspaceState | null } | { tabs: TabState[] } | { setting: SettingState }
-export type Base64 = string
-export type Breadcrumb = { id: Base64; parentId: NullableBase64; text: string | null }
-export type Card = { id: Base64; outlineId: Base64; fractionalIndex: string; text: string }
-export type CardChangeEvent = { operation: Operation; origin: Origin; rows_changed: Card[] }
-export type CardYUpdate = { id: Base64; data: Base64; createdAt: number; isCheckpoint: number }
-export type CardYUpdateChangeEvent = { operation: Operation; origin: Origin; rows_changed: CardYUpdate[] }
+export type AppSetting = { levenshteinDistance: number }
+export type AppState = { clientId: UUIDv7Base64; user: UserState | null; pots: UUIDv7Base64[]; setting: AppSetting }
+export type AppStateChange = { patch: string }
+export type Breadcrumbs = Link[]
+export type BytesBase64 = string
+export type Card = { id: UUIDv7Base64; outlineId: UUIDv7Base64; fractionalIndex: string; doc: string; quote: Quote | null; links: Links; createdAt: number; updatedAt: number }
+export type CardChange = { operation: Operation<CardForIndex>; origin: Origin }
+export type CardForIndex = { id: UUIDv7Base64; potId: UUIDv7Base64; outlineId: UUIDv7Base64; fractionalIndex: string; doc: string; quote: Quote | null; breadcrumbs: Breadcrumbs; links: Links; createdAt: number; updatedAt: number }
 export type Direction = "back" | "forward"
+export type FocusState = { timeline: Record<string, never> } | { search: Record<string, never> } | { tabs: { index: number } }
 export type IncludeChildrenOption = { includeCards: boolean }
-export type IndexTarget = { id: string; pot_id: string; doc_type: string; text: string }
-export type LinkCount = { id: Base64; back: number; forward: number }
-export type NullableBase64 = Base64 | null
-export type Operation = "insert" | "update" | "delete"
-export type Origin = "local" | "remote"
-export type Outline = { id: Base64; parentId: NullableBase64; fractionalIndex: string; text: string | null }
-export type OutlineChangeEvent = { operation: Operation; origin: Origin; rows_changed: Outline[] }
-export type OutlineYUpdate = { id: Base64; data: Base64; createdAt: number; isCheckpoint: number }
-export type OutlineYUpdateChangeEvent = { operation: Operation; origin: Origin; rows_changed: OutlineYUpdate[] }
-export type Pot = { id: Base64; name: string; owner: Base64 }
-export type PotState = { id: Base64; sync: boolean }
+export type Link = { id: UUIDv7Base64; text: string }
+export type LinkCount = { id: UUIDv7Base64; back: number; forward: number }
+export type Links = { [key in string]: Breadcrumbs }
+export type Operation<T> = { insert: { targets: Target<T>[] } } | { update: { targets: Target<T>[] } } | { delete: { target_ids: UUIDv7Base64[] } }
+export type Order = "desc" | "asc"
+export type OrderBy = { createdAt: Order } | { updatedAt: Order } | "relevance"
+export type Origin = "init" | "remote" | { local: { window_label: string } }
+export type Outline = { id: UUIDv7Base64; parentId: UUIDv7Base64 | null; fractionalIndex: string; doc: string; text: string; links: Links; createdAt: number; updatedAt: number }
+export type OutlineChange = { operation: Operation<OutlineForIndex>; origin: Origin }
+export type OutlineForIndex = { id: UUIDv7Base64; potId: UUIDv7Base64; parentId: UUIDv7Base64 | null; fractionalIndex: string; doc: string; text: string; breadcrumbs: Breadcrumbs; links: Links; createdAt: number; updatedAt: number }
+export type Pot = { id: UUIDv7Base64; name: string; owner: UUIDv7Base64 | null }
+export type PotState = { id: UUIDv7Base64; name: string }
+export type Quote = { id: UUIDv7Base64; versionId: UUIDv7Base64 }
 export type RelationOption = { direction: Direction; includeChildren: IncludeChildrenOption | null }
-export type SearchResult = { id: string; doc_type: string }
-export type SettingState = Record<string, never>
-export type TabState = { id: Base64; view: string; scrollPos: number }
-export type TlOption = "createdAt" | "updatedAt" | "both"
-export type User = { id: Base64; name: string }
-export type UserState = { id: Base64; name: string }
-export type WorkspaceState = { tabs: TabState[]; focusedTabIdx: number | null }
+export type SearchResult = { id: UUIDv7Base64; doc_type: string }
+export type SidebarState = { isFloat: boolean; width: number }
+export type TabState = { views: ViewState[]; focusedViewIdx: number }
+export type Target<T> = { currentValue: T; relatedYUpdates: BytesBase64[] }
+export type UUIDv7Base64 = string
+export type User = { id: UUIDv7Base64; name: string }
+export type UserState = { id: UUIDv7Base64; name: string }
+export type ViewState = { id: UUIDv7Base64; viewType: ViewType; title: string; flexGrow: number }
+export type ViewType = "outline" | "relation" | "search"
+export type WorkspaceState = { pot: PotState; tabs: TabState[]; focus: FocusState; sidebar: SidebarState }
+export type WorkspaceStateChange = { patch: string }
 
 /** tauri-specta globals **/
 

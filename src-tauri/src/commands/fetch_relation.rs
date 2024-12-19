@@ -1,8 +1,7 @@
-use crate::database::query::{fetch_descendant_ids, fetch_links};
-use crate::database::query::{fetch_relation_back, fetch_relation_forward};
-use crate::types::model::{Card, Link};
+use crate::database::query::fetch;
+use crate::types::model::Card;
 use crate::types::model::Outline;
-use crate::types::util::Base64;
+use crate::types::util::UUIDv7Base64;
 use crate::utils::get_state;
 use serde::Deserialize;
 use serde::Serialize;
@@ -34,62 +33,57 @@ struct IncludeChildrenOption {
 #[macros::anyhow_to_string]
 pub async fn fetch_relation<R: Runtime>(
     app_handle: AppHandle<R>,
-    outline_ids: Vec<Base64>,
-    card_ids: Vec<Base64>,
+    outline_ids: Vec<UUIDv7Base64>,
+    card_ids: Vec<UUIDv7Base64>,
     option: RelationOption,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>, Vec<Link>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let (outline_ids, card_ids) = match option.include_children {
-        Some(opt) => fetch_descendant_ids(pool, &outline_ids, opt.include_cards).await?,
+        Some(opt) => fetch::descendant_ids(pool, &outline_ids, opt.include_cards).await?,
         None => (outline_ids, card_ids),
     };
 
     let (outlines, cards) = match option.direction {
-        Direction::Back => fetch_relation_back(pool, &outline_ids, &card_ids).await,
-        Direction::Forward => fetch_relation_forward(pool, &outline_ids, &card_ids).await,
+        Direction::Back => fetch::relation_back(pool, &outline_ids, &card_ids).await,
+        Direction::Forward => fetch::relation_forward(pool, &outline_ids, &card_ids).await,
     }?;
 
-    let outline_ids = outlines.iter().map(|o| &o.id).collect::<Vec<&Base64>>();
-    let card_ids = cards.iter().map(|o| &o.id).collect::<Vec<&Base64>>();
-
-    let links = fetch_links(pool, &outline_ids, &card_ids).await?;
-
-    Ok((outlines, cards, links))
+    Ok((outlines, cards))
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::database::query;
+    use crate::commands::create_version::test::create_version;
+    use crate::commands::upsert_card::test::upsert_card;
     use crate::database::test::create_mock_user_and_pot;
     use crate::database::test::create_tree;
-    use crate::database::test::insert_quote_without_versioning;
     use crate::test::run_in_mock_app;
     use tauri::test::MockRuntime;
 
     #[test]
     fn test_fetch_relation() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            create_mock_user_and_pot(app_handle.clone()).await;
-            test(app_handle).await;
+            let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
+            test(app_handle, pot.id).await;
         });
     }
 
-    async fn test(app_handle: &AppHandle<MockRuntime>) {
+    async fn test(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64) {
         let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
-        let r1 = create_tree(app_handle, None, 3, 0).await;
-        let r2 = create_tree(app_handle, None, 3, 0).await;
+        let r1 = create_tree(app_handle, pot_id, None, 3, 0).await;
+        let r2 = create_tree(app_handle, pot_id, None, 3, 0).await;
 
-        let c1 = Card::new(r1.id.clone(), None);
-        query::insert_card(pool, &c1).await.unwrap();
+        let c1 = Card::new(r1.id, None);
+        upsert_card(app_handle, pot_id, &c1, vec![]).await.unwrap();
 
-        let c2 = Card::new(r2.id.clone(), None);
-        query::insert_card(pool, &c2).await.unwrap();
+        let c2 = Card::new(r2.id, None);
+        upsert_card(app_handle, pot_id, &c2, vec![]).await.unwrap();
 
-        let c3 = Card::new(r1.id.clone(), None);
-        query::insert_card(pool, &c3).await.unwrap();
+        let c3 = Card::new(r1.id, None);
+        upsert_card(app_handle, pot_id, &c3, vec![]).await.unwrap();
 
         sqlx::query!(
             r#"
@@ -115,14 +109,28 @@ mod test {
         .await
         .unwrap();
 
-        insert_quote_without_versioning(app_handle.clone(), &c1.id, &c2.id)
-            .await
-            .unwrap();
-        insert_quote_without_versioning(app_handle.clone(), &c2.id, &c3.id)
+        let version_id = UUIDv7Base64::new();
+        create_version(app_handle.clone(), pot_id, version_id)
             .await
             .unwrap();
 
-        let (outlines, cards, _links) = fetch_relation(
+        sqlx::query!(
+            r#"
+                INSERT INTO quotes (card_id, quote_id, version_id)
+                VALUES (?, ?, ?), (?, ?, ?);
+            "#,
+            c1.id,
+            c2.id,
+            version_id,
+            c2.id,
+            c3.id,
+            version_id,
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        let (outlines, cards) = fetch_relation(
             app_handle.clone(),
             vec![r2.id],
             vec![],
@@ -139,7 +147,7 @@ mod test {
         assert_eq!(outlines.len(), 1);
         assert_eq!(cards.len(), 2);
 
-        let (outlines, cards, _links) = fetch_relation(
+        let (outlines, cards) = fetch_relation(
             app_handle.clone(),
             vec![r1.id],
             vec![],

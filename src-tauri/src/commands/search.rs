@@ -1,25 +1,63 @@
 use crate::{
-    search_engine::{self, Fields, SearchResult},
-    utils::get_rw_state,
+    database::query::fetch,
+    search_engine::{self, OrderBy, SearchIndex, SearchResult},
+    types::{
+        model::{Card, Outline},
+        state::AppState,
+        util::UUIDv7Base64,
+    },
+    utils::{get_rw_state, get_state},
 };
-use tantivy::{query::QueryParser, IndexReader};
-use tauri::{AppHandle, Runtime};
+use sqlx::SqlitePool;
+use tauri::{AppHandle, Runtime, Window};
 
 #[tauri::command]
 #[specta::specta]
 #[macros::anyhow_to_string]
 pub async fn search<R: Runtime>(
     app_handle: AppHandle<R>,
+    window: Window<R>,
     query: &str,
+    order_by: OrderBy,
     limit: u8,
-) -> anyhow::Result<Vec<SearchResult>> {
-    let fields_lock = get_rw_state::<R, Fields>(&app_handle)?;
-    let reader_lock = get_rw_state::<R, IndexReader>(&app_handle)?;
-    let query_parser_lock = get_rw_state::<R, QueryParser>(&app_handle)?;
-    let fields = fields_lock.read().await;
-    let reader = reader_lock.read().await;
-    let query_parser = query_parser_lock.read().await;
-    let results = search_engine::search(&fields, &reader, &query_parser, query, limit).await?;
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>, Vec<SearchResult>)> {
+    let pool = get_state::<R, SqlitePool>(&app_handle)?;
+    let app_state_lock = get_rw_state::<R, AppState>(&app_handle)?;
+    let app_state = app_state_lock.read().await;
+    let index = get_state::<R, SearchIndex>(&window)?;
 
-    Ok(results)
+    let search_results = search_engine::search(
+        index,
+        query,
+        order_by,
+        limit,
+        app_state.setting.levenshtein_distance,
+    )
+    .await?;
+
+    let cards = {
+        let card_ids = search_results
+            .iter()
+            .filter(|r| r.doc_type == "card")
+            .map(|r| r.id)
+            .collect::<Vec<UUIDv7Base64>>();
+
+        fetch::cards_by_id(pool, &card_ids).await?
+    };
+
+    let outlines = {
+        let outline_ids = [
+            search_results
+                .iter()
+                .filter(|r| r.doc_type == "outline")
+                .map(|r| r.id)
+                .collect::<Vec<UUIDv7Base64>>(),
+            cards.iter().map(|c| c.id).collect::<Vec<UUIDv7Base64>>(),
+        ]
+        .concat();
+
+        fetch::outlines_by_id(pool, &outline_ids).await?
+    };
+
+    Ok((outlines, cards, search_results))
 }

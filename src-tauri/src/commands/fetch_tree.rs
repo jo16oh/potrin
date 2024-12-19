@@ -1,10 +1,7 @@
-use crate::database::query::fetch_cards_by_outline_id;
-use crate::database::query::fetch_links;
-use crate::database::query::fetch_outline_tree;
+use crate::database::query::fetch;
 use crate::types::model::Card;
-use crate::types::model::Link;
 use crate::types::model::Outline;
-use crate::types::util::Base64;
+use crate::types::util::UUIDv7Base64;
 use crate::utils::get_state;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime};
@@ -14,18 +11,16 @@ use tauri::{AppHandle, Runtime};
 #[macros::anyhow_to_string]
 pub async fn fetch_tree<R: Runtime>(
     app_handle: AppHandle<R>,
-    id: Base64,
+    id: UUIDv7Base64,
     depth: Option<u32>,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>, Vec<Link>)> {
+) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
-    let outlines = fetch_outline_tree(&id, depth, pool).await?;
-    let outline_ids = outlines.iter().map(|o| &o.id).collect::<Vec<&Base64>>();
-    let cards = fetch_cards_by_outline_id(pool, &outline_ids).await?;
-    let card_ids = cards.iter().map(|c| &c.id).collect::<Vec<&Base64>>();
-    let links = fetch_links(pool, &outline_ids, &card_ids).await?;
+    let outlines = fetch::outline_trees(pool, &[id], depth).await?;
+    let outline_ids = outlines.iter().map(|o| o.id).collect::<Vec<UUIDv7Base64>>();
+    let cards = fetch::cards_by_outline_id(pool, &outline_ids).await?;
 
-    Ok((outlines, cards, links))
+    Ok((outlines, cards))
 }
 
 #[cfg(test)]
@@ -38,15 +33,15 @@ mod test {
     #[test]
     fn test_fetch_tree() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            create_mock_user_and_pot(app_handle.clone()).await;
-            test(app_handle).await;
+            let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
+            test(app_handle, pot.id).await;
         });
     }
 
-    async fn test(app_handle: &AppHandle<MockRuntime>) {
-        let outline = create_tree(app_handle, None, 2, 0).await;
+    async fn test(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64) {
+        let outline = create_tree(app_handle, pot_id, None, 2, 0).await;
 
-        let (outlines, cards, _links) = fetch_tree(app_handle.clone(), outline.id, None)
+        let (outlines, cards) = fetch_tree(app_handle.clone(), outline.id, None)
             .await
             .unwrap();
 

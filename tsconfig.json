@@ -10,6 +10,10 @@
     "sourceMap": true,
     "strict": true,
     "moduleResolution": "bundler",
+    // svelte
+    "target": "es2022",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
     // additional rules
     "noUncheckedIndexedAccess": true,
     "noPropertyAccessFromIndexSignature": true,
@@ -17,7 +21,9 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true
-  }
+  },
+  "include": ["./", "*.js"],
+  "excludes": ["build/", ".svelte-kit/", "src/generated/**/*"]
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
   //
   // If you want to overwrite includes/excludes, make sure to copy over the relevant includes/excludes

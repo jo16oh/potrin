@@ -1,185 +1,107 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { App } from "$lib/models/App.svelte";
   import { commands } from "../generated/tauri-commands";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import Button from "$lib/components/ui/button/button.svelte";
+  import { Input } from "$lib/components/ui/input";
+  import { uuidv7 } from "$lib/utils";
+  import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
 
-  let name = "";
-  let greetMsg = "";
+  const app = App.state();
+  let pots = $state(commands.fetchPots());
+  let dialogOpen = $state(false);
+  let newPotName: string = $state("");
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    greetMsg = await invoke("greet", { name });
-    // await testSQLite(name);
-    // await testTantivy();
+  async function createPot() {
+    const pot = {
+      id: uuidv7(),
+      name: newPotName,
+      owner: null,
+    };
+    await commands.createPot(pot);
+    await app.changePot(pot.id);
+    pots = commands.fetchPots();
+    newPotName = "";
+    dialogOpen = false;
   }
 
-  async function testTantivy() {
-    await commands.index([
-      { id: "id", doc_type: "card", text: "東京特許許可局許可局長" },
-    ]);
-    const now = performance.now();
-    const res = await commands.search("特許", 0, 1);
-    console.log(performance.now() - now);
-    console.log(res);
+  function onkeypress(e: KeyboardEvent) {
+    if (e.key === "Enter" && !e.isComposing) {
+      void createPot();
+    }
   }
 
-  async function testSQLite(text: string) {
-    console.time("insert");
-    const id = await commands.insertOutline(text, null);
-    console.timeEnd("insert");
-
-    const decoder = new TextDecoder("utf-8");
-    const uint8Array = new Uint8Array(id);
-    const uuid = decoder.decode(uint8Array);
-    console.log(uuid);
-
-    console.time("select");
-    const res = await commands.selectOutline(id);
-    console.timeEnd("select");
-    console.log(res);
+  async function selectPot(id: string) {
+    await app.changePot(id);
   }
 </script>
 
-<div class="container">
-  <h1>Welcome to Tauri!</h1>
+<div class="mx-auto mt-24 flex max-w-96 flex-col items-center justify-center">
+  <img
+    src="icon.svg"
+    alt="Potrin logo"
+    class="pointer-events-none h-48 w-48 drop-shadow-xl"
+  />
+  <img
+    src="Potrin.svg"
+    alt="Potrin logo"
+    class="pointer-events-none w-40 py-2"
+  />
+  <div class="h-32"></div>
 
-  <div class="row">
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://kit.svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte-kit" alt="SvelteKit Logo" />
-    </a>
+  <div class="flex w-full justify-between border-b px-2 py-2">
+    <h2 class="text-md my-auto cursor-default select-none font-bold">
+      Create new Pot
+    </h2>
+    <Dialog.Root bind:open={dialogOpen}>
+      <Dialog.Trigger>
+        <Button class="mr-1" variant="default">Create</Button>
+      </Dialog.Trigger>
+      <Dialog.Content>
+        <Dialog.Header>
+          <Dialog.Title>Create new Pot</Dialog.Title>
+          <Dialog.Description>
+            <div class="flex flex-wrap justify-end">
+              <Input
+                class="my-4"
+                bind:value={newPotName}
+                placeholder="name"
+                {onkeypress}
+              />
+              <Button class="ml-auto" onclick={createPot}>Create</Button>
+            </div>
+          </Dialog.Description>
+        </Dialog.Header>
+      </Dialog.Content>
+    </Dialog.Root>
   </div>
 
-  <p>Click on the Tauri, Vite, and SvelteKit logos to learn more.</p>
-
-  <form class="row" on:submit|preventDefault={greet}>
-    <input id="greet-input" placeholder="Enter a name..." bind:value={name} />
-    <button type="submit">Greet</button>
-  </form>
-
-  <p>{greetMsg}</p>
+  {#await pots then pots}
+    {#if pots.length !== 0}
+      <div class="w-full border-b py-4 pl-2">
+        <h2 class="text-md my-auto cursor-default select-none font-bold">
+          Select Pot
+        </h2>
+        <ScrollArea class="h-80 w-full">
+          {#each pots as pot}
+            <div
+              class="my-1 mr-2 flex w-full justify-between rounded-sm py-1 pr-3 transition-all hover:bg-secondary"
+            >
+              <p
+                class="text-md my-auto ml-2 cursor-default select-none font-semibold"
+              >
+                {pot.name}
+              </p>
+              <Button
+                class="select-none"
+                variant="outline"
+                onclick={() => selectPot(pot.id)}>Open</Button
+              >
+            </div>
+          {/each}
+        </ScrollArea>
+      </div>
+    {/if}
+  {/await}
 </div>
 
-<style>
-  .logo.vite:hover {
-    filter: drop-shadow(0 0 2em #747bff);
-  }
-
-  .logo.svelte-kit:hover {
-    filter: drop-shadow(0 0 2em #ff3e00);
-  }
-
-  :root {
-    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 400;
-
-    color: #0f0f0f;
-    background-color: #f6f6f6;
-
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    -webkit-text-size-adjust: 100%;
-  }
-
-  .container {
-    margin: 0;
-    padding-top: 10vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    text-align: center;
-  }
-
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: 0.75s;
-  }
-
-  .logo.tauri:hover {
-    filter: drop-shadow(0 0 2em #24c8db);
-  }
-
-  .row {
-    display: flex;
-    justify-content: center;
-  }
-
-  a {
-    font-weight: 500;
-    color: #646cff;
-    text-decoration: inherit;
-  }
-
-  a:hover {
-    color: #535bf2;
-  }
-
-  h1 {
-    text-align: center;
-  }
-
-  input,
-  button {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    color: #0f0f0f;
-    background-color: #ffffff;
-    transition: border-color 0.25s;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-  }
-
-  button {
-    cursor: pointer;
-  }
-
-  button:hover {
-    border-color: #396cd8;
-  }
-  button:active {
-    border-color: #396cd8;
-    background-color: #e8e8e8;
-  }
-
-  input,
-  button {
-    outline: none;
-  }
-
-  #greet-input {
-    margin-right: 5px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color: #f6f6f6;
-      background-color: #2f2f2f;
-    }
-
-    a:hover {
-      color: #24c8db;
-    }
-
-    input,
-    button {
-      color: #ffffff;
-      background-color: #0f0f0f98;
-    }
-    button:active {
-      background-color: #0f0f0f69;
-    }
-  }
-</style>
