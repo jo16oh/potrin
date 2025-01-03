@@ -1,7 +1,7 @@
 import {
-  base64ToUint8Array,
+  base64URLToUint8Array,
   insertToFractionalIndexArray,
-  uint8ArrayToBase64,
+  uint8ArrayToBase64URL,
   byFractionalIndex,
   uuidv7,
 } from "$lib/utils";
@@ -10,9 +10,7 @@ import {
   type Links,
   type Outline as RawOutline,
   type Card as RawCard,
-  type Breadcrumbs,
-  type UUIDv7Base64,
-  type BytesBase64,
+  type Path,
   commands,
   events,
 } from "../../generated/tauri-commands";
@@ -23,27 +21,17 @@ import { ReversedLinkIndex, WeakRefMap } from "./utils";
 
 export type { RawOutline };
 
-type Commands = {
-  fetchBreadcrumbs: (parentId: UUIDv7Base64) => Promise<Breadcrumbs>;
-  fetchConflictingOutlineIds: (
-    outlineId: UUIDv7Base64,
-    parentId: UUIDv7Base64 | null,
-    text: string,
-  ) => Promise<[UUIDv7Base64, string][]>;
-  fetchYUpdatesByDocId: (yDocId: UUIDv7Base64) => Promise<BytesBase64[]>;
-  insertPendingYUpdate: (
-    yDocId: UUIDv7Base64,
-    yUpdate: BytesBase64,
-  ) => Promise<null>;
-  upsertOutline: (
-    outline: RawOutline,
-    yUpdates: BytesBase64[],
-  ) => Promise<null>;
-};
+type Commands = Pick<
+  typeof commands,
+  | "fetchPath"
+  | "fetchConflictingOutlineIds"
+  | "fetchYUpdatesByDocId"
+  | "insertPendingYUpdate"
+  | "upsertOutline"
+>;
 
 export class Outline {
   static #commands: Commands = commands;
-  static #window_label = "";
   static readonly buffer = new WeakRefMap<string, Outline>();
   static readonly reversedLinkIndex = new ReversedLinkIndex(this.buffer);
 
@@ -58,14 +46,13 @@ export class Outline {
   private _cards = $state.raw<Card[]>() as Card[];
   private _parentId = $state<string | null>(null);
   private _parentRef = $state.raw<WeakRef<Outline> | undefined>();
-  private _breadcrumbs = $state<Breadcrumbs | undefined>();
+  private _path = $state<Path | undefined>();
   private _ydoc: Y.Doc | undefined;
   private _pendingYUpdates: Uint8Array[] = [];
   private readonly _conflictChecker: ConflictChecker;
 
-  static inject(commands: Commands, window_label: string) {
+  static inject(commands: Commands) {
     this.#commands = commands;
-    this.#window_label = window_label;
   }
 
   private constructor(data: RawOutline, parent?: Outline) {
@@ -110,6 +97,7 @@ export class Outline {
       doc: "",
       text: "",
       links: {},
+      path: null,
       createdAt: new Date().getUTCMilliseconds(),
       updatedAt: new Date().getUTCMilliseconds(),
     });
@@ -119,7 +107,7 @@ export class Outline {
       outline._pendingYUpdates.push(u);
       void Outline.#commands.insertPendingYUpdate(
         outline.id,
-        uint8ArrayToBase64(u),
+        uint8ArrayToBase64URL(u),
       );
     });
 
@@ -256,13 +244,13 @@ export class Outline {
     }
   }
 
-  get breadcrumbs(): Promise<Breadcrumbs> {
-    if (this._breadcrumbs) {
-      return Promise.resolve(this._breadcrumbs);
+  get path(): Promise<Path> {
+    if (this._path) {
+      return Promise.resolve(this._path);
     } else {
-      return Outline.#commands.fetchBreadcrumbs(this.id).then((breadcrumbs) => {
-        this._breadcrumbs = breadcrumbs;
-        return breadcrumbs;
+      return Outline.#commands.fetchPath(this.id).then((path) => {
+        this._path = path;
+        return path;
       });
     }
   }
@@ -274,7 +262,7 @@ export class Outline {
         this._pendingYUpdates.push(u);
         void Outline.#commands.insertPendingYUpdate(
           this.id,
-          uint8ArrayToBase64(u),
+          uint8ArrayToBase64URL(u),
         );
       });
     }
@@ -282,14 +270,14 @@ export class Outline {
     const updates = await Outline.#commands.fetchYUpdatesByDocId(this.id);
 
     for (const u of updates) {
-      Y.applyUpdateV2(this._ydoc, base64ToUint8Array(u));
+      Y.applyUpdateV2(this._ydoc, base64URLToUint8Array(u));
     }
 
     return this._ydoc;
   }
 
   async save() {
-    const updates = this._pendingYUpdates.map((u) => uint8ArrayToBase64(u));
+    const updates = this._pendingYUpdates.map((u) => uint8ArrayToBase64URL(u));
     this._pendingYUpdates.length = 0;
     await Outline.#commands.upsertOutline(this.toJSON(), updates);
   }
@@ -371,33 +359,26 @@ export class Outline {
       fractionalIndex: this.fractionalIndex,
       doc: this.doc,
       text: this.text,
+      path: this._path ? this._path : null,
       links: this.links,
       createdAt: this.createdAt.getUTCMilliseconds(),
       updatedAt: this.updatedAt.getUTCMilliseconds(),
     };
   }
 
-  static #updateLinks(id_to: string, breadcrumbs: Breadcrumbs) {
+  static #updateLinks(id_to: string, path: Path) {
     const backlinks = [
       ...Outline.reversedLinkIndex.get(id_to),
       ...Card.reversedLinkIndex.get(id_to),
     ];
     for (const o of backlinks) {
-      o.links[id_to] = breadcrumbs;
+      o.links[id_to] = path;
     }
   }
 
   static async init() {
     await events.outlineChange.listen((e) => {
       const payload = e.payload;
-      const origin = e.payload.origin;
-
-      // return if the event is from this window
-      if (
-        typeof origin === "object" &&
-        origin.local.window_label === this.#window_label
-      )
-        return;
 
       const operation = payload.operation;
 
@@ -406,7 +387,7 @@ export class Outline {
           if (!currentValue.parentId) continue;
           const parent = this.buffer.get(currentValue.parentId);
           if (parent) parent._insertChild(Outline.from(currentValue, parent));
-          this.#updateLinks(currentValue.id, currentValue.breadcrumbs);
+          this.#updateLinks(currentValue.id, currentValue.path);
         }
       } else if ("update" in operation) {
         for (const { currentValue, relatedYUpdates } of operation.update
@@ -418,7 +399,7 @@ export class Outline {
             outline.doc = currentValue.doc;
             outline.text = currentValue.text;
             outline.links = currentValue.links;
-            outline._breadcrumbs = currentValue.breadcrumbs;
+            outline._path = currentValue.path;
 
             if (currentValue.parentId !== outline._parentId) {
               const parent = currentValue.parentId
@@ -441,7 +422,7 @@ export class Outline {
 
             if (outline._ydoc) {
               for (const u of relatedYUpdates) {
-                Y.applyUpdateV2(outline._ydoc, base64ToUint8Array(u));
+                Y.applyUpdateV2(outline._ydoc, base64URLToUint8Array(u));
               }
             }
           } else if (currentValue.parentId) {
@@ -449,7 +430,7 @@ export class Outline {
             parent?._insertChild(Outline.from(currentValue, parent));
           }
 
-          this.#updateLinks(currentValue.id, currentValue.breadcrumbs);
+          this.#updateLinks(currentValue.id, currentValue.path);
         }
       } else if ("delete" in operation) {
         const deletedOutlines = operation.delete.target_ids

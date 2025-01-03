@@ -6,23 +6,29 @@
   import { Input } from "$lib/components/ui/input";
   import { uuidv7 } from "$lib/utils";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
+  import { getCurrent } from "@tauri-apps/api/window";
 
   const app = App.state();
   let pots = $state(commands.fetchPots());
-  let dialogOpen = $state(false);
+  let newPotDialogOpen = $state(false);
   let newPotName: string = $state("");
+  let potSelectDialogOpen = $state(false);
+
+  const version = commands.appVersion();
 
   async function createPot() {
     const pot = {
       id: uuidv7(),
       name: newPotName,
       owner: null,
+      createdAt: new Date().getUTCMilliseconds(),
     };
+    console.log(pot.id);
     await commands.createPot(pot);
-    await app.changePot(pot.id);
+    app.openPot(pot);
     pots = commands.fetchPots();
     newPotName = "";
-    dialogOpen = false;
+    newPotDialogOpen = false;
   }
 
   function onkeypress(e: KeyboardEvent) {
@@ -31,8 +37,9 @@
     }
   }
 
-  async function selectPot(id: string) {
-    await app.changePot(id);
+  function selectPot(pot: { id: string; name: string }) {
+    app.openPot(pot);
+    getCurrent().close();
   }
 </script>
 
@@ -47,16 +54,22 @@
     alt="Potrin logo"
     class="pointer-events-none w-40 py-2"
   />
-  <div class="h-32"></div>
+  {#await version then v}
+    <div class="p-2 text-sm text-secondary-foreground">Version {v}</div>
+  {/await}
+
+  <hr class="h-32" />
 
   <div class="flex w-full justify-between border-b px-2 py-2">
-    <h2 class="text-md my-auto cursor-default select-none font-bold">
-      Create new Pot
-    </h2>
-    <Dialog.Root bind:open={dialogOpen}>
-      <Dialog.Trigger>
-        <Button class="mr-1" variant="default">Create</Button>
-      </Dialog.Trigger>
+    <div class="text-md my-auto cursor-default select-none font-semibold">
+      Create new pot
+    </div>
+    <Dialog.Root bind:open={newPotDialogOpen}>
+      <Button
+        class="mr-1"
+        variant="default"
+        onclick={() => (newPotDialogOpen = true)}>Create</Button
+      >
       <Dialog.Content>
         <Dialog.Header>
           <Dialog.Title>Create new Pot</Dialog.Title>
@@ -78,30 +91,52 @@
 
   {#await pots then pots}
     {#if pots.length !== 0}
-      <div class="w-full border-b py-4 pl-2">
-        <h2 class="text-md my-auto cursor-default select-none font-bold">
-          Select Pot
-        </h2>
-        <ScrollArea class="h-80 w-full">
-          {#each pots as pot}
-            <div
-              class="my-1 mr-2 flex w-full justify-between rounded-sm py-1 pr-3 transition-all hover:bg-secondary"
-            >
-              <p
-                class="text-md my-auto ml-2 cursor-default select-none font-semibold"
-              >
-                {pot.name}
-              </p>
-              <Button
-                class="select-none"
-                variant="outline"
-                onclick={() => selectPot(pot.id)}>Open</Button
-              >
-            </div>
-          {/each}
-        </ScrollArea>
+      <div class="flex w-full justify-between border-b px-2 py-2">
+        <div class="text-md my-auto cursor-default select-none font-semibold">
+          Open pot
+        </div>
+        <Dialog.Root bind:open={potSelectDialogOpen}>
+          <Button
+            class="mr-1"
+            variant="default"
+            onclick={() => (potSelectDialogOpen = true)}>Select</Button
+          >
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Open pot</Dialog.Title>
+              <Dialog.Description>
+                <ScrollArea class="h-80 w-full">
+                  <ul>
+                    {#each pots as pot}
+                      {@const createdAt = new Date(
+                        pot.createdAt,
+                      ).toLocaleDateString()}
+                      <li
+                        class="flex w-full justify-between rounded-sm px-3 py-2 transition-all"
+                      >
+                        <Button
+                          class="flex w-full select-none border-none text-foreground"
+                          variant="outline"
+                          onclick={() => selectPot(pot)}
+                        >
+                          <div class="flex-grow">
+                            <div class="text-lg">
+                              {pot.name}
+                            </div>
+                            <div class="text-sm text-secondary-foreground">
+                              {createdAt}
+                            </div>
+                          </div>
+                        </Button>
+                      </li>
+                    {/each}
+                  </ul>
+                </ScrollArea>
+              </Dialog.Description>
+            </Dialog.Header>
+          </Dialog.Content>
+        </Dialog.Root>
       </div>
     {/if}
   {/await}
 </div>
-

@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { uuidv7obj } from "uuidv7";
+import { toBytes, toBase64 } from "fast-base64/js";
+import { toUrl, fromUrl } from "fast-base64/url";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -12,30 +14,16 @@ export type Brand<B> = {
   readonly [_brand]: B;
 };
 
-export function uint8ArrayToBase64(bytes: Uint8Array): string {
-  let binaryString = "";
-
-  for (const byte of bytes) {
-    binaryString += String.fromCharCode(byte);
-  }
-
-  return btoa(binaryString);
+export function uint8ArrayToBase64URL(bytes: Uint8Array): string {
+  return toUrl(toBase64(bytes));
 }
 
-export function base64ToUint8Array(base64: string): Uint8Array {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-
-  return bytes;
+export function base64URLToUint8Array(base64: string): Uint8Array {
+  return toBytes(fromUrl(base64));
 }
 
 export function uuidv7() {
-  return uint8ArrayToBase64(uuidv7obj().bytes);
+  return uint8ArrayToBase64URL(uuidv7obj().bytes);
 }
 
 export function insertToFractionalIndexArray<
@@ -50,7 +38,6 @@ export function insertToFractionalIndexArray<
 
   while (low < high) {
     const mid = (low + high) >>> 1;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     if (arr[mid]!.fractionalIndex < item.fractionalIndex) low = mid + 1;
     else high = mid;
   }
@@ -71,4 +58,29 @@ export function byFractionalIndex<T extends { fractionalIndex: string }>(
   } else {
     return 0;
   }
+}
+
+export type ExcludeMethods<T> = {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  [K in keyof T]: T[K] extends Function
+    ? never
+    : T[K] extends object
+      ? ExcludeMethods<T[K]>
+      : T[K];
+};
+
+export function deepCloneOwnProperties<T extends Record<string, unknown>>(
+  obj: T,
+) {
+  const clone: Record<string, unknown> = {};
+
+  for (const key of Object.keys(obj)) {
+    if (typeof obj[key] === "object" && obj[key] !== null) {
+      clone[key] = deepCloneOwnProperties(obj[key] as Record<string, unknown>);
+    } else if (typeof obj[key] !== "function") {
+      clone[key] = obj[key];
+    }
+  }
+
+  return clone as ExcludeMethods<T>;
 }

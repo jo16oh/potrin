@@ -1,13 +1,13 @@
 use crate::types::{
     model::{Pot, User, YUpdate},
-    util::UUIDv7Base64,
+    util::UUIDv7Base64URL,
 };
 use anyhow::{Context, Result};
 use sqlx::SqliteExecutor;
 
 pub mod from_local {
-    use crate::types::util::BytesBase64;
-    use crate::types::util::UUIDv7Base64;
+    use crate::types::util::BytesBase64URL;
+    use crate::types::util::UUIDv7Base64URL;
 
     pub use super::pot;
     pub use super::user;
@@ -15,8 +15,8 @@ pub mod from_local {
 
     pub async fn version<'a, E>(
         conn: E,
-        pot_id: UUIDv7Base64,
-        version_id: UUIDv7Base64,
+        pot_id: UUIDv7Base64URL,
+        version_id: UUIDv7Base64URL,
         timestamp: i64,
     ) -> anyhow::Result<i64>
     where
@@ -28,7 +28,7 @@ pub mod from_local {
     pub async fn y_updates<'a, E>(
         conn: E,
         y_updates: &[YUpdate],
-        version_id: Option<UUIDv7Base64>,
+        version_id: Option<UUIDv7Base64URL>,
         timestamp: i64,
     ) -> anyhow::Result<Vec<i64>>
     where
@@ -39,8 +39,8 @@ pub mod from_local {
 
     pub async fn pending_y_update<'a, E>(
         conn: E,
-        y_doc_id: UUIDv7Base64,
-        y_update: &BytesBase64,
+        y_doc_id: UUIDv7Base64URL,
+        y_update: &BytesBase64URL,
     ) -> anyhow::Result<()>
     where
         E: SqliteExecutor<'a>,
@@ -62,9 +62,9 @@ pub mod from_local {
     pub async fn y_doc<'a, E>(
         conn: E,
         doc_type: &str,
-        id: UUIDv7Base64,
-        pot_id: UUIDv7Base64,
-        user_id: Option<UUIDv7Base64>,
+        id: UUIDv7Base64URL,
+        pot_id: UUIDv7Base64URL,
+        user_id: Option<UUIDv7Base64URL>,
         timestamp: i64,
     ) -> anyhow::Result<()>
     where
@@ -105,7 +105,7 @@ where
             INSERT OR IGNORE INTO pots (id, name, owner, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?)
             RETURNING (
-              SELECT rowid FROM oplog WHERE primary_key = id
+              SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
         pot.id,
@@ -121,9 +121,9 @@ where
 
 async fn y_doc<'a, E>(
     conn: E,
-    id: UUIDv7Base64,
-    pot_id: UUIDv7Base64,
-    user_id: Option<UUIDv7Base64>,
+    id: UUIDv7Base64URL,
+    pot_id: UUIDv7Base64URL,
+    user_id: Option<UUIDv7Base64URL>,
     doc_type: &str,
     timestamp: i64,
     from_remote: bool,
@@ -154,7 +154,7 @@ where
 async fn y_updates<'a, E>(
     conn: E,
     y_updates: &[YUpdate],
-    version_id: Option<UUIDv7Base64>,
+    version_id: Option<UUIDv7Base64URL>,
     timestamp: i64,
     from_remote: bool,
 ) -> anyhow::Result<Vec<i64>>
@@ -172,7 +172,7 @@ where
             INSERT INTO y_updates (id, y_doc_id, data, version_id, created_at, from_remote)
             VALUES {}
             RETURNING (
-              SELECT rowid FROM oplog WHERE primary_key = id
+              SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
         y_updates
@@ -198,8 +198,8 @@ where
 
 async fn version<'a, E>(
     conn: E,
-    pot_id: UUIDv7Base64,
-    version_id: UUIDv7Base64,
+    pot_id: UUIDv7Base64URL,
+    version_id: UUIDv7Base64URL,
     timestamp: i64,
     from_remote: bool,
 ) -> anyhow::Result<i64>
@@ -213,7 +213,7 @@ where
             INSERT OR IGNORE INTO versions (id, pot_id, created_at, from_remote)
             VALUES (?, ?, ?, ?)
             RETURNING (
-              SELECT rowid FROM oplog WHERE primary_key = id
+              SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
         version_id,

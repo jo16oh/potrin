@@ -2,12 +2,12 @@ use sqlx::{Sqlite, Transaction};
 
 use crate::types::{
     model::{Links, Quote},
-    util::UUIDv7Base64,
+    util::UUIDv7Base64URL,
 };
 
 pub async fn outline_links<'a>(
     conn: &mut Transaction<'a, Sqlite>,
-    outline_id: UUIDv7Base64,
+    outline_id: UUIDv7Base64URL,
     links: &Links,
 ) -> anyhow::Result<()> {
     let query = format!(
@@ -62,7 +62,7 @@ pub async fn outline_links<'a>(
 
 pub async fn card_links<'a>(
     conn: &mut Transaction<'a, Sqlite>,
-    card_id: UUIDv7Base64,
+    card_id: UUIDv7Base64URL,
     links: &Links,
 ) -> anyhow::Result<()> {
     let query = format!(
@@ -117,7 +117,7 @@ pub async fn card_links<'a>(
 
 pub async fn quote<'a>(
     conn: &mut Transaction<'a, Sqlite>,
-    card_id: UUIDv7Base64,
+    card_id: UUIDv7Base64URL,
     quote: &Option<Quote>,
 ) -> anyhow::Result<()> {
     if let Some(quote) = quote {

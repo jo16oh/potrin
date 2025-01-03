@@ -1,8 +1,8 @@
-use crate::types::util::UUIDv7Base64;
+use crate::types::util::UUIDv7Base64URL;
 use anyhow::Context;
 use sqlx::SqliteExecutor;
 
-pub async fn y_doc<'a, E>(conn: E, id: UUIDv7Base64) -> anyhow::Result<i64>
+pub async fn y_doc<'a, E>(conn: E, id: UUIDv7Base64URL) -> anyhow::Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
@@ -11,7 +11,7 @@ where
             DELETE FROM y_docs 
             WHERE id = ?
             RETURNING (
-              SELECT rowid FROM oplog WHERE primary_key = id
+              SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
         id,
@@ -21,7 +21,7 @@ where
     .context("failed to insert into oplog")
 }
 
-pub async fn y_updates<'a, E>(conn: E, update_ids: &[UUIDv7Base64]) -> anyhow::Result<()>
+pub async fn y_updates<'a, E>(conn: E, update_ids: &[UUIDv7Base64URL]) -> anyhow::Result<()>
 where
     E: SqliteExecutor<'a>,
 {
@@ -58,7 +58,7 @@ where
 {
     let query = format!(
         r#"
-            DELETE FROM oplog
+            DELETE FROM operation_logs
             WHERE rowid IN ({});
         "#,
         ids.iter()
@@ -81,7 +81,7 @@ where
 pub mod soft {
     use super::*;
 
-    pub async fn cards<'a, E>(conn: E, card_ids: &[UUIDv7Base64]) -> anyhow::Result<Vec<i64>>
+    pub async fn cards<'a, E>(conn: E, card_ids: &[UUIDv7Base64URL]) -> anyhow::Result<Vec<i64>>
     where
         E: SqliteExecutor<'a>,
     {
@@ -91,7 +91,7 @@ pub mod soft {
                 SET is_deleted = true
                 WHERE id IN ({})
                 RETURNING (
-                  SELECT rowid FROM oplog WHERE primary_key = id
+                  SELECT rowid FROM operation_logs WHERE primary_key = id
                 ) AS rowid;
             "#,
             card_ids
@@ -110,7 +110,10 @@ pub mod soft {
         query_builder.fetch_all(conn).await.map_err(|e| e.into())
     }
 
-    pub async fn outlines<'a, E>(conn: E, outline_ids: &[UUIDv7Base64]) -> anyhow::Result<Vec<i64>>
+    pub async fn outlines<'a, E>(
+        conn: E,
+        outline_ids: &[UUIDv7Base64URL],
+    ) -> anyhow::Result<Vec<i64>>
     where
         E: SqliteExecutor<'a>,
     {
@@ -131,7 +134,7 @@ pub mod soft {
                 SET is_deleted = true
                 WHERE id IN ((SELECT id FROM outline_tree))
                 RETURNING (
-                  SELECT rowid FROM oplog WHERE primary_key = id
+                  SELECT rowid FROM operation_logs WHERE primary_key = id
                 ) AS rowid;
             "#,
             outline_ids

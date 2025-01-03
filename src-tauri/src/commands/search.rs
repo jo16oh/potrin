@@ -4,7 +4,7 @@ use crate::{
     types::{
         model::{Card, Outline},
         state::AppState,
-        util::UUIDv7Base64,
+        util::UUIDv7Base64URL,
     },
     utils::{get_rw_state, get_state},
 };
@@ -40,7 +40,7 @@ pub async fn search<R: Runtime>(
             .iter()
             .filter(|r| r.doc_type == "card")
             .map(|r| r.id)
-            .collect::<Vec<UUIDv7Base64>>();
+            .collect::<Vec<UUIDv7Base64URL>>();
 
         fetch::cards_by_id(pool, &card_ids).await?
     };
@@ -51,8 +51,8 @@ pub async fn search<R: Runtime>(
                 .iter()
                 .filter(|r| r.doc_type == "outline")
                 .map(|r| r.id)
-                .collect::<Vec<UUIDv7Base64>>(),
-            cards.iter().map(|c| c.id).collect::<Vec<UUIDv7Base64>>(),
+                .collect::<Vec<UUIDv7Base64URL>>(),
+            cards.iter().map(|c| c.id).collect::<Vec<UUIDv7Base64URL>>(),
         ]
         .concat();
 

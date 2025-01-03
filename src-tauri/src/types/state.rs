@@ -1,29 +1,36 @@
-use super::util::UUIDv7Base64;
+use super::util::UUIDv7Base64URL;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Clone, specta::Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AppState {
-    pub client_id: UUIDv7Base64,
+    pub client_id: UUIDv7Base64URL,
     pub user: Option<UserState>,
-    pub pots: HashSet<UUIDv7Base64>,
+    #[specta(type = HashMap<String, String>)]
+    pub pots: HashMap<UUIDv7Base64URL, String>,
     pub setting: AppSetting,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UserState {
-    pub id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
     pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct PotState {
-    pub id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
     pub name: String,
 }
+
+// #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+// #[serde(rename_all = "camelCase")]
+// pub struct ClientState {
+//     pub id: UUIDv7Base64,
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -35,7 +42,7 @@ pub struct WorkspaceState {
 }
 
 impl WorkspaceState {
-    pub fn new(pot_id: UUIDv7Base64, pot_name: String) -> Self {
+    pub fn new(pot_id: UUIDv7Base64URL, pot_name: String) -> Self {
         Self {
             pot: PotState {
                 id: pot_id,
@@ -85,7 +92,7 @@ pub struct TabState {
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewState {
-    pub id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
     pub view_type: ViewType,
     pub title: String,
     pub flex_grow: u32,

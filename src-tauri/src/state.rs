@@ -1,9 +1,10 @@
-use crate::events::{AppStateChange, WorkspaceStateChange};
+use crate::events::AppStateChange;
+use crate::types::util::UUIDv7Base64URL;
 use crate::utils::{get_rw_state, get_state};
 use crate::{types::state::*, utils::set_rw_state};
 use json_patch::Patch;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, EventTarget, Runtime, Window};
+use tauri::{AppHandle, EventTarget, Runtime, WebviewWindow, Window};
 use tauri_specta::Event;
 
 struct QueryResult {
@@ -35,7 +36,10 @@ pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Re
             sqlx::query!(
                 r#"
                     INSERT INTO kvs (id, value)
-                    VALUES (?, ?);
+                    VALUES (?, ?)
+                    ON CONFLICT DO UPDATE
+                    SET 
+                        value = excluded.value;
                 "#,
                 "app_state",
                 jsonb
@@ -52,33 +56,42 @@ pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Re
     Ok(())
 }
 
-pub async fn init_workspace_state<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
+pub async fn init_workspace_state<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    window: &WebviewWindow<R>,
+    pot_id: UUIDv7Base64URL,
+    pot_name: &str,
+) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
     let prev_state = sqlx::query_as!(
         QueryResult,
         r#"
             SELECT value
-            FROM kvs
-            WHERE id = "app_state";
+            FROM workspaces
+            WHERE pot_id = ?;
         "#,
+        pot_id
     )
     .fetch_optional(pool)
     .await?;
 
-    let app_state = match prev_state {
-        Some(result) => serde_sqlite_jsonb::from_slice::<AppState>(&result.value)?,
+    let workspace_state = match prev_state {
+        Some(result) => serde_sqlite_jsonb::from_slice::<WorkspaceState>(&result.value)?,
         None => {
-            let app_state = AppState::default();
+            let app_state = WorkspaceState::new(pot_id, pot_name.to_string());
 
             let jsonb = serde_sqlite_jsonb::to_vec(&app_state)?;
 
             sqlx::query!(
                 r#"
-                    INSERT INTO kvs (id, value)
-                    VALUES (?, ?);
+                    INSERT INTO workspaces (pot_id, value)
+                    VALUES (?, ?)
+                    ON CONFLICT DO UPDATE
+                    SET
+                        value = excluded.value;
                 "#,
-                "app_state",
+                pot_id,
                 jsonb
             )
             .execute(pool)
@@ -88,7 +101,7 @@ pub async fn init_workspace_state<R: Runtime>(app_handle: &AppHandle<R>) -> anyh
         }
     };
 
-    set_rw_state::<R, AppState>(app_handle, app_state).await?;
+    set_rw_state::<R, WorkspaceState>(window, workspace_state).await?;
 
     Ok(())
 }
@@ -112,8 +125,6 @@ pub async fn update_app_state<R: Runtime>(
 
     let current_app_state_jsonb = serde_sqlite_jsonb::to_vec(&current_app_state)?;
 
-    let mut tx = pool.begin().await?;
-
     sqlx::query!(
         r#"
             UPDATE kvs
@@ -122,10 +133,8 @@ pub async fn update_app_state<R: Runtime>(
         "#,
         current_app_state_jsonb
     )
-    .execute(&mut *tx)
+    .execute(pool)
     .await?;
-
-    tx.commit().await?;
 
     drop(prev_app_state);
     set_rw_state(app_handle, current_app_state).await?;
@@ -160,8 +169,6 @@ pub async fn update_workspace_state<R: Runtime>(
 
     let current_app_state_jsonb = serde_sqlite_jsonb::to_vec(&current_workspace_state)?;
 
-    let mut tx = pool.begin().await?;
-
     sqlx::query!(
         r#"
             UPDATE workspaces
@@ -171,21 +178,42 @@ pub async fn update_workspace_state<R: Runtime>(
         current_app_state_jsonb,
         current_workspace_state.pot.id
     )
-    .execute(&mut *tx)
+    .execute(pool)
     .await?;
-
-    tx.commit().await?;
 
     drop(prev_workspace_state);
     set_rw_state(window, current_workspace_state).await?;
 
-    WorkspaceStateChange::new(patch).emit_filter(app_handle, |target| {
-        if let EventTarget::Window { label } = target {
-            label != window.label()
-        } else {
-            false
-        }
-    })?;
+    Ok(())
+}
 
+pub async fn close_pot<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    pot_id: &UUIDv7Base64URL,
+) -> anyhow::Result<()> {
+    let pool = get_state::<R, SqlitePool>(app_handle)?;
+    let lock = get_rw_state::<R, AppState>(app_handle)?;
+
+    let mut app_state = lock.write().await;
+    let prev_app_state = serde_json::to_value(app_state.clone())?;
+    app_state.pots.remove(pot_id);
+    let current_app_state = serde_json::to_value(app_state.clone())?;
+
+    let patch = json_patch::diff(&prev_app_state, &current_app_state).to_string();
+
+    let current_app_state_jsonb = serde_sqlite_jsonb::to_vec(&*app_state)?;
+
+    sqlx::query!(
+        r#"
+            UPDATE kvs
+            SET value = ?
+            WHERE id = "app_state";
+        "#,
+        current_app_state_jsonb
+    )
+    .execute(pool)
+    .await?;
+
+    AppStateChange::new(patch).emit(app_handle)?;
     Ok(())
 }

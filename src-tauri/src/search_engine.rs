@@ -1,7 +1,7 @@
 mod cjk_bigram_tokenizer;
 
-use crate::types::model::{Breadcrumbs, Links};
-use crate::types::util::UUIDv7Base64;
+use crate::types::model::{Links, Path};
+use crate::types::util::UUIDv7Base64URL;
 use crate::utils::{extract_text_from_doc, get_state};
 use anyhow::{anyhow, Context};
 use cjk_bigram_tokenizer::CJKBigramTokenizer;
@@ -24,11 +24,11 @@ use tauri::{AppHandle, Manager, Runtime};
 use unicode_normalization::UnicodeNormalization;
 
 pub struct IndexTarget<'a> {
-    pub id: UUIDv7Base64,
-    pub pot_id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
+    pub pot_id: UUIDv7Base64URL,
     pub doc_type: &'a str,
     pub doc: &'a str,
-    pub breadcrumbs: &'a Breadcrumbs,
+    pub path: &'a Path,
     pub links: &'a Links,
     pub created_at: i64,
     pub updated_at: i64,
@@ -36,14 +36,14 @@ pub struct IndexTarget<'a> {
 
 #[derive(sqlx::FromRow)]
 pub struct DeleteTarget {
-    pub id: UUIDv7Base64,
-    pub pot_id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
+    pub pot_id: UUIDv7Base64URL,
 }
 
 #[cfg_attr(test, derive(Debug, PartialEq))]
 #[derive(Serialize, Deserialize, Type)]
 pub struct SearchResult {
-    pub id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
     pub doc_type: String,
 }
 
@@ -66,7 +66,7 @@ pub struct Fields {
     id: Field,
     doc_type: Field,
     text: Field,
-    breadcrumbs: Field,
+    path: Field,
     links: Field,
     created_at: Field,
     updated_at: Field,
@@ -82,7 +82,7 @@ pub struct SearchIndex {
 
 pub async fn load_index<R: Runtime>(
     app_handle: &AppHandle<R>,
-    pot_id: UUIDv7Base64,
+    pot_id: UUIDv7Base64URL,
     levenshtein_distance: u8,
 ) -> anyhow::Result<SearchIndex> {
     let mut schema_builder = Schema::builder();
@@ -100,7 +100,7 @@ pub async fn load_index<R: Runtime>(
     );
     schema_builder.add_i64_field("created_at", INDEXED | FAST);
     schema_builder.add_i64_field("updated_at", INDEXED | FAST);
-    schema_builder.add_facet_field("breadcrumbs", FacetOptions::default().set_stored());
+    schema_builder.add_facet_field("path", FacetOptions::default().set_stored());
     schema_builder.add_facet_field("links", FacetOptions::default());
 
     let schema = schema_builder.build();
@@ -109,7 +109,7 @@ pub async fn load_index<R: Runtime>(
         id: schema.get_field("id")?,
         doc_type: schema.get_field("doc_type")?,
         text: schema.get_field("text")?,
-        breadcrumbs: schema.get_field("breadcrumbs")?,
+        path: schema.get_field("path")?,
         links: schema.get_field("links")?,
         created_at: schema.get_field("created_at")?,
         updated_at: schema.get_field("updated_at")?,
@@ -208,12 +208,12 @@ async fn process_targets<'a>(
         );
 
         {
-            let path: Vec<&str> = item.breadcrumbs.iter().map(|e| e.text.as_str()).collect();
-            document.add_facet(index.fields.breadcrumbs, Facet::from_path(path));
+            let path: Vec<&str> = item.path.iter().map(|e| e.text.as_str()).collect();
+            document.add_facet(index.fields.path, Facet::from_path(path));
         }
 
-        for (_, breadcrumbs) in item.links.iter() {
-            let path: Vec<&str> = breadcrumbs.iter().map(|e| e.text.as_str()).collect();
+        for (_, path) in item.links.iter() {
+            let path: Vec<&str> = path.iter().map(|e| e.text.as_str()).collect();
 
             document.add_facet(index.fields.links, Facet::from_path(path));
         }
@@ -366,21 +366,21 @@ mod tests {
     #[test]
     fn test() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let pot_id = UUIDv7Base64::new();
+            let pot_id = UUIDv7Base64URL::new();
 
-            let one = UUIDv7Base64::new();
-            let two = UUIDv7Base64::new();
-            let three = UUIDv7Base64::new();
-            let four = UUIDv7Base64::new();
+            let one = UUIDv7Base64URL::new();
+            let two = UUIDv7Base64URL::new();
+            let three = UUIDv7Base64URL::new();
+            let four = UUIDv7Base64URL::new();
             let links = Links::new();
-            let breadcrumbs = Breadcrumbs::new();
+            let path = Path::new();
             let input = vec![
                 IndexTarget {
                     id: one,
                     pot_id,
                     doc_type: "card",
                     doc: r#"{ "text": "content brûlée connection" }"#,
-                    breadcrumbs: &breadcrumbs,
+                    path: &path,
                     links: &links,
                     created_at: Utc::now().timestamp_millis(),
                     updated_at: Utc::now().timestamp_millis(),
@@ -390,7 +390,7 @@ mod tests {
                     pot_id,
                     doc_type: "outline",
                     doc: r#"{ "text": "東京国際空港（とうきょうこくさいくうこう、英語: Tokyo International Airport）は、東京都大田区にある日本最大の空港。通称は羽田空港（はねだくうこう、英語: Haneda Airport）であり、単に「羽田」と呼ばれる場合もある。空港コードはHND。" }"#,
-                    breadcrumbs: &breadcrumbs,
+                    path: &path,
                     links: &links,
                     created_at: Utc::now().timestamp_millis(),
                     updated_at: Utc::now().timestamp_millis(),
@@ -400,7 +400,7 @@ mod tests {
                     pot_id,
                     doc_type: "outline",
                     doc: r#"{ "text": "股份有限公司" }"#,
-                    breadcrumbs: &breadcrumbs,
+                    path: &path,
                     links: &links,
                     created_at: Utc::now().timestamp_millis(),
                     updated_at: Utc::now().timestamp_millis(),
@@ -410,7 +410,7 @@ mod tests {
                     pot_id,
                     doc_type: "card",
                     doc: r#"{ "text": "デカすぎで草" }"#,
-                    breadcrumbs: &breadcrumbs,
+                    path: &path,
                     links: &links,
                     created_at: Utc::now().timestamp_millis(),
                     updated_at: Utc::now().timestamp_millis(),

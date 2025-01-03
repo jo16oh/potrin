@@ -1,4 +1,4 @@
-use crate::types::util::UUIDv7Base64;
+use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
 use crate::{database::query::fetch, types::model::LinkCount};
 use sqlx::SqlitePool;
@@ -9,8 +9,8 @@ use tauri::{AppHandle, Runtime};
 #[macros::anyhow_to_string]
 pub async fn fetch_relation_count<R: Runtime>(
     app_handle: AppHandle<R>,
-    outline_ids: Vec<UUIDv7Base64>,
-    card_ids: Vec<UUIDv7Base64>,
+    outline_ids: Vec<UUIDv7Base64URL>,
+    card_ids: Vec<UUIDv7Base64URL>,
     count_children: bool,
 ) -> anyhow::Result<Vec<LinkCount>> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
@@ -49,7 +49,7 @@ mod test {
         });
     }
 
-    async fn test_count(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64) {
+    async fn test_count(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
         let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
         // outline1, card1 → outline2
@@ -77,7 +77,7 @@ mod test {
         assert_eq!(result.pop().unwrap().back, 1);
     }
 
-    async fn test_count_recursively(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64) {
+    async fn test_count_recursively(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
         let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
         // o3 → o1 → o6         back: 4, forward: 3
@@ -113,9 +113,9 @@ mod test {
     async fn insert_test_data_for_test_count(
         app_handle: &AppHandle<MockRuntime>,
         pool: &SqlitePool,
-        pot_id: UUIDv7Base64,
+        pot_id: UUIDv7Base64URL,
     ) -> ((Outline, Outline), (Card, Card)) {
-        let version_id = UUIDv7Base64::new();
+        let version_id = UUIDv7Base64URL::new();
         create_version(app_handle.clone(), pot_id, version_id)
             .await
             .unwrap();
@@ -172,7 +172,7 @@ mod test {
     async fn insert_test_data_for_test_count_recursively(
         app_handle: &AppHandle<MockRuntime>,
         pool: &SqlitePool,
-        pot_id: UUIDv7Base64,
+        pot_id: UUIDv7Base64URL,
     ) -> (
         (
             Outline,
@@ -185,7 +185,7 @@ mod test {
         ),
         (Card, Card),
     ) {
-        let version_id = UUIDv7Base64::new();
+        let version_id = UUIDv7Base64URL::new();
         create_version(app_handle.clone(), pot_id, version_id)
             .await
             .unwrap();

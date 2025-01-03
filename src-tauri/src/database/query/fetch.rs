@@ -2,11 +2,10 @@ use crate::{
     search_engine::DeleteTarget,
     types::{
         model::{
-            Ancestor, Breadcrumbs, Card, CardForIndex, LinkCount, Oplog, Outline, OutlineForIndex,
-            Pot, RawCard, RawCardForIndex, YUpdate,
+            Ancestor, Card, CardForIndex, LinkCount, Oplog, Outline, OutlineForIndex, Path, Pot,
+            RawCard, RawCardForIndex, YUpdate,
         },
-        state::WorkspaceState,
-        util::{BytesBase64, UUIDv7Base64},
+        util::{BytesBase64URL, UUIDv7Base64URL},
     },
 };
 use anyhow::Result;
@@ -20,41 +19,14 @@ pub async fn pots(pool: &SqlitePool) -> Result<Vec<Pot>> {
         .map_err(anyhow::Error::from)
 }
 
-pub async fn workspace_state(pool: &SqlitePool, id: UUIDv7Base64) -> Result<WorkspaceState> {
-    #[derive(sqlx::prelude::FromRow)]
-    struct QueryResult {
-        id: UUIDv7Base64,
-        name: String,
-        value: Option<Vec<u8>>,
-    }
-
-    sqlx::query_as::<_, QueryResult>(
-        r#"
-            SELECT pots.id, pots.name, workspaces.value
-            FROM pots
-            LEFT JOIN workspaces ON pots.id = workspaces.pot_id
-            WHERE pots.id = ?;
-        "#,
-    )
-    .bind(id)
-    .fetch_one(pool)
-    .await
-    .map(|r| {
-        Ok(r.value
-            .map(|v| serde_sqlite_jsonb::from_slice(&v))
-            .transpose()?
-            .unwrap_or(WorkspaceState::new(r.id, r.name)))
-    })?
-}
-
-pub async fn breadcrumbs(pool: &SqlitePool, outline_id: UUIDv7Base64) -> Result<Breadcrumbs> {
+pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Path> {
     let query = r#"
-        SELECT breadcrumbs
-        FROM outline_breadcrumbs
+        SELECT path
+        FROM outline_paths
         WHERE id = ?;
     "#;
 
-    let mut query_builder = sqlx::query_scalar::<_, Breadcrumbs>(query);
+    let mut query_builder = sqlx::query_scalar::<_, Path>(query);
 
     query_builder = query_builder.bind(outline_id);
 
@@ -64,21 +36,21 @@ pub async fn breadcrumbs(pool: &SqlitePool, outline_id: UUIDv7Base64) -> Result<
         .map_err(anyhow::Error::from)
 }
 
-pub async fn ancestors(pool: &SqlitePool, parent_ids: &[UUIDv7Base64]) -> Result<Vec<Ancestor>> {
+pub async fn ancestors(pool: &SqlitePool, parent_ids: &[UUIDv7Base64URL]) -> Result<Vec<Ancestor>> {
     let query = format!(
         r#"
             WITH RECURSIVE ancestors AS (
                 SELECT
-                    id, parent_id, doc
+                    id, parent_id, text
                 FROM outlines
                 WHERE id IN ({})
                 UNION ALL
                 SELECT
-                    parent.id, parent.parent_id, parent.doc
-                FROM breadcrumbs AS child
+                    parent.id, parent.parent_id, parent.text
+                FROM path AS child
                 INNER JOIN outlines AS parent ON parent.id = child.parent_id
             )
-            SELECT DISTINCT id, parent_id, doc FROM breadcrumbs;
+            SELECT DISTINCT id, parent_id, text FROM path;
         "#,
         parent_ids
             .iter()
@@ -101,9 +73,9 @@ pub async fn ancestors(pool: &SqlitePool, parent_ids: &[UUIDv7Base64]) -> Result
 
 pub async fn y_updates_by_doc_id(
     pool: &SqlitePool,
-    y_doc_id: UUIDv7Base64,
-) -> Result<Vec<BytesBase64>> {
-    let mut query_builder = sqlx::query_scalar::<_, BytesBase64>(
+    y_doc_id: UUIDv7Base64URL,
+) -> Result<Vec<BytesBase64URL>> {
+    let mut query_builder = sqlx::query_scalar::<_, BytesBase64URL>(
         r#"
             SELECT data
             FROM y_updates
@@ -117,7 +89,7 @@ pub async fn y_updates_by_doc_id(
 
 pub async fn y_updates_by_id(
     pool: &SqlitePool,
-    y_update_ids: &[UUIDv7Base64],
+    y_update_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<YUpdate>> {
     let query = format!(
         r#"
@@ -144,7 +116,7 @@ pub async fn y_updates_by_id(
         .map_err(anyhow::Error::from)
 }
 
-pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64]) -> Result<Vec<Card>> {
+pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64URL]) -> Result<Vec<Card>> {
     let query = format!(
         r#"
             WITH c1 AS (
@@ -172,12 +144,12 @@ pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64]) -> Result
             )
             SELECT 
                 c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
-                jsonb_group_array(outline_breadcrumbs.breadcrumbs) AS links,
+                jsonb_group_array(outline_paths.path) AS links,
                 c1.created_at,
                 c1.updated_at
             FROM c1
             LEFT JOIN card_links ON c1.id = card_links.id_from
-            LEFT JOIN outline_breadcrumbs ON card_links.id_to = outline_breadcrumbs.outline_id
+            LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
             GROUP BY id;
         "#,
         card_ids
@@ -202,7 +174,7 @@ pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64]) -> Result
 
 pub async fn cards_for_index_by_id(
     pool: &SqlitePool,
-    card_ids: &[UUIDv7Base64],
+    card_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<CardForIndex>> {
     let query = format!(
         r#"
@@ -236,15 +208,15 @@ pub async fn cards_for_index_by_id(
                 c1.fractional_index, 
                 c1.doc, c1.quote_id, 
                 c1.quote_version_id,
-                breadcrumbs.breadcrumbs,
-                jsonb_group_array(links.breadcrumbs) AS links,
+                path.path,
+                jsonb_group_array(links.path) AS links,
                 c1.created_at,
                 c1.updated_at
             FROM c1
             INNER JOIN y_docs ON c1.id = y_docs.id
             LEFT JOIN card_links ON c1.id = card_links.id_from
-            LEFT JOIN outline_breadcrumbs AS breadcrumbs ON c1.outline_id = breadcrumbs.outline_id
-            LEFT JOIN outline_breadcrumbs AS links ON card_links.id_to = links.outline_id
+            LEFT JOIN outline_paths AS path ON c1.outline_id = path.outline_id
+            LEFT JOIN outline_paths AS links ON card_links.id_to = links.outline_id
             GROUP BY id;
         "#,
         card_ids
@@ -269,7 +241,7 @@ pub async fn cards_for_index_by_id(
 
 pub async fn cards_by_outline_id(
     pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64],
+    outline_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<Card>> {
     let query = format!(
         r#"
@@ -297,12 +269,12 @@ pub async fn cards_by_outline_id(
             )
             SELECT 
                 c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
-                jsonb_group_array(outline_breadcrumbs.breadcrumbs) AS links,
+                jsonb_group_array(outline_paths.path) AS links,
                 c1.created_at,
                 c1.updated_at
             FROM c1
             LEFT JOIN card_links ON c1.id = card_links.id_from
-            LEFT JOIN outline_breadcrumbs ON card_links.id_to = outline_breadcrumbs.outline_id
+            LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
             GROUP BY id;
         "#,
         outline_ids
@@ -359,12 +331,12 @@ pub async fn cards_by_created_at(
         )
         SELECT 
             c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
-            jsonb_group_array(outline_breadcrumbs.breadcrumbs) AS links,
+            jsonb_group_array(outline_paths.path) AS links,
             c1.created_at,
             c1.updated_at
         FROM c1
         LEFT JOIN card_links ON c1.id = card_links.id_from
-        LEFT JOIN outline_breadcrumbs ON card_links.id_to = outline_breadcrumbs.outline_id
+        LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
         GROUP BY id;
     "#;
 
@@ -382,8 +354,8 @@ pub async fn cards_by_created_at(
 
 pub async fn card_delete_targets(
     pool: &SqlitePool,
-    deleted_ids: &[UUIDv7Base64],
-) -> anyhow::Result<Vec< DeleteTarget >> {
+    deleted_ids: &[UUIDv7Base64URL],
+) -> anyhow::Result<Vec<DeleteTarget>> {
     let query = format!(
         r#"
             SELECT id, pot_id 
@@ -408,13 +380,13 @@ pub async fn card_delete_targets(
 
 pub async fn conflicting_outline_ids(
     pool: &SqlitePool,
-    outline_id: UUIDv7Base64,
-    parent_id: Option<UUIDv7Base64>,
+    outline_id: UUIDv7Base64URL,
+    parent_id: Option<UUIDv7Base64URL>,
     text: &str,
-) -> Result<Vec<(UUIDv7Base64, String)>> {
+) -> Result<Vec<(UUIDv7Base64URL, String)>> {
     #[derive(FromRow)]
     struct QueryResult {
-        id: UUIDv7Base64,
+        id: UUIDv7Base64URL,
         text: String,
     }
 
@@ -452,9 +424,9 @@ pub async fn conflicting_outline_ids(
 
 pub async fn descendant_ids(
     pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64],
+    outline_ids: &[UUIDv7Base64URL],
     include_cards: bool,
-) -> Result<(Vec<UUIDv7Base64>, Vec<UUIDv7Base64>)> {
+) -> Result<(Vec<UUIDv7Base64URL>, Vec<UUIDv7Base64URL>)> {
     let outline_ids = {
         let query = format!(
             r#"
@@ -477,7 +449,7 @@ pub async fn descendant_ids(
                 .join(", ")
         );
 
-        let mut query_builder = sqlx::query_scalar::<_, UUIDv7Base64>(&query);
+        let mut query_builder = sqlx::query_scalar::<_, UUIDv7Base64URL>(&query);
 
         for id in outline_ids.iter() {
             query_builder = query_builder.bind(id);
@@ -498,7 +470,7 @@ pub async fn descendant_ids(
                 .join(", ")
         );
 
-        let mut query_builder = sqlx::query_scalar::<_, UUIDv7Base64>(&query);
+        let mut query_builder = sqlx::query_scalar::<_, UUIDv7Base64URL>(&query);
 
         for id in outline_ids.iter() {
             query_builder = query_builder.bind(id);
@@ -514,7 +486,7 @@ pub async fn descendant_ids(
 
 pub async fn outline_trees(
     pool: &SqlitePool,
-    root_ids: &[UUIDv7Base64],
+    root_ids: &[UUIDv7Base64URL],
     depth: Option<u32>,
 ) -> Result<Vec<Outline>> {
     match depth {
@@ -541,12 +513,12 @@ pub async fn outline_trees(
                         outline_tree.fractional_index, 
                         outline_tree.doc, 
                         outline_tree.text, 
-                        jsonb_group_array(outline_breadcrumbs.breadcrumbs) AS links,
+                        jsonb_group_array(outline_paths.path) AS links,
                         outline_tree.created_at,
                         outline_tree.updated_at
                     FROM outline_tree
                     LEFT JOIN outline_links ON outline_tree.id = outline_links.id_from
-                    LEFT JOIN outline_breadcrumbs ON outline_breadcrumbs.outline_id = outline_links.id_to
+                    LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
                     GROUP BY id;
                 "#, 
                 root_ids
@@ -590,12 +562,12 @@ pub async fn outline_trees(
                         outline_tree.fractional_index, 
                         outline_tree.doc, 
                         outline_tree.text,
-                        jsonb_group_array(outline_breadcrumbs.breadcrumbs) AS links,
+                        jsonb_group_array(outline_paths.path) AS links,
                         outline_tree.created_at,
                         outline_tree.updated_at
                     FROM outline_tree
                     LEFT JOIN outline_links ON outline_tree.id = outline_links.id_from
-                    LEFT JOIN outline_breadcrumbs ON outline_breadcrumbs.outline_id = outline_links.id_to
+                    LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
                     GROUP BY id;
                 "#, 
                 root_ids
@@ -621,7 +593,7 @@ pub async fn outline_trees(
 
 pub async fn outlines_by_id(
     pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64],
+    outline_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<Outline>> {
     let query = format!(
         r#"
@@ -631,12 +603,12 @@ pub async fn outlines_by_id(
                 fractional_index, 
                 doc, 
                 text,
-                jsonb_group_array(breadcrumbs) AS links,
+                jsonb_group_array(path) AS links,
                 created_at,
                 updated_at
             FROM outlines
             LEFT JOIN outline_links ON outlines.id = outline_links.id_from
-            LEFT JOIN outline_breadcrumbs ON outline_breadcrumbs.outline_id = outline_links.id_to
+            LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
             WHERE id IN ({}) AND is_deleted = false
             GROUP BY id;
         "#,
@@ -661,7 +633,7 @@ pub async fn outlines_by_id(
 
 pub async fn outlines_for_index_by_id(
     pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64],
+    outline_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<OutlineForIndex>> {
     let query = format!(
         r#"
@@ -672,15 +644,15 @@ pub async fn outlines_for_index_by_id(
                 fractional_index, 
                 doc, 
                 text,
-                breadcrumb.breadcrumbs,
-                jsonb_group_array(links.breadcrumbs) AS links,
+                outline_paths.path,
+                jsonb_group_array(links.path) AS links,
                 created_at,
                 updated_at
             FROM outlines
             INNER JOIN y_docs ON outlines.id = y_docs.id
             LEFT JOIN outline_links ON outlines.id = outline_links.id_from
-            LEFT JOIN outline_breadcrumbs AS breadcrumbs ON breadcrumbs.outline_id = outlines.id
-            LEFT JOIN outline_breadcrumbs AS links ON links.outline_id = outline_links.id_to
+            LEFT JOIN outline_paths AS path ON path.outline_id = outlines.id
+            LEFT JOIN outline_paths AS links ON links.outline_id = outline_links.id_to
             GROUP BY id
             WHERE id IN ({}) AND is_deleted = false;
         "#,
@@ -705,8 +677,8 @@ pub async fn outlines_for_index_by_id(
 
 pub async fn outline_delete_targets(
     pool: &SqlitePool,
-    deleted_ids: &[UUIDv7Base64],
-) -> anyhow::Result<Vec< DeleteTarget >> {
+    deleted_ids: &[UUIDv7Base64URL],
+) -> anyhow::Result<Vec<DeleteTarget>> {
     let query = format!(
         r#"
             SELECT id, pot_id 
@@ -731,8 +703,8 @@ pub async fn outline_delete_targets(
 
 pub async fn relation_back(
     pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64],
-    card_ids: &[UUIDv7Base64],
+    outline_ids: &[UUIDv7Base64URL],
+    card_ids: &[UUIDv7Base64URL],
 ) -> Result<(Vec<Outline>, Vec<Card>)> {
     let outlines = {
         let query = format!(
@@ -743,12 +715,12 @@ pub async fn relation_back(
                     fractional_index, 
                     doc, 
                     text,
-                    jsonb_group_array(breadcrumbs) AS links,
+                    jsonb_group_array(path) AS links,
                     created_at,
                     updated_at
                 FROM outlines
                 LEFT JOIN outline_links ON outlines.id = outline_links.id_from
-                LEFT JOIN outline_breadcrumbs ON outline_breadcrumbs.outline_id = outline_links.id_to
+                LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
                 WHERE outlines.is_deleted = false AND id_to IN ({})
                 GROUP BY id;
             "#,
@@ -806,12 +778,12 @@ pub async fn relation_back(
                 )
                 SELECT 
                     c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
-                    jsonb_group_array(outline_breadcrumbs.breadcrumbs) AS links,
+                    jsonb_group_array(outline_paths.path) AS links,
                     c1.created_at,
                     c1.updated_at
                 FROM c1
                 LEFT JOIN card_links ON c1.id = card_links.id_from
-                LEFT JOIN outline_breadcrumbs ON card_links.id_to = outline_breadcrumbs.outline_id
+                LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
                 GROUP BY id;
             "#,
             outline_ids
@@ -847,8 +819,8 @@ pub async fn relation_back(
 
 pub async fn relation_forward(
     pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64],
-    card_ids: &[UUIDv7Base64],
+    outline_ids: &[UUIDv7Base64URL],
+    card_ids: &[UUIDv7Base64URL],
 ) -> Result<(Vec<Outline>, Vec<Card>)> {
     let outlines = {
         let query = format!(
@@ -859,12 +831,12 @@ pub async fn relation_forward(
                     fractional_index, 
                     doc, 
                     text,
-                    jsonb_group_array(breadcrumbs) AS links,
+                    jsonb_group_array(path) AS links,
                     created_at,
                     updated_at
                 FROM outlines
                 LEFT JOIN outline_links ON outlines.id = outline_links.id_from
-                LEFT JOIN outline_breadcrumbs ON outline_breadcrumbs.outline_id = outline_links.id_to
+                LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
                 WHERE outline_links.id_from IN ({}) AND outlines.is_deleted = false
                 GROUP BY id;
             "#,
@@ -912,12 +884,12 @@ pub async fn relation_forward(
                 )
                 SELECT 
                     c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
-                    jsonb_group_array(outline_breadcrumbs.breadcrumbs) AS links,
+                    jsonb_group_array(outline_paths.path) AS links,
                     c1.created_at,
                     c1.updated_at
                 FROM c1
                 LEFT JOIN card_links ON c1.id = card_links.id_from
-                LEFT JOIN outline_breadcrumbs ON card_links.id_to = outline_breadcrumbs.outline_id
+                LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
                 GROUP BY id;
             "#,
             card_ids
@@ -944,8 +916,8 @@ pub async fn relation_forward(
 
 pub async fn relation_count(
     pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64],
-    card_ids: &[UUIDv7Base64],
+    outline_ids: &[UUIDv7Base64URL],
+    card_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<LinkCount>> {
     let query = format!(
         r#"
@@ -1025,8 +997,8 @@ pub async fn relation_count(
 
 pub async fn recursive_relation_count(
     pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64],
-    card_ids: &[UUIDv7Base64],
+    outline_ids: &[UUIDv7Base64URL],
+    card_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<LinkCount>> {
     let query = format!(
         r#"
@@ -1179,7 +1151,7 @@ pub async fn unversioned_y_updates(pool: &SqlitePool) -> Result<Vec<YUpdate>> {
 }
 
 pub async fn oplog_rowids_all(pool: &SqlitePool) -> Result<Vec<i64>> {
-    sqlx::query_scalar::<_, i64>("SELECT rowid FROM oplog;")
+    sqlx::query_scalar::<_, i64>("SELECT rowid FROM operation_logs;")
         .fetch_all(pool)
         .await
         .map_err(anyhow::Error::from)
@@ -1188,7 +1160,7 @@ pub async fn oplog_rowids_all(pool: &SqlitePool) -> Result<Vec<i64>> {
 pub async fn oplogs_by_rowid(pool: &SqlitePool, rowids: &[i64]) -> Result<Vec<Oplog>> {
     let query = format!(
         r#"
-            SELECT * FROM oplog WHERE rowid IN ({});
+            SELECT * FROM operation_logs WHERE rowid IN ({});
         "#,
         rowids.iter().map(|_| "?").collect::<Vec<&str>>().join(", ")
     );

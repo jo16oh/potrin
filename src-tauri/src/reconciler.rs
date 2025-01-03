@@ -4,7 +4,7 @@ use crate::{
     search_engine::{add_index, remove_index, DeleteTarget, IndexTarget},
     types::{
         model::{Ancestor, CardForIndex, Link, Oplog, OutlineForIndex, YUpdate},
-        util::UUIDv7Base64,
+        util::UUIDv7Base64URL,
     },
     utils::{extract_text_from_doc, get_state},
 };
@@ -93,7 +93,7 @@ async fn reconcile<R: Runtime>(
             .iter()
             .filter(|log| log.tablename == "y_updates")
             .map(|log| log.primary_key)
-            .collect::<Vec<UUIDv7Base64>>(),
+            .collect::<Vec<UUIDv7Base64URL>>(),
     )
     .await?
     .into_iter()
@@ -123,7 +123,7 @@ async fn reconcile<R: Runtime>(
 async fn process_outline_changes<R: Runtime>(
     app_handle: &AppHandle<R>,
     outline_logs: Vec<&Oplog>,
-    y_updates_map: &mut HashMap<UUIDv7Base64, Vec<YUpdate>>,
+    y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
     origin: &Origin,
 ) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
@@ -136,7 +136,7 @@ async fn process_outline_changes<R: Runtime>(
         match operation {
             "insert" => {
                 // omit logically deleted rows from indexing
-                let inserted_ids: Vec<UUIDv7Base64> = logs
+                let inserted_ids: Vec<UUIDv7Base64URL> = logs
                     .into_iter()
                     .map(|log| {
                         let status = log.status.as_ref().context("status is not set")?;
@@ -150,7 +150,7 @@ async fn process_outline_changes<R: Runtime>(
                     .collect();
 
                 if !inserted_ids.is_empty() {
-                    update_breadcrumbs(pool, &inserted_ids).await?;
+                    update_path(pool, &inserted_ids).await?;
 
                     let inserted_outlines =
                         fetch::outlines_for_index_by_id(pool, &inserted_ids).await?;
@@ -165,7 +165,7 @@ async fn process_outline_changes<R: Runtime>(
                                     pot_id: e.pot_id,
                                     doc_type: "outline",
                                     doc: &e.doc,
-                                    breadcrumbs: &e.breadcrumbs,
+                                    path: &e.path,
                                     links: &e.links,
                                     created_at: e.created_at,
                                     updated_at: e.updated_at,
@@ -193,7 +193,7 @@ async fn process_outline_changes<R: Runtime>(
                 }
             }
             "update" => {
-                let (updated_ids, deleted_ids): (Vec<UUIDv7Base64>, Vec<UUIDv7Base64>) = logs
+                let (updated_ids, deleted_ids): (Vec<UUIDv7Base64URL>, Vec<UUIDv7Base64URL>) = logs
                     .into_iter()
                     .map(|log| {
                         let status = log.status.as_ref().context("status is not set")?;
@@ -211,7 +211,7 @@ async fn process_outline_changes<R: Runtime>(
                     });
 
                 if !updated_ids.is_empty() {
-                    update_breadcrumbs(pool, &updated_ids).await?;
+                    update_path(pool, &updated_ids).await?;
 
                     let updated_outlines =
                         fetch::outlines_for_index_by_id(pool, &updated_ids).await?;
@@ -226,7 +226,7 @@ async fn process_outline_changes<R: Runtime>(
                                     pot_id: e.pot_id,
                                     doc_type: "outline",
                                     doc: &e.doc,
-                                    breadcrumbs: &e.breadcrumbs,
+                                    path: &e.path,
                                     links: &e.links,
                                     created_at: e.created_at,
                                     updated_at: e.updated_at,
@@ -255,7 +255,7 @@ async fn process_outline_changes<R: Runtime>(
                 }
 
                 if !deleted_ids.is_empty() {
-                    update_breadcrumbs(pool, &deleted_ids).await?;
+                    update_path(pool, &deleted_ids).await?;
 
                     let delete_targets = fetch::outline_delete_targets(pool, &deleted_ids).await?;
                     remove_index(app_handle, delete_targets).await?;
@@ -271,7 +271,7 @@ async fn process_outline_changes<R: Runtime>(
                         let status = log.status.as_ref().context("status is not set")?;
                         let decoded_status: DeleteLogStatus =
                             serde_sqlite_jsonb::from_slice(status)?;
-                        let pot_id: UUIDv7Base64 =
+                        let pot_id: UUIDv7Base64URL =
                             hex::decode(decoded_status.pot_id)?.try_into()?;
 
                         Ok(DeleteTarget {
@@ -295,7 +295,7 @@ async fn process_outline_changes<R: Runtime>(
 async fn process_card_changes<R: Runtime>(
     app_handle: &AppHandle<R>,
     card_logs: Vec<&Oplog>,
-    y_updates_map: &mut HashMap<UUIDv7Base64, Vec<YUpdate>>,
+    y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
     origin: &Origin,
 ) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
@@ -306,7 +306,7 @@ async fn process_card_changes<R: Runtime>(
         match operation {
             "insert" => {
                 // omit logically deleted rows from indexing
-                let inserted_ids: Vec<UUIDv7Base64> = logs
+                let inserted_ids: Vec<UUIDv7Base64URL> = logs
                     .into_iter()
                     .map(|log| {
                         let status = log.status.as_ref().context("status is not set")?;
@@ -332,7 +332,7 @@ async fn process_card_changes<R: Runtime>(
                                     pot_id: e.pot_id,
                                     doc_type: "card",
                                     doc: &e.doc,
-                                    breadcrumbs: &e.breadcrumbs,
+                                    path: &e.path,
                                     links: &e.links,
                                     created_at: e.created_at,
                                     updated_at: e.updated_at,
@@ -360,7 +360,7 @@ async fn process_card_changes<R: Runtime>(
                 }
             }
             "update" => {
-                let (updated_ids, deleted_ids): (Vec<UUIDv7Base64>, Vec<UUIDv7Base64>) = logs
+                let (updated_ids, deleted_ids): (Vec<UUIDv7Base64URL>, Vec<UUIDv7Base64URL>) = logs
                     .into_iter()
                     .map(|log| {
                         let status = log.status.as_ref().context("status is not set")?;
@@ -390,7 +390,7 @@ async fn process_card_changes<R: Runtime>(
                                     pot_id: e.pot_id,
                                     doc_type: "card",
                                     doc: &e.doc,
-                                    breadcrumbs: &e.breadcrumbs,
+                                    path: &e.path,
                                     links: &e.links,
                                     created_at: e.created_at,
                                     updated_at: e.updated_at,
@@ -433,7 +433,7 @@ async fn process_card_changes<R: Runtime>(
                         let status = log.status.as_ref().context("status is not set")?;
                         let decoded_status: DeleteLogStatus =
                             serde_sqlite_jsonb::from_slice(status)?;
-                        let pot_id: UUIDv7Base64 =
+                        let pot_id: UUIDv7Base64URL =
                             hex::decode(decoded_status.pot_id)?.try_into()?;
 
                         Ok(DeleteTarget {
@@ -454,40 +454,43 @@ async fn process_card_changes<R: Runtime>(
     Ok(())
 }
 
-async fn update_breadcrumbs(pool: &SqlitePool, outline_ids: &[UUIDv7Base64]) -> anyhow::Result<()> {
+async fn update_path(pool: &SqlitePool, outline_ids: &[UUIDv7Base64URL]) -> anyhow::Result<()> {
     let outlines = fetch::outline_trees(pool, outline_ids, None).await?;
-    let ancestors: HashMap<UUIDv7Base64, Ancestor> = fetch::ancestors(
+    let ancestors: HashMap<UUIDv7Base64URL, Ancestor> = fetch::ancestors(
         pool,
-        &outlines.iter().map(|o| o.id).collect::<Vec<UUIDv7Base64>>(),
+        &outlines
+            .iter()
+            .map(|o| o.id)
+            .collect::<Vec<UUIDv7Base64URL>>(),
     )
     .await?
     .into_iter()
     .map(|a| (a.id, a))
     .collect();
 
-    let breadcrumbs = outlines
+    let path = outlines
         .into_iter()
         .map(|outline| {
-            let mut breadcrumbs: VecDeque<Link> = VecDeque::new();
+            let mut path: VecDeque<Link> = VecDeque::new();
             let mut current_id = outline.parent_id;
 
             while let Some(id) = current_id.as_ref() {
-                if let Some(breadcrumb) = ancestors.get(id) {
-                    current_id = breadcrumb.parent_id;
-                    breadcrumbs.push_front(Link {
-                        id: breadcrumb.id,
-                        text: extract_text_from_doc(&breadcrumb.doc)?,
+                if let Some(ancestor) = ancestors.get(id) {
+                    current_id = ancestor.parent_id;
+                    path.push_front(Link {
+                        id: ancestor.id,
+                        text: ancestor.text.clone(),
                     });
                 } else {
                     break;
                 }
             }
 
-            Ok((outline.id, serde_sqlite_jsonb::to_vec(&breadcrumbs)?))
+            Ok((outline.id, serde_sqlite_jsonb::to_vec(&path)?))
         })
-        .collect::<anyhow::Result<Vec<(UUIDv7Base64, Vec<u8>)>>>()?;
+        .collect::<anyhow::Result<Vec<(UUIDv7Base64URL, Vec<u8>)>>>()?;
 
-    upsert::breadcrumbs(pool, &breadcrumbs).await?;
+    upsert::path(pool, &path).await?;
 
     Ok(())
 }

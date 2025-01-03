@@ -44,8 +44,8 @@ pub mod test {
     use crate::commands::upsert_card::test::upsert_card;
     use crate::commands::upsert_outline::test::upsert_outline;
     use crate::types::model::{Card, Outline, Pot, User};
-    use crate::types::state::{AppState, PotState, UserState, WorkspaceState};
-    use crate::types::util::UUIDv7Base64;
+    use crate::types::state::{AppState, UserState};
+    use crate::types::util::UUIDv7Base64URL;
     use crate::utils::get_rw_state;
     use chrono::Utc;
     use sqlx::SqlitePool;
@@ -56,8 +56,8 @@ pub mod test {
 
     pub async fn create_tree(
         app_handle: &AppHandle<MockRuntime>,
-        pot_id: UUIDv7Base64,
-        parent_id: Option<UUIDv7Base64>,
+        pot_id: UUIDv7Base64URL,
+        parent_id: Option<UUIDv7Base64URL>,
         limit: u8,
         current: u8,
     ) -> Outline {
@@ -91,15 +91,16 @@ pub mod test {
         let now = Utc::now().timestamp_millis();
 
         let user = User {
-            id: UUIDv7Base64::new(),
+            id: UUIDv7Base64URL::new(),
             name: "mock_user".to_string(),
         };
         insert::from_local::user(pool, &user, now).await.unwrap();
 
         let pot = Pot {
-            id: UUIDv7Base64::new(),
+            id: UUIDv7Base64URL::new(),
             name: "mock".to_string(),
             owner: Some(user.id),
+            created_at: Utc::now().timestamp_millis(),
         };
         insert::from_local::pot(pool, &pot, now).await.unwrap();
 

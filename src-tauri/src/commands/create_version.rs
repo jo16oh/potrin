@@ -1,6 +1,6 @@
 use crate::database::query::*;
 use crate::types::model::YUpdate;
-use crate::types::util::{BytesBase64, UUIDv7Base64};
+use crate::types::util::{BytesBase64URL, UUIDv7Base64URL};
 use crate::utils::get_state;
 use anyhow::Context;
 use chrono::Utc;
@@ -14,22 +14,22 @@ use tauri::{AppHandle, Window};
 pub async fn create_version<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
-    version_id: UUIDv7Base64,
+    version_id: UUIDv7Base64URL,
 ) -> anyhow::Result<()> {
-    let pot_id: UUIDv7Base64 = window.label().try_into()?;
+    let pot_id: UUIDv7Base64URL = window.label().try_into()?;
 
-    create_version_inner(app_handle, pot_id, version_id).await
+    create_version_impl(app_handle, pot_id, version_id).await
 }
 
-async fn create_version_inner<R: tauri::Runtime>(
+async fn create_version_impl<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
-    pot_id: UUIDv7Base64,
-    version_id: UUIDv7Base64,
+    pot_id: UUIDv7Base64URL,
+    version_id: UUIDv7Base64URL,
 ) -> anyhow::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
-    let mut updates_map: HashMap<UUIDv7Base64, Vec<BytesBase64>> = HashMap::new();
-    let mut unversioned_update_ids: Vec<UUIDv7Base64> = vec![];
+    let mut updates_map: HashMap<UUIDv7Base64URL, Vec<BytesBase64URL>> = HashMap::new();
+    let mut unversioned_update_ids: Vec<UUIDv7Base64URL> = vec![];
 
     for update in fetch::unversioned_y_updates(pool).await? {
         unversioned_update_ids.push(update.id);
@@ -48,7 +48,7 @@ async fn create_version_inner<R: tauri::Runtime>(
                     .map(|d| d.to_vec())
                     .collect::<Vec<Vec<u8>>>(),
             )
-            .map(|data| YUpdate::new(y_doc_id, BytesBase64::from(data)))
+            .map(|data| YUpdate::new(y_doc_id, BytesBase64URL::from(data)))
             .context("failed to merge updates")
         })
         .collect::<anyhow::Result<Vec<YUpdate>>>()?;
@@ -72,9 +72,9 @@ pub mod test {
 
     pub async fn create_version<R: tauri::Runtime>(
         app_handle: AppHandle<R>,
-        pot_id: UUIDv7Base64,
-        version_id: UUIDv7Base64,
+        pot_id: UUIDv7Base64URL,
+        version_id: UUIDv7Base64URL,
     ) -> anyhow::Result<()> {
-        create_version_inner(app_handle, pot_id, version_id).await
+        create_version_impl(app_handle, pot_id, version_id).await
     }
 }

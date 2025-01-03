@@ -12,14 +12,18 @@ mod window;
 mod test;
 
 use specta_typescript::Typescript;
-use tauri::{
-    async_runtime, App, Manager, Runtime, TitleBarStyle, WebviewUrl, WebviewWindowBuilder
-};
+use state::close_pot;
+use tauri::{async_runtime, App, Manager, Runtime};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
-// use tauri_plugin_log::{Target, TargetKind};
+use types::util::UUIDv7Base64URL;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(debug_assertions)]
+    {
+        color_eyre::install().unwrap();
+    }
+
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(commands::commands())
         .events(events::events())
@@ -34,58 +38,62 @@ pub fn run() {
         .expect("Failed to export typescript bindings");
 
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_window_state::Builder::default().build())
-        // .plugin(
-        //     tauri_plugin_log::Builder::new()
-        //         .targets([
-        //             Target::new(TargetKind::Stdout),
-        //             Target::new(TargetKind::LogDir { file_name: None }),
-        //             Target::new(TargetKind::Webview),
-        //         ])
-        //         .build(),
-        // )
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(StateFlags::all() - StateFlags::VISIBLE)
+                .with_denylist(&["pot-selector"])
+                .build(),
+        )
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            app.get_webview_window("main")
+                .expect("no main window")
+                .set_focus()
+                .unwrap();
+        }))
         .invoke_handler(specta_builder.invoke_handler())
         .setup(move |app| {
-          setup(specta_builder, app)?;
+            setup(specta_builder, app)?;
 
-          let app_handle = app.app_handle();
+            let app_handle = app.app_handle();
 
-          let window_handle = async_runtime::spawn({
-            let app_handle = app_handle.clone();
-            async move { window::init_windows(&app_handle).await}
-          });
-          async_runtime::block_on(window_handle)??;
+            let window_handle = async_runtime::spawn({
+                let app_handle = app_handle.clone();
+                async move { window::init_windows(&app_handle).await }
+            });
+            async_runtime::block_on(window_handle)??;
 
-          Ok(())
+            Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                #[cfg(not(target_os = "macos"))]
-                {
-                    event.window().hide().unwrap();
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                if window.label() != "pot-selector" {
+                    let app_handle = window.app_handle();
+                    let pot_id: UUIDv7Base64URL = window.label().try_into().unwrap();
+
+                    if app_handle.webview_windows().len() > 1 {
+                        let task_handle = async_runtime::spawn({
+                            let app_handle = app_handle.clone();
+                            async move {
+                                close_pot(&app_handle, &pot_id).await.unwrap();
+                            }
+                        });
+                        async_runtime::block_on(task_handle).unwrap();
+                    }
                 }
 
-                #[cfg(target_os = "macos")]
-                {
-                    tauri::AppHandle::hide(window.app_handle()).unwrap();
-                }
-                api.prevent_close();
+                window
+                    .app_handle()
+                    .save_window_state(StateFlags::all())
+                    .unwrap();
             }
         })
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
 
-    app.run(|app_handle, event| match event {
-        tauri::RunEvent::Exit => {
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::Exit = event {
             app_handle.save_window_state(StateFlags::all()).unwrap();
-            println!("exit");
         }
-        tauri::RunEvent::ExitRequested { code, api, .. } => {
-            println!("{:?}", code);
-
-            api.prevent_exit();
-        }
-        _ => {}
     });
 }
 
@@ -113,6 +121,8 @@ fn setup<R: Runtime>(
         async move { reconciler::init(&app_handle).await }
     });
     async_runtime::block_on(reconciler_handle)??;
+
+    async_runtime::spawn(commands::test_tracing::will_fail());
 
     Ok(())
 }

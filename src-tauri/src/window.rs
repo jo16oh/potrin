@@ -1,11 +1,10 @@
 use crate::{
     search_engine::load_index,
     state::init_workspace_state,
-    types::{state::AppState, util::UUIDv7Base64},
+    types::{state::AppState, util::UUIDv7Base64URL},
     utils::get_rw_state,
 };
 use tauri::{AppHandle, Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
-use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 pub async fn init_windows(app_handle: &AppHandle) -> anyhow::Result<()> {
     let app_state_lock = get_rw_state::<_, AppState>(app_handle)?;
@@ -14,8 +13,8 @@ pub async fn init_windows(app_handle: &AppHandle) -> anyhow::Result<()> {
     if app_state.pots.is_empty() {
         open_pot_selector(app_handle)?;
     } else {
-        for id in app_state.pots.iter() {
-            open_pot(app_handle, *id, "".into()).await?;
+        for (id, name) in app_state.pots.iter() {
+            open_pot(app_handle, *id, name).await?;
         }
     }
 
@@ -27,7 +26,9 @@ pub fn open_pot_selector(app_handle: &AppHandle) -> anyhow::Result<()> {
         WebviewWindowBuilder::new(app_handle, "pot-selector", WebviewUrl::App("".into()))
             .title("Potrin")
             .hidden_title(true)
-            .inner_size(800.0, 600.0);
+            .resizable(false)
+            .inner_size(800.0, 650.0)
+            .visible(false);
 
     // set transparent title bar only when building for macOS
     #[cfg(target_os = "macos")]
@@ -39,17 +40,18 @@ pub fn open_pot_selector(app_handle: &AppHandle) -> anyhow::Result<()> {
 
 pub async fn open_pot(
     app_handle: &AppHandle,
-    pot_id: UUIDv7Base64,
-    pot_name: String,
+    pot_id: UUIDv7Base64URL,
+    pot_name: &str,
 ) -> anyhow::Result<()> {
     let win_builder = WebviewWindowBuilder::new(
         app_handle,
-        "pot-selector",
+        pot_id,
         WebviewUrl::App(format!("pot/{}", pot_id).into()),
     )
-    .title(&pot_name)
+    .title(pot_name)
     .hidden_title(true)
-    .inner_size(800.0, 600.0);
+    .inner_size(1025.0, 800.0)
+    .visible(false);
 
     // set transparent title bar only when building for macOS
     #[cfg(target_os = "macos")]
@@ -57,9 +59,9 @@ pub async fn open_pot(
 
     let window = win_builder.build()?;
 
-    window.restore_state(StateFlags::all())?;
-
-    init_workspace_state(app_handle).await?;
+    init_workspace_state(app_handle, &window, pot_id, pot_name)
+        .await
+        .unwrap();
 
     let search_index = load_index(app_handle, pot_id, 0).await?;
     window.manage(search_index);

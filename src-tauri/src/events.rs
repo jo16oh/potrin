@@ -1,6 +1,6 @@
 use crate::types::{
     model::{CardForIndex, OutlineForIndex},
-    util::{BytesBase64, UUIDv7Base64},
+    util::{BytesBase64URL, UUIDv7Base64URL},
 };
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -48,11 +48,11 @@ impl WorkspaceStateChange {
 #[serde(rename_all = "camelCase")]
 pub struct Target<T> {
     pub current_value: T,
-    pub related_y_updates: Vec<BytesBase64>,
+    pub related_y_updates: Vec<BytesBase64URL>,
 }
 
 impl<T> Target<T> {
-    pub fn new(current_value: T, related_y_updates: Vec<BytesBase64>) -> Self {
+    pub fn new(current_value: T, related_y_updates: Vec<BytesBase64URL>) -> Self {
         Target {
             current_value,
             related_y_updates,
@@ -65,7 +65,7 @@ impl<T> Target<T> {
 pub enum Operation<T> {
     Insert { targets: Vec<Target<T>> },
     Update { targets: Vec<Target<T>> },
-    Delete { target_ids: Vec<UUIDv7Base64> },
+    Delete { target_ids: Vec<UUIDv7Base64URL> },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Type, Event)]
@@ -90,7 +90,7 @@ impl OutlineChange {
         }
     }
 
-    pub fn delete(target_ids: Vec<UUIDv7Base64>, origin: Origin) -> Self {
+    pub fn delete(target_ids: Vec<UUIDv7Base64URL>, origin: Origin) -> Self {
         OutlineChange {
             operation: Operation::Delete { target_ids },
             origin,
@@ -120,7 +120,7 @@ impl CardChange {
         }
     }
 
-    pub fn delete(target_ids: Vec<UUIDv7Base64>, origin: Origin) -> Self {
+    pub fn delete(target_ids: Vec<UUIDv7Base64URL>, origin: Origin) -> Self {
         CardChange {
             operation: Operation::Delete { target_ids },
             origin,

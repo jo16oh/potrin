@@ -3,7 +3,7 @@ use crate::events::Origin;
 use crate::reconciler::DatabaseChange;
 use crate::reconciler::Reconciler;
 use crate::types::model::{Card, Outline};
-use crate::types::util::UUIDv7Base64;
+use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Window};
@@ -50,7 +50,7 @@ pub async fn hard_delete_card<R: tauri::Runtime>(
 
 async fn hard_delete_y_doc<R: tauri::Runtime>(
     app_handle: &AppHandle<R>,
-    y_doc_id: UUIDv7Base64,
+    y_doc_id: UUIDv7Base64URL,
 ) -> anyhow::Result<i64> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 

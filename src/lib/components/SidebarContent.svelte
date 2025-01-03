@@ -10,18 +10,13 @@
   } from "lucide-svelte";
   import Swither from "./Swither.svelte";
   import Button from "./ui/button/button.svelte";
-  import {
-    type Workspace,
-    type Sidebar as SidebarState,
-  } from "$lib/models/App.svelte";
   import type { TabState } from "../../generated/tauri-commands";
   import { uuidv7 } from "$lib/utils";
   import { cn } from "$lib/utils";
+  import { Workspace } from "$lib/models/Workspace.svelte";
 
-  let {
-    workspace = $bindable(),
-    sidebar = $bindable(),
-  }: { workspace: Workspace; sidebar: SidebarState } = $props();
+  const workspace = Workspace.state();
+  const sidebar = $derived(workspace.sidebar);
 </script>
 
 <Sidebar.Header
@@ -53,7 +48,7 @@
         <div class="flex size-8 items-center justify-center rounded-lg">
           <CalendarArrowDown class="size-4" />
         </div>
-        <h2 class="text-md select-none px-1 font-semibold">Timeline</h2>
+        <div class="text-md select-none px-1 font-semibold">Timeline</div>
       </Sidebar.MenuButton>
     </Sidebar.MenuItem>
     <Sidebar.MenuItem>
@@ -71,7 +66,7 @@
         >
           <Search class="size-4" />
         </div>
-        <h2 class="text-md select-none px-1 font-semibold">Search</h2>
+        <div class="text-md select-none px-1 font-semibold">Search</div>
       </Sidebar.MenuButton>
     </Sidebar.MenuItem>
   </Sidebar.Menu>
@@ -215,9 +210,9 @@
                     >
                       <AsteriskIcon class="size-4" />
                     </div>
-                    <h2 class="text-md grow select-none truncate">
+                    <div class="text-md grow select-none truncate">
                       {view.title}
-                    </h2>
+                    </div>
                     {#if ("tabs" in workspace.focus && tabIdx === workspace.focus.tabs.index) || viewIdx === tab.views.length - 1}
                       <div
                         class="hidden aspect-square h-full items-center justify-center rounded-lg text-sidebar-foreground/70 transition-colors duration-100 hover:text-sidebar-foreground group-hover/tabs:flex"

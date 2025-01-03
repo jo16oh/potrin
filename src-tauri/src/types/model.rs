@@ -1,4 +1,4 @@
-use super::util::{BytesBase64, UUIDv7Base64};
+use super::util::{BytesBase64URL, UUIDv7Base64URL};
 use derive_more::derive::Deref;
 use serde::{Deserialize, Serialize};
 use sqlx::{sqlite::SqliteValueRef, Database, Decode, FromRow, Sqlite};
@@ -7,27 +7,30 @@ use std::collections::HashMap;
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
-    pub id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
     pub name: String,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Pot {
-    pub id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
     pub name: String,
-    pub owner: Option<UUIDv7Base64>,
+    pub owner: Option<UUIDv7Base64URL>,
+    pub created_at: i64,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Outline {
-    pub id: UUIDv7Base64,
-    pub parent_id: Option<UUIDv7Base64>,
+    pub id: UUIDv7Base64URL,
+    pub parent_id: Option<UUIDv7Base64URL>,
     pub fractional_index: String,
     pub doc: String,
     #[sqlx(default)]
     pub text: String,
+    #[sqlx(default)]
+    pub path: Option<Path>,
     pub links: Links,
     pub created_at: i64,
     pub updated_at: i64,
@@ -35,14 +38,15 @@ pub struct Outline {
 
 impl Outline {
     #[cfg(test)]
-    pub fn new(parent_id: Option<UUIDv7Base64>) -> Self {
+    pub fn new(parent_id: Option<UUIDv7Base64URL>) -> Self {
         let now = chrono::Utc::now().timestamp_millis();
         Self {
-            id: UUIDv7Base64::new(),
+            id: UUIDv7Base64URL::new(),
             parent_id,
             fractional_index: String::new(),
             doc: String::new(),
             text: String::new(),
+            path: None,
             links: Links(HashMap::new()),
             created_at: now,
             updated_at: now,
@@ -53,14 +57,14 @@ impl Outline {
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct OutlineForIndex {
-    pub id: UUIDv7Base64,
-    pub pot_id: UUIDv7Base64,
-    pub parent_id: Option<UUIDv7Base64>,
+    pub id: UUIDv7Base64URL,
+    pub pot_id: UUIDv7Base64URL,
+    pub parent_id: Option<UUIDv7Base64URL>,
     pub fractional_index: String,
     pub doc: String,
     #[sqlx(default)]
     pub text: String,
-    pub breadcrumbs: Breadcrumbs,
+    pub path: Path,
     pub links: Links,
     pub created_at: i64,
     pub updated_at: i64,
@@ -74,6 +78,7 @@ impl From<OutlineForIndex> for Outline {
             fractional_index: value.fractional_index,
             doc: value.doc,
             text: value.text,
+            path: Some(value.path),
             links: value.links,
             created_at: value.created_at,
             updated_at: value.updated_at,
@@ -84,8 +89,8 @@ impl From<OutlineForIndex> for Outline {
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Card {
-    pub id: UUIDv7Base64,
-    pub outline_id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
+    pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
     pub doc: String,
     pub quote: Option<Quote>,
@@ -96,12 +101,12 @@ pub struct Card {
 
 #[derive(FromRow)]
 pub struct RawCard {
-    pub id: UUIDv7Base64,
-    pub outline_id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
+    pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
     pub doc: String,
-    pub quote_id: Option<UUIDv7Base64>,
-    pub quote_version_id: Option<UUIDv7Base64>,
+    pub quote_id: Option<UUIDv7Base64URL>,
+    pub quote_version_id: Option<UUIDv7Base64URL>,
     pub links: Links,
     pub created_at: i64,
     pub updated_at: i64,
@@ -134,13 +139,13 @@ impl From<RawCard> for Card {
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CardForIndex {
-    pub id: UUIDv7Base64,
-    pub pot_id: UUIDv7Base64,
-    pub outline_id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
+    pub pot_id: UUIDv7Base64URL,
+    pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
     pub doc: String,
     pub quote: Option<Quote>,
-    pub breadcrumbs: Breadcrumbs,
+    pub path: Path,
     pub links: Links,
     pub created_at: i64,
     pub updated_at: i64,
@@ -163,14 +168,14 @@ impl From<CardForIndex> for Card {
 
 #[derive(FromRow)]
 pub struct RawCardForIndex {
-    pub id: UUIDv7Base64,
-    pub pot_id: UUIDv7Base64,
-    pub outline_id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
+    pub pot_id: UUIDv7Base64URL,
+    pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
     pub doc: String,
-    pub quote_id: Option<UUIDv7Base64>,
-    pub quote_version_id: Option<UUIDv7Base64>,
-    pub breadcrumbs: Breadcrumbs,
+    pub quote_id: Option<UUIDv7Base64URL>,
+    pub quote_version_id: Option<UUIDv7Base64URL>,
+    pub path: Path,
     pub links: Links,
     pub created_at: i64,
     pub updated_at: i64,
@@ -194,7 +199,7 @@ impl From<RawCardForIndex> for CardForIndex {
             } else {
                 None
             },
-            breadcrumbs: value.breadcrumbs,
+            path: value.path,
             links: value.links,
             created_at: value.created_at,
             updated_at: value.updated_at,
@@ -205,16 +210,16 @@ impl From<RawCardForIndex> for CardForIndex {
 #[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Quote {
-    pub id: UUIDv7Base64,
-    pub version_id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
+    pub version_id: UUIDv7Base64URL,
 }
 
 impl Card {
     #[cfg(test)]
-    pub fn new(outline_id: UUIDv7Base64, quote: Option<Quote>) -> Self {
+    pub fn new(outline_id: UUIDv7Base64URL, quote: Option<Quote>) -> Self {
         let now = chrono::Utc::now().timestamp_millis();
         Self {
-            id: UUIDv7Base64::new(),
+            id: UUIDv7Base64URL::new(),
             outline_id,
             fractional_index: String::new(),
             doc: String::new(),
@@ -229,15 +234,15 @@ impl Card {
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct YUpdate {
-    pub id: UUIDv7Base64,
-    pub y_doc_id: UUIDv7Base64,
-    pub data: BytesBase64,
+    pub id: UUIDv7Base64URL,
+    pub y_doc_id: UUIDv7Base64URL,
+    pub data: BytesBase64URL,
 }
 
 impl YUpdate {
-    pub fn new(y_doc_id: UUIDv7Base64, data: BytesBase64) -> Self {
+    pub fn new(y_doc_id: UUIDv7Base64URL, data: BytesBase64URL) -> Self {
         YUpdate {
-            id: UUIDv7Base64::new(),
+            id: UUIDv7Base64URL::new(),
             y_doc_id,
             data,
         }
@@ -247,15 +252,15 @@ impl YUpdate {
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Ancestor {
-    pub id: UUIDv7Base64,
-    pub parent_id: Option<UUIDv7Base64>,
-    pub doc: String,
+    pub id: UUIDv7Base64URL,
+    pub parent_id: Option<UUIDv7Base64URL>,
+    pub text: String,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkCount {
-    pub id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
     pub back: i64,
     pub forward: i64,
 }
@@ -263,38 +268,38 @@ pub struct LinkCount {
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Link {
-    pub id: UUIDv7Base64,
+    pub id: UUIDv7Base64URL,
     pub text: String,
 }
 
 #[derive(Serialize, Deserialize, Deref, Clone, Debug, specta::Type)]
 #[serde(transparent)]
-pub struct Breadcrumbs(Vec<Link>);
+pub struct Path(Vec<Link>);
 
 #[cfg(test)]
-impl Breadcrumbs {
+impl Path {
     pub fn new() -> Self {
         Self(Vec::new())
     }
 }
 
-impl sqlx::Type<Sqlite> for Breadcrumbs {
+impl sqlx::Type<Sqlite> for Path {
     fn type_info() -> <Sqlite as Database>::TypeInfo {
         <&[u8] as sqlx::Type<Sqlite>>::type_info()
     }
 }
 
-impl<'r> Decode<'r, Sqlite> for Breadcrumbs {
+impl<'r> Decode<'r, Sqlite> for Path {
     fn decode(
         value: SqliteValueRef<'r>,
     ) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
         let bytes = <&[u8] as Decode<Sqlite>>::decode(value)?;
-        Ok(Breadcrumbs(serde_sqlite_jsonb::from_slice(bytes)?))
+        Ok(Path(serde_sqlite_jsonb::from_slice(bytes)?))
     }
 }
 
 #[derive(FromRow, Serialize, Deserialize, Deref, Clone, Debug, specta::Type)]
-pub struct Links(#[specta(type = HashMap<String, Breadcrumbs>)] HashMap<UUIDv7Base64, Breadcrumbs>);
+pub struct Links(#[specta(type = HashMap<String, Path>)] HashMap<UUIDv7Base64URL, Path>);
 
 #[cfg(test)]
 impl Links {
@@ -303,19 +308,19 @@ impl Links {
     }
 }
 
-impl From<Vec<Breadcrumbs>> for Links {
-    fn from(value: Vec<Breadcrumbs>) -> Self {
+impl From<Vec<Path>> for Links {
+    fn from(value: Vec<Path>) -> Self {
         let res = value
             .into_iter()
-            .filter_map(|breadcrumbs| {
+            .filter_map(|path| {
                 #[allow(clippy::manual_map)]
-                if let Some(link) = breadcrumbs.last() {
-                    Some((link.id, breadcrumbs))
+                if let Some(link) = path.last() {
+                    Some((link.id, path))
                 } else {
                     None
                 }
             })
-            .collect::<HashMap<UUIDv7Base64, Breadcrumbs>>();
+            .collect::<HashMap<UUIDv7Base64URL, Path>>();
 
         Self(res)
     }
@@ -333,7 +338,7 @@ impl<'r> Decode<'r, Sqlite> for Links {
     ) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
         let bytes = <&[u8] as Decode<Sqlite>>::decode(value)?;
 
-        let links: Vec<Breadcrumbs> = serde_sqlite_jsonb::from_slice(bytes)?;
+        let links: Vec<Path> = serde_sqlite_jsonb::from_slice(bytes)?;
 
         Ok(Links::from(links))
     }
@@ -342,7 +347,7 @@ impl<'r> Decode<'r, Sqlite> for Links {
 #[derive(FromRow)]
 pub struct Oplog {
     pub rowid: i64,
-    pub primary_key: UUIDv7Base64,
+    pub primary_key: UUIDv7Base64URL,
     pub tablename: String,
     pub operation: String,
     pub updated_at: i64,

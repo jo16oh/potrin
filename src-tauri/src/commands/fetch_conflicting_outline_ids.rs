@@ -1,5 +1,5 @@
 use crate::database::query::fetch;
-use crate::types::util::UUIDv7Base64;
+use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
@@ -10,10 +10,10 @@ use tauri::Runtime;
 #[macros::anyhow_to_string]
 pub async fn fetch_conflicting_outline_ids<R: Runtime>(
     app_handle: AppHandle<R>,
-    outline_id: UUIDv7Base64,
-    parent_id: Option<UUIDv7Base64>,
+    outline_id: UUIDv7Base64URL,
+    parent_id: Option<UUIDv7Base64URL>,
     text: &str,
-) -> anyhow::Result<Vec<(UUIDv7Base64, String)>> {
+) -> anyhow::Result<Vec<(UUIDv7Base64URL, String)>> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     fetch::conflicting_outline_ids(pool, outline_id, parent_id, text).await
@@ -28,7 +28,7 @@ pub mod test {
         run_in_mock_app,
         types::{
             model::{Links, Outline},
-            util::UUIDv7Base64,
+            util::UUIDv7Base64URL,
         },
     };
     use tauri::{test::MockRuntime, AppHandle};
@@ -41,12 +41,13 @@ pub mod test {
             let outline = |text: &str| -> Outline {
                 let now = chrono::Utc::now().timestamp_millis();
                 Outline {
-                    id: UUIDv7Base64::new(),
+                    id: UUIDv7Base64URL::new(),
                     parent_id: None,
                     fractional_index: "".to_string(),
                     doc: "".to_string(),
                     text: text.to_string(),
                     links: Links::new(),
+                    path: None,
                     created_at: now,
                     updated_at: now,
                 }

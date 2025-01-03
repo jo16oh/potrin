@@ -32,7 +32,7 @@ CREATE TABLE workspaces (
   is set as the primary key to uniquely identify each change, preventing any 
   changes from being missed during processing.
 */
-CREATE TABLE oplog (
+CREATE TABLE operation_logs (
   rowid INTEGER PRIMARY KEY, 
   primary_key BLOB NOT NULL,
   tablename TEXT NOT NULL,
@@ -41,17 +41,17 @@ CREATE TABLE oplog (
   status BLOB
 ) STRICT;
 
-CREATE INDEX oplog$primary_key ON oplog(primary_key);
+CREATE INDEX operation_logs$primary_key ON operation_logs(primary_key);
 
 /*
-  Before inserting into oplog, delete any existing logs 
+  Before inserting into operation_logs, delete any existing logs 
   with the same primary key, to save storage space.
 */
-CREATE TRIGGER before_insert_oplog
-BEFORE INSERT ON oplog
+CREATE TRIGGER before_insert_operation_logs
+BEFORE INSERT ON operation_logs
 FOR EACH ROW
 BEGIN
-  DELETE FROM oplog
+  DELETE FROM operation_logs
   WHERE 
     primary_key = NEW.primary_key 
     AND tablename = NEW.tablename;
@@ -88,7 +88,7 @@ CREATE TRIGGER before_insert_pots
 BEFORE INSERT ON pots
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at)
     VALUES (
       NEW.id,
       "pots",
@@ -101,7 +101,7 @@ CREATE TRIGGER before_update_pots
 BEFORE UPDATE ON pots
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at)
     VALUES (
       NEW.id,
       "pots",
@@ -114,7 +114,7 @@ CREATE TRIGGER before_delete_pots
 BEFORE DELETE ON pots
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at)
   VALUES (
     OLD.id,
     "pots",
@@ -169,7 +169,7 @@ CREATE TRIGGER before_insert_y_updates
 BEFORE INSERT ON y_updates
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "y_updates",
@@ -196,7 +196,7 @@ CREATE TRIGGER before_delete_y_updates
 BEFORE DELETE ON y_updates
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at)
   VALUES (
     OLD.id,
     "y_updates",
@@ -244,7 +244,7 @@ CREATE TRIGGER before_insert_versions
 BEFORE INSERT ON versions
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
     VALUES (
       NEW.id,
       "versions",
@@ -271,7 +271,7 @@ CREATE TRIGGER before_delete_versions
 BEFORE DELETE ON versions
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at)
   VALUES (
     OLD.id,
     "versions",
@@ -397,7 +397,7 @@ CREATE TRIGGER before_insert_outlines
 BEFORE INSERT ON outlines
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
     VALUES (
       NEW.id,
       "outlines",
@@ -417,7 +417,7 @@ CREATE TRIGGER before_update_outlines
 BEFORE UPDATE ON outlines
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "outlines",
@@ -437,7 +437,7 @@ CREATE TRIGGER before_delete_outlines
 BEFORE DELETE ON outlines
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     OLD.id,
     "outlines",
@@ -456,7 +456,7 @@ END;
 
 
 CREATE TABLE outline_links(
-    rowid INTEGER PRIMARY KEY, -- set rowid as PK to specify the changed record in the oplog
+    rowid INTEGER PRIMARY KEY, -- set rowid as PK to specify the changed record in the operation_logs
     id_from BLOB REFERENCES outlines(id) ON DELETE CASCADE,
     id_to BLOB NOT NULL, -- implicitly referes to outlines(id), but is not constrained by FK to avoid inconsistency from y_updates
     UNIQUE (id_from, id_to)
@@ -466,12 +466,12 @@ CREATE INDEX outline_links$id_from ON outline_links(id_from);
 CREATE INDEX outline_links$id_to ON outline_links(id_to);
 
 /*
-  By separating breadcrumbs from the outlines table, 
-  we exclude breadcrumb changes from outline oplogs, enabling lazy updates.
+  By separating path from the outlines table, 
+  we exclude path changes from outline operation_logs, enabling lazy updates.
 */
-CREATE TABLE outline_breadcrumbs(
+CREATE TABLE outline_paths(
   outline_id BLOB REFERENCES outlines(id) ON DELETE CASCADE PRIMARY KEY,
-  breadcrumbs BLOB NOT NULL
+  path BLOB NOT NULL
 ) STRICT;
 
 
@@ -493,7 +493,7 @@ CREATE TRIGGER before_insert_cards
 BEFORE INSERT ON cards
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "cards",
@@ -513,7 +513,7 @@ CREATE TRIGGER before_update_cards
 BEFORE UPDATE ON cards
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "update",
@@ -533,7 +533,7 @@ CREATE TRIGGER before_delete_cards
 BEFORE DELETE ON cards
 FOR EACH ROW
 BEGIN
-  INSERT INTO oplog (primary_key, tablename, operation, updated_at, status)
+  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     OLD.id,
     "cards",
@@ -552,7 +552,7 @@ END;
 
 
 CREATE TABLE card_links (
-    rowid INTEGER PRIMARY KEY, -- set rowid as PK to specify the changed record in the oplog
+    rowid INTEGER PRIMARY KEY, -- set rowid as PK to specify the changed record in the operation_logs
     id_from BLOB REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
     id_to BLOB NOT NULL, -- implicitly referes to outlines(id), but is not constrained by FK to avoid inconsistency from y_updates
     UNIQUE (id_from, id_to)

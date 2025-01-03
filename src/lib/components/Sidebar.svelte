@@ -1,26 +1,24 @@
 <script lang="ts">
   import * as Sidebar from "./ui/sidebar/index";
   import SidebarContent from "./SidebarContent.svelte";
-  import {
-    type Sidebar as SidebarState,
-    type Workspace,
-  } from "$lib/models/App.svelte";
   import type { Snippet } from "svelte";
   import { cn } from "$lib/utils";
+  import { Workspace } from "$lib/models/Workspace.svelte";
 
   let {
-    workspace = $bindable(),
-    sidebar = $bindable(),
     children,
   }: {
-    workspace: Workspace;
-    sidebar: SidebarState;
     children?: Snippet;
   } = $props();
 
-  let open = $state(sidebar.isFloat ? false : true);
-  let width = $state(sidebar.width);
+  const workspace = Workspace.state();
+  const sidebar = $derived(workspace.sidebar);
 
+  let open = $state(workspace.sidebar.isFloat ? false : true);
+  let width = $state(workspace.sidebar.width);
+  $effect(() => {
+    width = sidebar.width;
+  });
   let isResizing = $state(false);
 
   function resize(e: MouseEvent) {
@@ -131,7 +129,7 @@
     {#if !sidebar.isFloat}
       <div class="h-7 w-full"></div>
     {/if}
-    <SidebarContent bind:workspace bind:sidebar />
+    <SidebarContent />
     <div
       onmousedown={resize}
       class={cn(

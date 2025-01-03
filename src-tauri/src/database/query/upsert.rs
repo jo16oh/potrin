@@ -1,6 +1,6 @@
 use crate::types::{
     model::{Card, Outline},
-    util::UUIDv7Base64,
+    util::UUIDv7Base64URL,
 };
 use anyhow::{Context, Result};
 use sqlx::SqliteExecutor;
@@ -26,7 +26,7 @@ where
                 is_deleted = excluded.is_deleted
             WHERE id = excluded.id
             RETURNING (
-              SELECT rowid FROM oplog WHERE primary_key = id
+              SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
         outline.id,
@@ -62,7 +62,7 @@ where
                 is_deleted = excluded.is_deleted
             WHERE id = excluded.id
             RETURNING (
-              SELECT rowid FROM oplog WHERE primary_key = id
+              SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
         card.id,
@@ -78,7 +78,7 @@ where
     .context("failed to insert into oplog")
 }
 
-pub async fn breadcrumbs<'a, E>(conn: E, values: &[(UUIDv7Base64, Vec<u8>)]) -> Result<()>
+pub async fn path<'a, E>(conn: E, values: &[(UUIDv7Base64URL, Vec<u8>)]) -> Result<()>
 where
     E: SqliteExecutor<'a>,
 {
@@ -88,12 +88,12 @@ where
 
     let query = format!(
         r#"
-            INSERT INTO outline_breadcrumbs (outline_id, breadcrumbs)
+            INSERT INTO outline_paths (outline_id, path)
             VALUES {}
             ON CONFLICT 
             DO UPDATE
             SET 
-                breadcrumbs = excluded.breadcrumbs;
+                path = excluded.path;
         "#,
         values
             .iter()

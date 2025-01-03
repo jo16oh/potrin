@@ -2,9 +2,10 @@
   import * as Sidebar from "./ui/sidebar/index";
   import * as DropdownMenu from "./ui/dropdown-menu/index";
   import { ChevronDownIcon, CookingPotIcon } from "lucide-svelte";
-  import { App } from "$lib/models/App.svelte";
+  import { Workspace } from "$lib/models/Workspace.svelte";
+  import { commands } from "../../generated/tauri-commands";
 
-  const appState = App.state();
+  const workspace = Workspace.state();
 </script>
 
 <Sidebar.Menu class="group/swither">
@@ -23,9 +24,9 @@
               <CookingPotIcon class="size-4" />
             </div>
 
-            <h1 class="flex-grow truncate font-semibold">
-              {appState.pot?.name}
-            </h1>
+            <div class="flex-grow truncate font-semibold">
+              {workspace.pot.name}
+            </div>
 
             <div
               class="hidden h-full w-6 items-center justify-center rounded-lg group-hover/button:flex"
@@ -39,11 +40,12 @@
         class="w-[--bits-dropdown-menu-anchor-width]"
         align="start"
       >
-        <DropdownMenu.Item onSelect={() => (appState.pot = null)}>
+        <DropdownMenu.Item
+          onSelect={() => {
+            commands.openPotSelector();
+          }}
+        >
           Select Pot
-        </DropdownMenu.Item>
-        <DropdownMenu.Item onSelect={() => (appState.pot = null)}>
-          Rename Pot
         </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Root>

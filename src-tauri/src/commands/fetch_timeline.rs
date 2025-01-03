@@ -1,6 +1,6 @@
 use crate::database::query::fetch;
 use crate::types::model::{Card, Outline};
-use crate::types::util::UUIDv7Base64;
+use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
 use chrono::{DateTime, Duration, Utc};
 use sqlx::SqlitePool;
@@ -18,7 +18,7 @@ pub async fn fetch_timeline<R: Runtime>(
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let cards = fetch::cards_by_created_at(pool, from, to).await?;
-    let outline_ids: Vec<UUIDv7Base64> = cards.iter().map(|c| c.outline_id).collect();
+    let outline_ids: Vec<UUIDv7Base64URL> = cards.iter().map(|c| c.outline_id).collect();
     let outlines = fetch::outlines_by_id(pool, &outline_ids).await?;
 
     Ok((outlines, cards))

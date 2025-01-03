@@ -3,7 +3,7 @@ use crate::events::Origin;
 use crate::reconciler::{DatabaseChange, Reconciler};
 use crate::types::model::{Outline, YUpdate};
 use crate::types::state::AppState;
-use crate::types::util::{BytesBase64, UUIDv7Base64};
+use crate::types::util::{BytesBase64URL, UUIDv7Base64URL};
 use crate::utils::{get_rw_state, get_state};
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime, Window};
@@ -15,7 +15,7 @@ pub async fn upsert_outline<R: Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     outline: Outline,
-    y_updates: Vec<BytesBase64>,
+    y_updates: Vec<BytesBase64URL>,
 ) -> anyhow::Result<()> {
     let pot_id = window.label().try_into()?;
     let rowids = upsert_outline_impl(&app_handle, pot_id, &outline, y_updates).await?;
@@ -30,9 +30,9 @@ pub async fn upsert_outline<R: Runtime>(
 
 async fn upsert_outline_impl<R: Runtime>(
     app_handle: &AppHandle<R>,
-    pot_id: UUIDv7Base64,
+    pot_id: UUIDv7Base64URL,
     outline: &Outline,
-    y_updates: Vec<BytesBase64>,
+    y_updates: Vec<BytesBase64URL>,
 ) -> anyhow::Result<Vec<i64>> {
     let lock = get_rw_state::<R, AppState>(app_handle)?;
     let app_state = lock.read().await;
@@ -75,9 +75,9 @@ pub mod test {
 
     pub async fn upsert_outline<R: Runtime>(
         app_handle: &AppHandle<R>,
-        pot_id: UUIDv7Base64,
+        pot_id: UUIDv7Base64URL,
         outline: &Outline,
-        y_updates: Vec<BytesBase64>,
+        y_updates: Vec<BytesBase64URL>,
     ) -> anyhow::Result<Vec<i64>> {
         upsert_outline_impl(app_handle, pot_id, outline, y_updates).await
     }

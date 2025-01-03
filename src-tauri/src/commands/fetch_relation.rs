@@ -1,7 +1,7 @@
 use crate::database::query::fetch;
 use crate::types::model::Card;
 use crate::types::model::Outline;
-use crate::types::util::UUIDv7Base64;
+use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
 use serde::Deserialize;
 use serde::Serialize;
@@ -33,8 +33,8 @@ struct IncludeChildrenOption {
 #[macros::anyhow_to_string]
 pub async fn fetch_relation<R: Runtime>(
     app_handle: AppHandle<R>,
-    outline_ids: Vec<UUIDv7Base64>,
-    card_ids: Vec<UUIDv7Base64>,
+    outline_ids: Vec<UUIDv7Base64URL>,
+    card_ids: Vec<UUIDv7Base64URL>,
     option: RelationOption,
 ) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
@@ -70,7 +70,7 @@ mod test {
         });
     }
 
-    async fn test(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64) {
+    async fn test(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
         let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
         let r1 = create_tree(app_handle, pot_id, None, 3, 0).await;
@@ -109,7 +109,7 @@ mod test {
         .await
         .unwrap();
 
-        let version_id = UUIDv7Base64::new();
+        let version_id = UUIDv7Base64URL::new();
         create_version(app_handle.clone(), pot_id, version_id)
             .await
             .unwrap();

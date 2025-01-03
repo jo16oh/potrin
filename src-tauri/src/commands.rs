@@ -1,10 +1,10 @@
-use crate::types::util::UUIDv7Base64;
-use tauri::{AppHandle, Manager, WebviewWindowBuilder};
+use crate::types::util::UUIDv7Base64URL;
+use tauri::AppHandle;
 pub mod create_pot;
 pub mod create_user;
 pub mod create_version;
-pub mod fetch_breadcrumbs;
 pub mod fetch_conflicting_outline_ids;
+pub mod fetch_path;
 pub mod fetch_pots;
 pub mod fetch_relation;
 pub mod fetch_relation_count;
@@ -23,25 +23,46 @@ pub mod update_workspace_state;
 pub mod upsert_card;
 pub mod upsert_outline;
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-#[specta::specta]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+pub mod test_tracing {
+    use eyre::Context;
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-#[specta::specta]
-fn create_child(app_handle: AppHandle) {
-    let main = app_handle.get_webview_window("main").unwrap();
+    // このプリントを自動でやるマクロを書く
+    // Backtrace omittedの表示は消せない
+    // testの中でも?を使えるようになるかも
+    pub async fn will_fail() {
+        let e = fail().err().unwrap();
+        let msg = {
+            let msg = format!("{:?}", e);
+            let mut lines: Vec<&str> = msg.lines().collect();
 
-    let sub_window =
-        WebviewWindowBuilder::new(&app_handle, "sub", tauri::WebviewUrl::App("/".into()))
-            .title("Settings")
-            .visible(true);
+            while let Some(last_line) = lines.last() {
+                if last_line.starts_with("Backtrace omitted.")
+                    || last_line.starts_with("Run with RUST_BACKTRACE")
+                {
+                    lines.pop();
+                } else {
+                    break;
+                }
+            }
 
-    sub_window.parent(&main).unwrap().build().unwrap();
+            lines.join("\n")
+        };
+
+        eprintln!("tauri command failed: {} {}", e.root_cause(), msg);
+    }
+
+    fn fail() -> eyre::Result<()> {
+        inner().context("context")
+    }
+
+    fn inner() -> eyre::Result<()> {
+        more().context("more")
+    }
+
+    fn more() -> eyre::Result<()> {
+        std::fs::read("not exist")?;
+        Ok(())
+    }
 }
 
 #[tauri::command]
@@ -49,10 +70,10 @@ fn create_child(app_handle: AppHandle) {
 #[macros::anyhow_to_string]
 async fn open_pot(
     app_handle: AppHandle,
-    pot_id: UUIDv7Base64,
+    pot_id: UUIDv7Base64URL,
     pot_name: String,
 ) -> anyhow::Result<()> {
-    crate::window::open_pot(&app_handle, pot_id, pot_name).await
+    crate::window::open_pot(&app_handle, pot_id, &pot_name).await
 }
 
 #[tauri::command]
@@ -62,10 +83,14 @@ fn open_pot_selector(app_handle: AppHandle) -> anyhow::Result<()> {
     crate::window::open_pot_selector(&app_handle)
 }
 
+#[tauri::command]
+#[specta::specta]
+fn app_version(app_handle: AppHandle) -> String {
+    app_handle.package_info().version.to_string()
+}
+
 pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
     tauri_specta::collect_commands![
-        create_child,
-        greet,
         create_user::create_user::<tauri::Wry>,
         create_pot::create_pot::<tauri::Wry>,
         upsert_outline::upsert_outline::<tauri::Wry>,
@@ -81,7 +106,7 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         fetch_timeline::fetch_timeline::<tauri::Wry>,
         fetch_relation::fetch_relation::<tauri::Wry>,
         fetch_relation_count::fetch_relation_count::<tauri::Wry>,
-        fetch_breadcrumbs::fetch_breadcrumbs::<tauri::Wry>,
+        fetch_path::fetch_path::<tauri::Wry>,
         fetch_y_updates_by_doc_id::fetch_y_updates_by_doc_id::<tauri::Wry>,
         fetch_conflicting_outline_ids::fetch_conflicting_outline_ids::<tauri::Wry>,
         search::search::<tauri::Wry>,
@@ -90,6 +115,7 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         get_workspace_state::get_workspace_state,
         update_workspace_state::update_workspace_state::<tauri::Wry>,
         open_pot,
-        open_pot_selector
+        open_pot_selector,
+        app_version,
     ]
 }

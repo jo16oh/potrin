@@ -3,7 +3,7 @@ use crate::events::Origin;
 use crate::reconciler::{DatabaseChange, Reconciler};
 use crate::types::model::{Card, YUpdate};
 use crate::types::state::AppState;
-use crate::types::util::{BytesBase64, UUIDv7Base64};
+use crate::types::util::{BytesBase64URL, UUIDv7Base64URL};
 use crate::utils::{get_rw_state, get_state};
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime, Window};
@@ -15,13 +15,13 @@ pub async fn upsert_card<R: Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     card: Card,
-    y_updates: Vec<BytesBase64>,
+    y_updates: Vec<BytesBase64URL>,
 ) -> anyhow::Result<()> {
     let lock = get_rw_state::<R, AppState>(&app_handle)?;
     let app_state = lock.read().await;
-    let pot_id: UUIDv7Base64 = window.label().try_into()?;
+    let pot_id: UUIDv7Base64URL = window.label().try_into()?;
     let user_id = app_state.user.as_ref().map(|u| u.id);
-    let rowids = upsert_card_inner(&app_handle, pot_id, user_id, &card, y_updates).await?;
+    let rowids = upsert_card_impl(&app_handle, pot_id, user_id, &card, y_updates).await?;
 
     let reconciler = get_state::<R, Reconciler>(&app_handle)?;
     reconciler
@@ -31,12 +31,12 @@ pub async fn upsert_card<R: Runtime>(
     Ok(())
 }
 
-async fn upsert_card_inner<R: Runtime>(
+async fn upsert_card_impl<R: Runtime>(
     app_handle: &AppHandle<R>,
-    pot_id: UUIDv7Base64,
-    user_id: Option<UUIDv7Base64>,
+    pot_id: UUIDv7Base64URL,
+    user_id: Option<UUIDv7Base64URL>,
     card: &Card,
-    y_updates: Vec<BytesBase64>,
+    y_updates: Vec<BytesBase64URL>,
 ) -> anyhow::Result<Vec<i64>> {
     let y_updates = y_updates
         .into_iter()
@@ -75,10 +75,10 @@ pub mod test {
 
     pub async fn upsert_card<R: Runtime>(
         app_handle: &AppHandle<R>,
-        pot_id: UUIDv7Base64,
+        pot_id: UUIDv7Base64URL,
         card: &Card,
-        y_updates: Vec<BytesBase64>,
+        y_updates: Vec<BytesBase64URL>,
     ) -> anyhow::Result<Vec<i64>> {
-        upsert_card_inner(app_handle, pot_id, None, card, y_updates).await
+        upsert_card_impl(app_handle, pot_id, None, card, y_updates).await
     }
 }

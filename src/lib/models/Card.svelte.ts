@@ -1,12 +1,14 @@
-import { base64ToUint8Array, uint8ArrayToBase64, uuidv7 } from "$lib/utils";
+import {
+  base64URLToUint8Array,
+  uint8ArrayToBase64URL,
+  uuidv7,
+} from "$lib/utils";
 import { generateKeyBetween } from "fractional-indexing-jittered";
 import {
   type Card as RawCard,
   type Quote,
   type Links,
-  type UUIDv7Base64,
-  type Breadcrumbs,
-  type BytesBase64,
+  type Path,
   commands,
   events,
 } from "../../generated/tauri-commands";
@@ -16,24 +18,17 @@ import { ReversedLinkIndex, WeakRefMap } from "./utils";
 
 export type { RawCard };
 
-type Commands = {
-  fetchBreadcrumbs: (parentId: UUIDv7Base64) => Promise<Breadcrumbs>;
-  fetchConflictingOutlineIds: (
-    outlineId: UUIDv7Base64,
-    parentId: UUIDv7Base64 | null,
-    text: string,
-  ) => Promise<[UUIDv7Base64, string][]>;
-  fetchYUpdatesByDocId: (yDocId: UUIDv7Base64) => Promise<BytesBase64[]>;
-  insertPendingYUpdate: (
-    yDocId: UUIDv7Base64,
-    yUpdate: BytesBase64,
-  ) => Promise<null>;
-  upsertCard: (card: RawCard, yUpdates: BytesBase64[]) => Promise<null>;
-};
+type Commands = Pick<
+  typeof commands,
+  | "fetchPath"
+  | "fetchConflictingOutlineIds"
+  | "fetchYUpdatesByDocId"
+  | "insertPendingYUpdate"
+  | "upsertCard"
+>;
 
 export class Card {
   static #commands: Commands = commands;
-  static #window_label: string;
   static buffer: WeakRefMap<string, Card> = new WeakRefMap();
   static reversedLinkIndex = new ReversedLinkIndex(this.buffer);
 
@@ -46,13 +41,12 @@ export class Card {
   updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   private _outlineId: string;
   private _outlineRef = $state<WeakRef<Outline> | undefined>(undefined);
-  private _breadcrumbs = $state<Breadcrumbs | undefined>(undefined);
+  private _path = $state<Path | undefined>(undefined);
   private _ydoc: Y.Doc | undefined;
   private _pendingYUpdates: Uint8Array[] = [];
 
-  static inject(commands: Commands, window_label: string) {
+  static inject(commands: Commands) {
     this.#commands = commands;
-    this.#window_label = window_label;
   }
 
   private constructor(data: RawCard, outline: Outline) {
@@ -105,7 +99,10 @@ export class Card {
     card._ydoc = new Y.Doc();
     card._ydoc.on("updateV2", (u) => {
       card._pendingYUpdates.push(u);
-      void Card.#commands.insertPendingYUpdate(card.id, uint8ArrayToBase64(u));
+      void Card.#commands.insertPendingYUpdate(
+        card.id,
+        uint8ArrayToBase64URL(u),
+      );
     });
 
     const yFractionalIndex = card._ydoc.getText("fractionalIndex");
@@ -132,16 +129,14 @@ export class Card {
     this._outlineRef = outline ? new WeakRef(outline) : undefined;
   }
 
-  get breadcrumbs(): Promise<Breadcrumbs> {
-    if (this._breadcrumbs) {
-      return Promise.resolve(this._breadcrumbs);
+  get path(): Promise<Path> {
+    if (this._path) {
+      return Promise.resolve(this._path);
     } else {
-      return Card.#commands
-        .fetchBreadcrumbs(this._outlineId)
-        .then((breadcrumbs) => {
-          this._breadcrumbs = breadcrumbs;
-          return breadcrumbs;
-        });
+      return Card.#commands.fetchPath(this._outlineId).then((path) => {
+        this._path = path;
+        return path;
+      });
     }
   }
 
@@ -152,7 +147,7 @@ export class Card {
         this._pendingYUpdates.push(u);
         void Card.#commands.insertPendingYUpdate(
           this.id,
-          uint8ArrayToBase64(u),
+          uint8ArrayToBase64URL(u),
         );
       });
     }
@@ -160,7 +155,7 @@ export class Card {
     const updates = await Card.#commands.fetchYUpdatesByDocId(this.id);
 
     for (const u of updates) {
-      Y.applyUpdateV2(this._ydoc, base64ToUint8Array(u));
+      Y.applyUpdateV2(this._ydoc, base64URLToUint8Array(u));
     }
 
     return this._ydoc;
@@ -169,7 +164,7 @@ export class Card {
   async save() {
     await Card.#commands.upsertCard(
       this.toJSON(),
-      this._pendingYUpdates.map((u) => uint8ArrayToBase64(u)),
+      this._pendingYUpdates.map((u) => uint8ArrayToBase64URL(u)),
     );
   }
 
@@ -217,14 +212,6 @@ export class Card {
   static async init() {
     await events.cardChange.listen((e) => {
       const payload = e.payload;
-      const origin = e.payload.origin;
-
-      // return if the event is from this window
-      if (
-        typeof origin === "object" &&
-        origin.local.window_label === this.#window_label
-      )
-        return;
 
       const operation = payload.operation;
 
@@ -255,7 +242,7 @@ export class Card {
 
             if (card._ydoc) {
               for (const u of relatedYUpdates) {
-                Y.applyUpdateV2(card._ydoc, base64ToUint8Array(u));
+                Y.applyUpdateV2(card._ydoc, base64URLToUint8Array(u));
               }
             }
           } else {

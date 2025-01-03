@@ -1,228 +1,144 @@
 import { getContext, setContext } from "svelte";
-import type {
-  AppState,
-  ClientState,
-  FocusState,
-  PotState,
-  SidebarState,
-  TabState,
-  UserState,
-  ViewState,
-  ViewType,
-  WorkspaceState,
+import {
+  commands as tauriCommands,
+  events,
+  type AppState,
+  type UserState,
 } from "../../generated/tauri-commands";
-import { commands, events } from "../../generated/tauri-commands";
-import * as JsonPatch from "fast-json-patch";
-const { observe, applyPatch } = JsonPatch;
+import { applyPatch, compare } from "fast-json-patch";
+import { deepCloneOwnProperties } from "$lib/utils";
 
-const KEY = Symbol();
+const key = Symbol();
 
-export type App = {
-  client: Readonly<Client>;
-  user: Readonly<User> | null;
-  pot: Readonly<Pot> | null;
-  changePot: (id: string) => Promise<void>;
+type Commands = Pick<
+  typeof tauriCommands,
+  "getAppState" | "updateAppState" | "openPot"
+>;
+let commands: Commands = tauriCommands;
+
+declare const AppBrand: unique symbol;
+
+type AppAccessor = AppState & {
+  openPot: (pot: { id: string; name: string }) => void;
 };
+
+export type App = AppAccessor & { [AppBrand]: unknown };
 
 export const App = {
-  new(value: AppState): App {
-    return {
-      client: Client.new(value.client),
-      user: value.user ? User.new(value.user) : null,
-      pot: value.pot ? Pot.new(value.pot) : null,
-      async changePot(id) {
-        this.pot = Pot.new(await commands.fetchPotState(id));
-      },
-    } as const;
+  inject(cmds: Commands) {
+    commands = cmds;
   },
-
   init(value: AppState) {
-    if (getContext(KEY)) return;
+    const [app, setApp] = App.new(value);
 
-    let app: App = $state(this.new(value));
+    let prev: AppState | undefined;
 
-    observe(app, (patch) => {
-      console.log("observe");
-      commands
-        .updateAppState(JSON.stringify(patch))
-        .then(() => {
-          console.log("updated");
-        })
-        .catch(async (e) => {
-          console.error(e);
-          // app = this.new(await commands.getAppState());
-        });
-    });
-
-    $inspect(app);
-
-    void events.appStateChange.listen((e) => {
-      try {
-        applyPatch(app, JSON.parse(e.payload.patch));
-      } catch {
-        void commands.getAppState().then((r) => (app = this.new(r)));
+    $effect(() => {
+      const current = deepCloneOwnProperties(app);
+      if (prev) {
+        const diff = compare(prev, current);
+        if (diff.length !== 0) commands.updateAppState(JSON.stringify(diff));
       }
+      prev = current;
     });
 
-    setContext(KEY, app);
+    events.appStateChange.listen((e) => {
+      applyPatch(prev, JSON.parse(e.payload.patch));
+      setApp(prev!);
+    });
+
+    setContext(key, app);
   },
-
-  state(): Readonly<App> {
-    return getContext(KEY);
+  state() {
+    return getContext<App>(key);
   },
-};
+  new(value: AppState): [App, (v: AppState) => void] {
+    let [user, setUser] = value.user ? User.new(value.user) : [null, null];
 
-type Client = {
-  id: string;
-};
+    let app = $state({
+      clientId: value.clientId,
+      user: user,
+      pots: value.pots,
+      setting: value.setting,
+    });
 
-const Client = {
-  new(value: ClientState): Client {
-    return {
-      id: value.id,
+    const accessor: AppAccessor = {
+      get clientId() {
+        return app.clientId;
+      },
+      get user() {
+        return app.user;
+      },
+      get pots() {
+        return app.pots;
+      },
+      get setting() {
+        return app.setting;
+      },
+      set user(u: UserState | null) {
+        if (u && setUser) {
+          setUser(u);
+          app.user = user;
+        } else if (u) {
+          [user, setUser] = User.new(u);
+          app.user = user;
+        } else {
+          app.user = null;
+        }
+      },
+      openPot(pot: { id: string; name: string }) {
+        app.pots[pot.id] = pot.name;
+        commands.openPot(pot.id, pot.name);
+      },
     };
+
+    const setApp = (value: AppState) => {
+      app = {
+        clientId: value.clientId,
+        user: value.user ? User.new(value.user)[0] : null,
+        pots: value.pots,
+        setting: value.setting,
+      };
+    };
+
+    return [accessor as App, setApp];
   },
 };
 
-export type User = {
-  id: string;
-  name: string;
-  changeName: (name: string) => void;
-};
+declare const UserBrand: unique symbol;
+
+type UserAccessor = UserState;
+
+export type User = UserAccessor & { [UserBrand]: unknown };
 
 const User = {
-  new(value: UserState): User {
-    return {
+  new(value: UserState): [User, (u: UserState) => void] {
+    // validation
+    let user = $state({
       id: value.id,
       name: value.name,
-      changeName(name: string) {
-        this.name = name;
+    });
+
+    const accessor: UserAccessor = {
+      get id() {
+        return user.id;
+      },
+      get name() {
+        return user.name;
+      },
+      set name(n) {
+        user.name = n;
       },
     };
-  },
-};
 
-export const Pot = {
-  new(value: PotState | { id: string; name: string }): Pot {
-    return {
-      id: value.id,
-      name: value.name,
-      workspace:
-        "workspace" in value ? Workspace.new(value.workspace) : Workspace.new(),
+    const setUser = (value: UserState) => {
+      // validation
+      user = {
+        id: value.id,
+        name: value.name,
+      };
     };
-  },
-};
 
-export type Pot = {
-  id: string;
-  name: string;
-  workspace: Workspace;
-};
-
-export type Workspace = {
-  tabs: Readonly<Tab[]>;
-  focus: Readonly<FocusState>;
-  sidebar: Readonly<Sidebar>;
-  focusTo: (to: "timeline" | "search" | number) => void;
-};
-
-const Workspace = {
-  new(value?: WorkspaceState): Workspace {
-    if (value) {
-      return {
-        tabs: value.tabs.map((v) => Tab.new(v)),
-        focus: value.focus,
-        sidebar: Sidebar.new(value.sidebar),
-        focusTo(to: "timeline" | "search" | number) {
-          this.focus =
-            to === "timeline"
-              ? { timeline: {} }
-              : to === "search"
-                ? { search: {} }
-                : { tabs: { index: to } };
-        },
-      };
-    } else {
-      return {
-        tabs: [],
-        focus: { timeline: {} },
-        sidebar: Sidebar.new(),
-        focusTo(to: "timeline" | "search" | number) {
-          this.focus =
-            to === "timeline"
-              ? { timeline: {} }
-              : to === "search"
-                ? { search: {} }
-                : { tabs: { index: to } };
-        },
-      };
-    }
-  },
-};
-
-export type Tab = {
-  views: Readonly<View[]>;
-  focusedViewIdx: number;
-};
-
-const Tab = {
-  new(value: TabState): Tab {
-    return {
-      views: value.views.map((v) => View.new(v)),
-      focusedViewIdx: value.focusedViewIdx,
-    };
-  },
-};
-
-export type View = {
-  id: string;
-  viewType: Readonly<ViewType>;
-  title: string;
-  flexGrow: number;
-};
-
-const View = {
-  new(value: ViewState): View {
-    return {
-      id: value.id,
-      viewType: value.viewType,
-      title: value.title,
-      flexGrow: value.flexGrow,
-    };
-  },
-};
-
-export type Sidebar = {
-  isFloat: boolean;
-  width: number;
-  toggleFloat: () => void;
-  resize: (widht: number) => void;
-};
-
-const Sidebar = {
-  new(value?: SidebarState): Sidebar {
-    if (value) {
-      return {
-        isFloat: value.isFloat,
-        width: value.width,
-        toggleFloat() {
-          this.isFloat = !this.isFloat;
-        },
-        resize(width: number) {
-          this.width = width;
-        },
-      };
-    } else {
-      return {
-        isFloat: false,
-        width: 300,
-        toggleFloat() {
-          this.isFloat = !this.isFloat;
-        },
-        resize(width: number) {
-          this.width = width;
-        },
-      };
-    }
+    return [accessor as User, setUser];
   },
 };
