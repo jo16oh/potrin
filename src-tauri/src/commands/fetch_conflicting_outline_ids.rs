@@ -7,13 +7,13 @@ use tauri::Runtime;
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn fetch_conflicting_outline_ids<R: Runtime>(
     app_handle: AppHandle<R>,
     outline_id: UUIDv7Base64URL,
     parent_id: Option<UUIDv7Base64URL>,
     text: &str,
-) -> anyhow::Result<Vec<(UUIDv7Base64URL, String)>> {
+) -> eyre::Result<Vec<(UUIDv7Base64URL, String)>> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     fetch::conflicting_outline_ids(pool, outline_id, parent_id, text).await

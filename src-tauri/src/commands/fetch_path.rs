@@ -8,11 +8,11 @@ use tauri::Runtime;
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn fetch_path<R: Runtime>(
     app_handle: AppHandle<R>,
     parent_id: UUIDv7Base64URL,
-) -> anyhow::Result<Path> {
+) -> eyre::Result<Path> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     fetch::path(pool, parent_id).await

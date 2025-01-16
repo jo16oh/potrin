@@ -10,13 +10,13 @@ use tauri::{AppHandle, Runtime, Window};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn upsert_card<R: Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     card: Card,
     y_updates: Vec<BytesBase64URL>,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let lock = get_rw_state::<R, AppState>(&app_handle)?;
     let app_state = lock.read().await;
     let pot_id: UUIDv7Base64URL = window.label().try_into()?;
@@ -28,7 +28,7 @@ pub async fn upsert_card<R: Runtime>(
         .send(DatabaseChange::new(rowids, Origin::local(window.label())))
         .await?;
 
-    Ok(())
+    eyre::Ok(())
 }
 
 async fn upsert_card_impl<R: Runtime>(
@@ -37,7 +37,7 @@ async fn upsert_card_impl<R: Runtime>(
     user_id: Option<UUIDv7Base64URL>,
     card: &Card,
     y_updates: Vec<BytesBase64URL>,
-) -> anyhow::Result<Vec<i64>> {
+) -> eyre::Result<Vec<i64>> {
     let y_updates = y_updates
         .into_iter()
         .map(|data| YUpdate::new(card.id, data))
@@ -78,7 +78,7 @@ pub mod test {
         pot_id: UUIDv7Base64URL,
         card: &Card,
         y_updates: Vec<BytesBase64URL>,
-    ) -> anyhow::Result<Vec<i64>> {
+    ) -> eyre::Result<Vec<i64>> {
         upsert_card_impl(app_handle, pot_id, None, card, y_updates).await
     }
 }

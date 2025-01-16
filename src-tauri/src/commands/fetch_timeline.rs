@@ -8,11 +8,11 @@ use tauri::{AppHandle, Runtime};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn fetch_timeline<R: Runtime>(
     app_handle: AppHandle<R>,
     from: DateTime<Utc>,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Card>)> {
     let to = from + Duration::days(1);
 
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
@@ -21,7 +21,7 @@ pub async fn fetch_timeline<R: Runtime>(
     let outline_ids: Vec<UUIDv7Base64URL> = cards.iter().map(|c| c.outline_id).collect();
     let outlines = fetch::outlines_by_id(pool, &outline_ids).await?;
 
-    Ok((outlines, cards))
+    eyre::Ok((outlines, cards))
 }
 
 // #[cfg(test)]

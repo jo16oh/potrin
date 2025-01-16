@@ -11,7 +11,7 @@ struct QueryResult {
     value: Vec<u8>,
 }
 
-pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
+pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
     let prev_state = sqlx::query_as!(
@@ -38,7 +38,7 @@ pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Re
                     INSERT INTO kvs (id, value)
                     VALUES (?, ?)
                     ON CONFLICT DO UPDATE
-                    SET 
+                    SET
                         value = excluded.value;
                 "#,
                 "app_state",
@@ -61,7 +61,7 @@ pub async fn init_workspace_state<R: Runtime>(
     window: &WebviewWindow<R>,
     pot_id: UUIDv7Base64URL,
     pot_name: &str,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
     let prev_state = sqlx::query_as!(
@@ -110,7 +110,7 @@ pub async fn update_app_state<R: Runtime>(
     app_handle: &AppHandle<R>,
     patch: String,
     origin_window_label: &str,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
     let lock = get_rw_state::<R, AppState>(app_handle)?;
 
@@ -154,7 +154,7 @@ pub async fn update_workspace_state<R: Runtime>(
     app_handle: &AppHandle<R>,
     window: &Window<R>,
     patch: String,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
     let lock = get_rw_state::<R, WorkspaceState>(window)?;
 
@@ -190,7 +190,7 @@ pub async fn update_workspace_state<R: Runtime>(
 pub async fn close_pot<R: Runtime>(
     app_handle: &AppHandle<R>,
     pot_id: &UUIDv7Base64URL,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
     let lock = get_rw_state::<R, AppState>(app_handle)?;
 

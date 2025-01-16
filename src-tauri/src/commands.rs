@@ -26,29 +26,12 @@ pub mod upsert_outline;
 pub mod test_tracing {
     use eyre::Context;
 
-    // このプリントを自動でやるマクロを書く
-    // Backtrace omittedの表示は消せない
-    // testの中でも?を使えるようになるかも
-    pub async fn will_fail() {
-        let e = fail().err().unwrap();
-        let msg = {
-            let msg = format!("{:?}", e);
-            let mut lines: Vec<&str> = msg.lines().collect();
-
-            while let Some(last_line) = lines.last() {
-                if last_line.starts_with("Backtrace omitted.")
-                    || last_line.starts_with("Run with RUST_BACKTRACE")
-                {
-                    lines.pop();
-                } else {
-                    break;
-                }
-            }
-
-            lines.join("\n")
-        };
-
-        eprintln!("tauri command failed: {} {}", e.root_cause(), msg);
+    #[macros::eyre_to_any]
+    #[macros::log_err]
+    #[tauri::command]
+    #[specta::specta]
+    pub async fn will_fail() -> eyre::Result<()> {
+        fail()
     }
 
     fn fail() -> eyre::Result<()> {
@@ -67,19 +50,19 @@ pub mod test_tracing {
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 async fn open_pot(
     app_handle: AppHandle,
     pot_id: UUIDv7Base64URL,
     pot_name: String,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     crate::window::open_pot(&app_handle, pot_id, &pot_name).await
 }
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
-fn open_pot_selector(app_handle: AppHandle) -> anyhow::Result<()> {
+#[macros::eyre_to_any]
+fn open_pot_selector(app_handle: AppHandle) -> eyre::Result<()> {
     crate::window::open_pot_selector(&app_handle)
 }
 
@@ -117,5 +100,6 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         open_pot,
         open_pot_selector,
         app_version,
+        test_tracing::will_fail
     ]
 }

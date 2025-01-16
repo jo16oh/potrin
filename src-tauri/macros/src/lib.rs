@@ -1,11 +1,16 @@
 extern crate proc_macro;
 
-mod anyhow_to_string;
+mod eyre_to_any;
+mod log_err;
 
-use anyhow_to_string::anyhow_to_string_impl;
 use proc_macro::TokenStream;
 
 #[proc_macro_attribute]
-pub fn anyhow_to_string(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    anyhow_to_string_impl(item)
+pub fn log_err(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    log_err::log_err_impl(item)
+}
+
+#[proc_macro_attribute]
+pub fn eyre_to_any(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    eyre_to_any::eyre_to_any_impl(item)
 }

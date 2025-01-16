@@ -30,13 +30,13 @@ struct IncludeChildrenOption {
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn fetch_relation<R: Runtime>(
     app_handle: AppHandle<R>,
     outline_ids: Vec<UUIDv7Base64URL>,
     card_ids: Vec<UUIDv7Base64URL>,
     option: RelationOption,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let (outline_ids, card_ids) = match option.include_children {
@@ -49,7 +49,7 @@ pub async fn fetch_relation<R: Runtime>(
         Direction::Forward => fetch::relation_forward(pool, &outline_ids, &card_ids).await,
     }?;
 
-    Ok((outlines, cards))
+    eyre::Ok((outlines, cards))
 }
 
 #[cfg(test)]

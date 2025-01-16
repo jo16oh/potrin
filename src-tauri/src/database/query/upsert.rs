@@ -2,7 +2,7 @@ use crate::types::{
     model::{Card, Outline},
     util::UUIDv7Base64URL,
 };
-use anyhow::{Context, Result};
+use eyre::{OptionExt, Result};
 use sqlx::SqliteExecutor;
 
 pub async fn outline<'a, E>(conn: E, outline: &Outline) -> Result<i64>
@@ -40,7 +40,7 @@ where
     )
     .fetch_one(conn)
     .await?
-    .context("failed to insert into oplog")
+    .ok_or_eyre("failed to insert into oplog")
 }
 
 pub async fn card<'a, E>(conn: E, card: &Card) -> Result<i64>
@@ -75,7 +75,7 @@ where
     )
     .fetch_one(conn)
     .await?
-    .context("failed to insert into oplog")
+    .ok_or_eyre("failed to insert into oplog")
 }
 
 pub async fn path<'a, E>(conn: E, values: &[(UUIDv7Base64URL, Vec<u8>)]) -> Result<()>
@@ -90,9 +90,9 @@ where
         r#"
             INSERT INTO outline_paths (outline_id, path)
             VALUES {}
-            ON CONFLICT 
+            ON CONFLICT
             DO UPDATE
-            SET 
+            SET
                 path = excluded.path;
         "#,
         values

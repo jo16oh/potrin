@@ -10,12 +10,12 @@ use tauri::{AppHandle, Window};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn hard_delete_outline<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     outline: Outline,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let rowid = hard_delete_y_doc(&app_handle, outline.id).await?;
 
     let reconciler = get_state::<R, Reconciler>(&app_handle)?;
@@ -25,17 +25,17 @@ pub async fn hard_delete_outline<R: tauri::Runtime>(
             Origin::local(window.label()),
         ))
         .await?;
-    Ok(())
+    eyre::Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn hard_delete_card<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     card: Card,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let rowid = hard_delete_y_doc(&app_handle, card.id).await?;
 
     let reconciler = get_state::<R, Reconciler>(&app_handle)?;
@@ -45,13 +45,13 @@ pub async fn hard_delete_card<R: tauri::Runtime>(
             Origin::local(window.label()),
         ))
         .await?;
-    Ok(())
+    eyre::Ok(())
 }
 
 async fn hard_delete_y_doc<R: tauri::Runtime>(
     app_handle: &AppHandle<R>,
     y_doc_id: UUIDv7Base64URL,
-) -> anyhow::Result<i64> {
+) -> eyre::Result<i64> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
     delete::y_doc(pool, y_doc_id).await

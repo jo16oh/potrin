@@ -1,6 +1,6 @@
-use anyhow::anyhow;
 use base64::prelude::*;
 use derive_more::derive::Deref;
+use eyre::eyre;
 use serde::de;
 use serde::de::Visitor;
 use serde::Deserializer;
@@ -131,7 +131,7 @@ pub struct UUIDv7Base64URL(#[specta(type = String)] [u8; 16]);
 
 impl UUIDv7Base64URL {
     pub fn new() -> Self {
-        UUIDv7Base64URL(uuidv7::create_raw())
+        UUIDv7Base64URL(uuid::Uuid::now_v7().into_bytes())
     }
 }
 
@@ -154,13 +154,13 @@ impl fmt::Display for UUIDv7Base64URL {
 }
 
 impl TryFrom<String> for UUIDv7Base64URL {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let decoded = BASE64_URL_SAFE_NO_PAD.decode(value)?;
 
         if decoded.len() != 16 {
-            return Err(anyhow!("invalid uuid length"));
+            return Err(eyre!("invalid uuid length"));
         }
 
         let mut result_slice = [0u8; 16];
@@ -171,13 +171,13 @@ impl TryFrom<String> for UUIDv7Base64URL {
 }
 
 impl TryFrom<&str> for UUIDv7Base64URL {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let decoded = BASE64_URL_SAFE_NO_PAD.decode(value)?;
 
         if decoded.len() != 16 {
-            return Err(anyhow!("invalid uuid length"));
+            return Err(eyre!("invalid uuid length"));
         }
 
         let mut result_slice = [0u8; 16];
@@ -188,11 +188,11 @@ impl TryFrom<&str> for UUIDv7Base64URL {
 }
 
 impl TryFrom<Vec<u8>> for UUIDv7Base64URL {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         if value.len() != 16 {
-            return Err(anyhow!("invalid uuid length"));
+            return Err(eyre!("invalid uuid length"));
         }
 
         let mut result_slice = [0u8; 16];

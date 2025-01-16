@@ -2,7 +2,7 @@ use crate::types::{
     model::{Pot, User, YUpdate},
     util::UUIDv7Base64URL,
 };
-use anyhow::{Context, Result};
+use eyre::{OptionExt, Result};
 use sqlx::SqliteExecutor;
 
 pub mod from_local {
@@ -18,7 +18,7 @@ pub mod from_local {
         pot_id: UUIDv7Base64URL,
         version_id: UUIDv7Base64URL,
         timestamp: i64,
-    ) -> anyhow::Result<i64>
+    ) -> eyre::Result<i64>
     where
         E: SqliteExecutor<'a>,
     {
@@ -30,7 +30,7 @@ pub mod from_local {
         y_updates: &[YUpdate],
         version_id: Option<UUIDv7Base64URL>,
         timestamp: i64,
-    ) -> anyhow::Result<Vec<i64>>
+    ) -> eyre::Result<Vec<i64>>
     where
         E: SqliteExecutor<'a>,
     {
@@ -41,7 +41,7 @@ pub mod from_local {
         conn: E,
         y_doc_id: UUIDv7Base64URL,
         y_update: &BytesBase64URL,
-    ) -> anyhow::Result<()>
+    ) -> eyre::Result<()>
     where
         E: SqliteExecutor<'a>,
     {
@@ -66,7 +66,7 @@ pub mod from_local {
         pot_id: UUIDv7Base64URL,
         user_id: Option<UUIDv7Base64URL>,
         timestamp: i64,
-    ) -> anyhow::Result<()>
+    ) -> eyre::Result<()>
     where
         E: SqliteExecutor<'a>,
     {
@@ -96,7 +96,7 @@ where
     Ok(())
 }
 
-pub async fn pot<'a, E>(conn: E, pot: &Pot, timestamp: i64) -> anyhow::Result<i64>
+pub async fn pot<'a, E>(conn: E, pot: &Pot, timestamp: i64) -> eyre::Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
@@ -116,7 +116,7 @@ where
     )
     .fetch_one(conn)
     .await?
-    .context("failed to insert into oplog")
+    .ok_or_eyre("failed to insert into oplog")
 }
 
 async fn y_doc<'a, E>(
@@ -127,7 +127,7 @@ async fn y_doc<'a, E>(
     doc_type: &str,
     timestamp: i64,
     from_remote: bool,
-) -> anyhow::Result<()>
+) -> eyre::Result<()>
 where
     E: SqliteExecutor<'a>,
 {
@@ -157,7 +157,7 @@ async fn y_updates<'a, E>(
     version_id: Option<UUIDv7Base64URL>,
     timestamp: i64,
     from_remote: bool,
-) -> anyhow::Result<Vec<i64>>
+) -> eyre::Result<Vec<i64>>
 where
     E: SqliteExecutor<'a>,
 {
@@ -202,7 +202,7 @@ async fn version<'a, E>(
     version_id: UUIDv7Base64URL,
     timestamp: i64,
     from_remote: bool,
-) -> anyhow::Result<i64>
+) -> eyre::Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
@@ -223,5 +223,5 @@ where
     )
     .fetch_one(conn)
     .await?
-    .context("failed to insert into oplog")
+    .ok_or_eyre("failed to insert into oplog")
 }

@@ -82,6 +82,9 @@ async openPotSelector() : Promise<null> {
 },
 async appVersion() : Promise<string> {
     return await TAURI_INVOKE("app_version");
+},
+async willFail() : Promise<null> {
+    return await TAURI_INVOKE("will_fail");
 }
 }
 
@@ -106,8 +109,9 @@ workspaceStateChange: "workspace-state-change"
 
 /** user-defined types **/
 
+export type AnyError = { root_cause: string; msg: string }
 export type AppSetting = { levenshteinDistance: number }
-export type AppState = { clientId: UUIDv7Base64URL; user: UserState | null; pots: { [key in string]: string }; setting: AppSetting }
+export type AppState = { clientId: UUIDv7Base64URL; user: UserState | null; pots: Partial<{ [key in string]: string }>; setting: AppSetting }
 export type AppStateChange = { patch: string }
 export type BytesBase64URL = string
 export type Card = { id: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; links: Links; createdAt: number; updatedAt: number }
@@ -118,7 +122,7 @@ export type FocusState = { timeline: Record<string, never> } | { search: Record<
 export type IncludeChildrenOption = { includeCards: boolean }
 export type Link = { id: UUIDv7Base64URL; text: string }
 export type LinkCount = { id: UUIDv7Base64URL; back: number; forward: number }
-export type Links = { [key in string]: Path }
+export type Links = Partial<{ [key in string]: Path }>
 export type Operation<T> = { insert: { targets: Target<T>[] } } | { update: { targets: Target<T>[] } } | { delete: { target_ids: UUIDv7Base64URL[] } }
 export type Order = "desc" | "asc"
 export type OrderBy = { createdAt: Order } | { updatedAt: Order } | "relevance"

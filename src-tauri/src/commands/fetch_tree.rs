@@ -8,12 +8,12 @@ use tauri::{AppHandle, Runtime};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn fetch_tree<R: Runtime>(
     app_handle: AppHandle<R>,
     id: UUIDv7Base64URL,
     depth: Option<u32>,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Card>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let outlines = fetch::outline_trees(pool, &[id], depth).await?;
@@ -23,7 +23,7 @@ pub async fn fetch_tree<R: Runtime>(
         .collect::<Vec<UUIDv7Base64URL>>();
     let cards = fetch::cards_by_outline_id(pool, &outline_ids).await?;
 
-    Ok((outlines, cards))
+    eyre::Ok((outlines, cards))
 }
 
 #[cfg(test)]

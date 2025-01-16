@@ -13,14 +13,14 @@ use tauri::{AppHandle, Runtime, Window};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn search<R: Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     query: &str,
     order_by: OrderBy,
     limit: u8,
-) -> anyhow::Result<(Vec<Outline>, Vec<Card>, Vec<SearchResult>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Card>, Vec<SearchResult>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
     let app_state_lock = get_rw_state::<R, AppState>(&app_handle)?;
     let app_state = app_state_lock.read().await;
@@ -59,5 +59,5 @@ pub async fn search<R: Runtime>(
         fetch::outlines_by_id(pool, &outline_ids).await?
     };
 
-    Ok((outlines, cards, search_results))
+    eyre::Ok((outlines, cards, search_results))
 }

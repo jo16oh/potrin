@@ -6,13 +6,13 @@ use tauri::{AppHandle, Runtime};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn fetch_relation_count<R: Runtime>(
     app_handle: AppHandle<R>,
     outline_ids: Vec<UUIDv7Base64URL>,
     card_ids: Vec<UUIDv7Base64URL>,
     count_children: bool,
-) -> anyhow::Result<Vec<LinkCount>> {
+) -> eyre::Result<Vec<LinkCount>> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     if count_children {

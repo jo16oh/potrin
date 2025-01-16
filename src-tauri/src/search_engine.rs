@@ -3,9 +3,9 @@ mod cjk_bigram_tokenizer;
 use crate::types::model::{Links, Path};
 use crate::types::util::UUIDv7Base64URL;
 use crate::utils::{extract_text_from_doc, get_state};
-use anyhow::{anyhow, Context};
 use cjk_bigram_tokenizer::CJKBigramTokenizer;
 use diacritics::remove_diacritics;
+use eyre::{eyre, OptionExt};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -84,7 +84,7 @@ pub async fn load_index<R: Runtime>(
     app_handle: &AppHandle<R>,
     pot_id: UUIDv7Base64URL,
     levenshtein_distance: u8,
-) -> anyhow::Result<SearchIndex> {
+) -> eyre::Result<SearchIndex> {
     let mut schema_builder = Schema::builder();
     schema_builder.add_text_field("id", STRING | STORED);
     schema_builder.add_text_field("doc_type", STRING | STORED);
@@ -165,7 +165,7 @@ pub async fn load_index<R: Runtime>(
 pub async fn add_index<'a, R: Runtime>(
     app_handle: &AppHandle<R>,
     index_targets: Vec<IndexTarget<'a>>,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let windows = app_handle.webview_windows();
     let targets_map = index_targets.into_iter().into_group_map_by(|t| t.pot_id);
 
@@ -185,7 +185,7 @@ pub async fn add_index<'a, R: Runtime>(
 async fn process_targets<'a>(
     index: &SearchIndex,
     index_targets: Vec<IndexTarget<'a>>,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let mut writer = index.writer.lock().await;
 
     for item in index_targets {
@@ -229,7 +229,7 @@ async fn process_targets<'a>(
 pub async fn remove_index<R: Runtime>(
     app_handle: &AppHandle<R>,
     targets: Vec<DeleteTarget>,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let windows = app_handle.webview_windows();
     let targets_map = targets.into_iter().into_group_map_by(|t| t.pot_id);
 
@@ -243,10 +243,7 @@ pub async fn remove_index<R: Runtime>(
         };
     }
 
-    async fn process_targets(
-        targets: Vec<DeleteTarget>,
-        index: &SearchIndex,
-    ) -> anyhow::Result<()> {
+    async fn process_targets(targets: Vec<DeleteTarget>, index: &SearchIndex) -> eyre::Result<()> {
         let mut writer = index.writer.lock().await;
 
         for DeleteTarget { id, .. } in targets {
@@ -268,9 +265,9 @@ pub async fn search(
     order_by: OrderBy,
     limit: u8,
     levenshtein_distance: u8,
-) -> anyhow::Result<Vec<SearchResult>> {
+) -> eyre::Result<Vec<SearchResult>> {
     if levenshtein_distance != 0 && levenshtein_distance != 1 && levenshtein_distance != 2 {
-        return Err(anyhow!("Levenstein distance must be between 0 and 2"));
+        return Err(eyre!("Levenstein distance must be between 0 and 2"));
     }
 
     if levenshtein_distance != *index.levenshtein_distance.read().await {
@@ -337,15 +334,15 @@ pub async fn search(
         let retreived_doc = searcher.doc::<TantivyDocument>(doc_address)?;
         let id_value = retreived_doc
             .get_first(index.fields.id)
-            .context("id field of the search result is not defined!")?
+            .ok_or_eyre("id field of the search result is not defined!")?
             .as_str()
-            .context("id field of the search result is not defined!")?;
+            .ok_or_eyre("id field of the search result is not defined!")?;
 
         let type_value = retreived_doc
             .get_first(index.fields.doc_type)
-            .context("type field of the search result is not defined!")?
+            .ok_or_eyre("type field of the search result is not defined!")?
             .as_str()
-            .context("type field of the search result is not defined!")?;
+            .ok_or_eyre("type field of the search result is not defined!")?;
 
         results.push(SearchResult {
             id: id_value.try_into()?,

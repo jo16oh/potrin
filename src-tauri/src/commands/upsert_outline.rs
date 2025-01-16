@@ -10,13 +10,13 @@ use tauri::{AppHandle, Runtime, Window};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn upsert_outline<R: Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     outline: Outline,
     y_updates: Vec<BytesBase64URL>,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pot_id = window.label().try_into()?;
     let rowids = upsert_outline_impl(&app_handle, pot_id, &outline, y_updates).await?;
 
@@ -25,7 +25,7 @@ pub async fn upsert_outline<R: Runtime>(
         .send(DatabaseChange::new(rowids, Origin::local(window.label())))
         .await?;
 
-    Ok(())
+    eyre::Ok(())
 }
 
 async fn upsert_outline_impl<R: Runtime>(
@@ -33,7 +33,7 @@ async fn upsert_outline_impl<R: Runtime>(
     pot_id: UUIDv7Base64URL,
     outline: &Outline,
     y_updates: Vec<BytesBase64URL>,
-) -> anyhow::Result<Vec<i64>> {
+) -> eyre::Result<Vec<i64>> {
     let lock = get_rw_state::<R, AppState>(app_handle)?;
     let app_state = lock.read().await;
     let user_id = app_state.user.as_ref().map(|u| u.id);
@@ -78,7 +78,7 @@ pub mod test {
         pot_id: UUIDv7Base64URL,
         outline: &Outline,
         y_updates: Vec<BytesBase64URL>,
-    ) -> anyhow::Result<Vec<i64>> {
+    ) -> eyre::Result<Vec<i64>> {
         upsert_outline_impl(app_handle, pot_id, outline, y_updates).await
     }
 }

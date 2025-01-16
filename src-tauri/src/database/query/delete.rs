@@ -1,14 +1,14 @@
 use crate::types::util::UUIDv7Base64URL;
-use anyhow::Context;
+use eyre::OptionExt;
 use sqlx::SqliteExecutor;
 
-pub async fn y_doc<'a, E>(conn: E, id: UUIDv7Base64URL) -> anyhow::Result<i64>
+pub async fn y_doc<'a, E>(conn: E, id: UUIDv7Base64URL) -> eyre::Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
     sqlx::query_scalar!(
         r#"
-            DELETE FROM y_docs 
+            DELETE FROM y_docs
             WHERE id = ?
             RETURNING (
               SELECT rowid FROM operation_logs WHERE primary_key = id
@@ -18,10 +18,10 @@ where
     )
     .fetch_one(conn)
     .await?
-    .context("failed to insert into oplog")
+    .ok_or_eyre("failed to insert into oplog")
 }
 
-pub async fn y_updates<'a, E>(conn: E, update_ids: &[UUIDv7Base64URL]) -> anyhow::Result<()>
+pub async fn y_updates<'a, E>(conn: E, update_ids: &[UUIDv7Base64URL]) -> eyre::Result<()>
 where
     E: SqliteExecutor<'a>,
 {
@@ -52,7 +52,7 @@ where
     Ok(())
 }
 
-pub async fn oplogs<'a, E>(conn: E, ids: &[i64]) -> anyhow::Result<()>
+pub async fn oplogs<'a, E>(conn: E, ids: &[i64]) -> eyre::Result<()>
 where
     E: SqliteExecutor<'a>,
 {
@@ -81,7 +81,7 @@ where
 pub mod soft {
     use super::*;
 
-    pub async fn cards<'a, E>(conn: E, card_ids: &[UUIDv7Base64URL]) -> anyhow::Result<Vec<i64>>
+    pub async fn cards<'a, E>(conn: E, card_ids: &[UUIDv7Base64URL]) -> eyre::Result<Vec<i64>>
     where
         E: SqliteExecutor<'a>,
     {
@@ -110,10 +110,7 @@ pub mod soft {
         query_builder.fetch_all(conn).await.map_err(|e| e.into())
     }
 
-    pub async fn outlines<'a, E>(
-        conn: E,
-        outline_ids: &[UUIDv7Base64URL],
-    ) -> anyhow::Result<Vec<i64>>
+    pub async fn outlines<'a, E>(conn: E, outline_ids: &[UUIDv7Base64URL]) -> eyre::Result<Vec<i64>>
     where
         E: SqliteExecutor<'a>,
     {

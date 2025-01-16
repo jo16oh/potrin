@@ -8,15 +8,15 @@ use crate::{
         util::{BytesBase64URL, UUIDv7Base64URL},
     },
 };
-use anyhow::Result;
 use chrono::{DateTime, Utc};
+use eyre::Result;
 use sqlx::{prelude::FromRow, SqlitePool};
 
 pub async fn pots(pool: &SqlitePool) -> Result<Vec<Pot>> {
     sqlx::query_as::<_, Pot>("SELECT * FROM pots;")
         .fetch_all(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Path> {
@@ -33,7 +33,7 @@ pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Path
     query_builder
         .fetch_one(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn ancestors(pool: &SqlitePool, parent_ids: &[UUIDv7Base64URL]) -> Result<Vec<Ancestor>> {
@@ -68,7 +68,7 @@ pub async fn ancestors(pool: &SqlitePool, parent_ids: &[UUIDv7Base64URL]) -> Res
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn y_updates_by_doc_id(
@@ -113,7 +113,7 @@ pub async fn y_updates_by_id(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64URL]) -> Result<Vec<Card>> {
@@ -142,7 +142,7 @@ pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64URL]) -> Res
                 LEFT JOIN quotes ON cards.id = quotes.card_id
                 WHERE is_deleted = false
             )
-            SELECT 
+            SELECT
                 c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
                 jsonb_group_array(outline_paths.path) AS links,
                 c1.created_at,
@@ -169,7 +169,7 @@ pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64URL]) -> Res
         .fetch_all(pool)
         .await
         .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn cards_for_index_by_id(
@@ -201,12 +201,12 @@ pub async fn cards_for_index_by_id(
                 LEFT JOIN quotes ON cards.id = quotes.card_id
                 WHERE is_deleted = false
             )
-            SELECT 
-                c1.id, 
+            SELECT
+                c1.id,
                 y_docs.pot_id,
-                c1.outline_id, 
-                c1.fractional_index, 
-                c1.doc, c1.quote_id, 
+                c1.outline_id,
+                c1.fractional_index,
+                c1.doc, c1.quote_id,
                 c1.quote_version_id,
                 path.path,
                 jsonb_group_array(links.path) AS links,
@@ -236,7 +236,7 @@ pub async fn cards_for_index_by_id(
         .fetch_all(pool)
         .await
         .map(|raw_cards| raw_cards.into_iter().map(CardForIndex::from).collect())
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn cards_by_outline_id(
@@ -267,7 +267,7 @@ pub async fn cards_by_outline_id(
                 LEFT JOIN quotes ON cards.id = quotes.card_id
                 WHERE is_deleted = false
             )
-            SELECT 
+            SELECT
                 c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
                 jsonb_group_array(outline_paths.path) AS links,
                 c1.created_at,
@@ -294,7 +294,7 @@ pub async fn cards_by_outline_id(
         .fetch_all(pool)
         .await
         .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn cards_by_created_at(
@@ -316,7 +316,7 @@ pub async fn cards_by_created_at(
             FROM cards
             LEFT JOIN quotes ON cards.id = quotes.card_id
             WHERE ? <= created_at AND created_at < ? AND is_deleted = false
-            UNION 
+            UNION
             SELECT
                 cards.id, cards.outline_id, cards.fractional_index, cards.doc,
                 quotes.quote_id AS quote_id,
@@ -329,7 +329,7 @@ pub async fn cards_by_created_at(
             WHERE is_deleted = false
             ORDER BY created_at DESC
         )
-        SELECT 
+        SELECT
             c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
             jsonb_group_array(outline_paths.path) AS links,
             c1.created_at,
@@ -349,16 +349,16 @@ pub async fn cards_by_created_at(
         .fetch_all(pool)
         .await
         .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn card_delete_targets(
     pool: &SqlitePool,
     deleted_ids: &[UUIDv7Base64URL],
-) -> anyhow::Result<Vec<DeleteTarget>> {
+) -> eyre::Result<Vec<DeleteTarget>> {
     let query = format!(
         r#"
-            SELECT id, pot_id 
+            SELECT id, pot_id
             FROM cards
             WHERE id IN ({});
         "#,
@@ -395,17 +395,17 @@ pub async fn conflicting_outline_ids(
             WITH ConflictingOutlines AS (
                 SELECT text
                 FROM outlines
-                WHERE 
-                    id != ? 
+                WHERE
+                    id != ?
                     AND (parent_id = ? OR (? IS NULL AND parent_id IS NULL))
                 GROUP BY text
                 HAVING COUNT(*) > 1
             )
             SELECT id, text
             FROM outlines
-            WHERE 
+            WHERE
                 (text = ? OR text IN (SELECT text FROM ConflictingOutlines))
-                AND id != ? 
+                AND id != ?
                 AND (parent_id = ? OR (? IS NULL AND parent_id IS NULL));
         "#,
     )
@@ -507,12 +507,12 @@ pub async fn outline_trees(
                         JOIN outlines AS child ON parent.id = child.parent_id
                         WHERE child.is_deleted = false AND depth <= ?
                     )
-                    SELECT 
-                        outline_tree.id, 
-                        outline_tree.parent_id, 
-                        outline_tree.fractional_index, 
-                        outline_tree.doc, 
-                        outline_tree.text, 
+                    SELECT
+                        outline_tree.id,
+                        outline_tree.parent_id,
+                        outline_tree.fractional_index,
+                        outline_tree.doc,
+                        outline_tree.text,
                         jsonb_group_array(outline_paths.path) AS links,
                         outline_tree.created_at,
                         outline_tree.updated_at
@@ -520,7 +520,7 @@ pub async fn outline_trees(
                     LEFT JOIN outline_links ON outline_tree.id = outline_links.id_from
                     LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
                     GROUP BY id;
-                "#, 
+                "#,
                 root_ids
                     .iter()
                     .map(|_| "?")
@@ -556,11 +556,11 @@ pub async fn outline_trees(
                         JOIN outlines AS child ON parent.id = child.parent_id
                         WHERE child.is_deleted = false
                     )
-                    SELECT 
-                        outline_tree.id, 
-                        outline_tree.parent_id, 
-                        outline_tree.fractional_index, 
-                        outline_tree.doc, 
+                    SELECT
+                        outline_tree.id,
+                        outline_tree.parent_id,
+                        outline_tree.fractional_index,
+                        outline_tree.doc,
                         outline_tree.text,
                         jsonb_group_array(outline_paths.path) AS links,
                         outline_tree.created_at,
@@ -569,7 +569,7 @@ pub async fn outline_trees(
                     LEFT JOIN outline_links ON outline_tree.id = outline_links.id_from
                     LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
                     GROUP BY id;
-                "#, 
+                "#,
                 root_ids
                     .iter()
                     .map(|_| "?")
@@ -588,7 +588,7 @@ pub async fn outline_trees(
             .await
         }
     }
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn outlines_by_id(
@@ -597,11 +597,11 @@ pub async fn outlines_by_id(
 ) -> Result<Vec<Outline>> {
     let query = format!(
         r#"
-            SELECT 
-                id, 
-                parent_id, 
-                fractional_index, 
-                doc, 
+            SELECT
+                id,
+                parent_id,
+                fractional_index,
+                doc,
                 text,
                 jsonb_group_array(path) AS links,
                 created_at,
@@ -628,7 +628,7 @@ pub async fn outlines_by_id(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn outlines_for_index_by_id(
@@ -637,12 +637,12 @@ pub async fn outlines_for_index_by_id(
 ) -> Result<Vec<OutlineForIndex>> {
     let query = format!(
         r#"
-            SELECT 
-                id, 
+            SELECT
+                id,
                 y_docs.pot_id,
-                parent_id, 
-                fractional_index, 
-                doc, 
+                parent_id,
+                fractional_index,
+                doc,
                 text,
                 outline_paths.path,
                 jsonb_group_array(links.path) AS links,
@@ -672,16 +672,16 @@ pub async fn outlines_for_index_by_id(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn outline_delete_targets(
     pool: &SqlitePool,
     deleted_ids: &[UUIDv7Base64URL],
-) -> anyhow::Result<Vec<DeleteTarget>> {
+) -> eyre::Result<Vec<DeleteTarget>> {
     let query = format!(
         r#"
-            SELECT id, pot_id 
+            SELECT id, pot_id
             FROM outlines
             WHERE id IN ({});
         "#,
@@ -709,11 +709,11 @@ pub async fn relation_back(
     let outlines = {
         let query = format!(
             r#"
-                SELECT 
-                    id, 
-                    parent_id, 
-                    fractional_index, 
-                    doc, 
+                SELECT
+                    id,
+                    parent_id,
+                    fractional_index,
+                    doc,
                     text,
                     jsonb_group_array(path) AS links,
                     created_at,
@@ -744,7 +744,7 @@ pub async fn relation_back(
         let query = format!(
             r#"
                 WITH c1 AS (
-                    SELECT 
+                    SELECT
                         cards.id, cards.outline_id, cards.fractional_index, cards.doc,
                         quotes.quote_id AS quote_id,
                         quotes.version_id AS quote_version_id,
@@ -754,8 +754,8 @@ pub async fn relation_back(
                     INNER JOIN cards ON card_links.id_from = cards.id
                     LEFT JOIN quotes ON quotes.card_id = cards.id
                     WHERE card_links.id_to IN ({}) AND cards.is_deleted = false
-                    UNION 
-                    SELECT 
+                    UNION
+                    SELECT
                         cards.id, cards.outline_id, cards.fractional_index, cards.doc,
                         quotes.quote_id AS quote_id,
                         quotes.version_id AS quote_version_id,
@@ -765,7 +765,7 @@ pub async fn relation_back(
                     INNER JOIN cards ON quotes.card_id = cards.id
                     WHERE quotes.quote_id IN ({}) AND cards.is_deleted = false
                     UNION
-                    SELECT 
+                    SELECT
                         cards.id, cards.outline_id, cards.fractional_index, cards.doc,
                         quotes.quote_id AS quote_id,
                         quotes.version_id AS quote_version_id,
@@ -776,7 +776,7 @@ pub async fn relation_back(
                     INNER JOIN quotes ON quotes.card_id = cards.id
                     WHERE cards.is_deleted = false
                 )
-                SELECT 
+                SELECT
                     c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
                     jsonb_group_array(outline_paths.path) AS links,
                     c1.created_at,
@@ -825,11 +825,11 @@ pub async fn relation_forward(
     let outlines = {
         let query = format!(
             r#"
-                SELECT 
-                    id, 
-                    parent_id, 
-                    fractional_index, 
-                    doc, 
+                SELECT
+                    id,
+                    parent_id,
+                    fractional_index,
+                    doc,
                     text,
                     jsonb_group_array(path) AS links,
                     created_at,
@@ -860,7 +860,7 @@ pub async fn relation_forward(
         let query = format!(
             r#"
                 WITH c1 AS (
-                    SELECT 
+                    SELECT
                         cards.id, cards.outline_id, cards.fractional_index, cards.doc,
                         q2.quote_id AS quote_id,
                         q2.version_id AS quote_version_id,
@@ -871,7 +871,7 @@ pub async fn relation_forward(
                     LEFT JOIN quotes AS q2 ON q2.card_id = cards.id
                     WHERE q1.card_id IN ({}) AND cards.is_deleted = false
                     UNION
-                    SELECT 
+                    SELECT
                         cards.id, cards.outline_id, cards.fractional_index, cards.doc,
                         quotes.quote_id AS quote_id,
                         quotes.version_id AS quote_version_id,
@@ -882,7 +882,7 @@ pub async fn relation_forward(
                     LEFT JOIN quotes ON quotes.card_id = cards.id
                     WHERE cards.is_deleted = false
                 )
-                SELECT 
+                SELECT
                     c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
                     jsonb_group_array(outline_paths.path) AS links,
                     c1.created_at,
@@ -992,7 +992,7 @@ pub async fn relation_count(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn recursive_relation_count(
@@ -1075,12 +1075,12 @@ pub async fn recursive_relation_count(
                     (
                         SELECT COUNT(*)
                         FROM quotes
-                        WHERE 
+                        WHERE
                             card_id IN ((
                                 SELECT id
                                 FROM tree_cards
                                 WHERE tree_cards.root_id = this.id
-                            )) 
+                            ))
                     )
                 ) AS forward
             FROM tree AS this
@@ -1134,7 +1134,7 @@ pub async fn recursive_relation_count(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn unversioned_y_updates(pool: &SqlitePool) -> Result<Vec<YUpdate>> {
@@ -1147,14 +1147,14 @@ pub async fn unversioned_y_updates(pool: &SqlitePool) -> Result<Vec<YUpdate>> {
     )
     .fetch_all(pool)
     .await
-    .map_err(anyhow::Error::from)
+    .map_err(eyre::Error::from)
 }
 
 pub async fn oplog_rowids_all(pool: &SqlitePool) -> Result<Vec<i64>> {
     sqlx::query_scalar::<_, i64>("SELECT rowid FROM operation_logs;")
         .fetch_all(pool)
         .await
-        .map_err(anyhow::Error::from)
+        .map_err(eyre::Error::from)
 }
 
 pub async fn oplogs_by_rowid(pool: &SqlitePool, rowids: &[i64]) -> Result<Vec<Oplog>> {

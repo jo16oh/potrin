@@ -1,9 +1,9 @@
-use tauri::{async_runtime::RwLock, State};
 use crate::types::state::AppState;
+use tauri::{async_runtime::RwLock, State};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
-pub async fn get_app_state(app_state: State<'_, RwLock<AppState>>) -> anyhow::Result<AppState> {
-  Ok(app_state.read().await.clone())
+#[macros::eyre_to_any]
+pub async fn get_app_state(app_state: State<'_, RwLock<AppState>>) -> eyre::Result<AppState> {
+    eyre::Ok(app_state.read().await.clone())
 }

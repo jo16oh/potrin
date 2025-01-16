@@ -8,12 +8,12 @@ use tauri::{AppHandle, Window};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn soft_delete_outline<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     outline: Outline,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let rowids = delete::soft::outlines(pool, &[outline.id]).await?;
@@ -23,5 +23,5 @@ pub async fn soft_delete_outline<R: tauri::Runtime>(
         .send(DatabaseChange::new(rowids, Origin::local(window.label())))
         .await?;
 
-    Ok(())
+    eyre::Ok(())
 }

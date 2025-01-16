@@ -12,7 +12,7 @@
 
   onMount(async () => {
     await getCurrent().show();
-    commands.willFail();
+    commands.willFail().catch((e) => console.error(e));
   });
 
   window.addEventListener("keydown", (e) => {

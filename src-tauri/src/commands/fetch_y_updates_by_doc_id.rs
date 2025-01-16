@@ -8,11 +8,11 @@ use tauri::Runtime;
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn fetch_y_updates_by_doc_id<R: Runtime>(
     app_handle: AppHandle<R>,
     y_doc_id: UUIDv7Base64URL,
-) -> anyhow::Result<Vec<BytesBase64URL>> {
+) -> eyre::Result<Vec<BytesBase64URL>> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     fetch::y_updates_by_doc_id(pool, y_doc_id).await

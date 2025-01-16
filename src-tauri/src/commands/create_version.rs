@@ -2,20 +2,20 @@ use crate::database::query::*;
 use crate::types::model::YUpdate;
 use crate::types::util::{BytesBase64URL, UUIDv7Base64URL};
 use crate::utils::get_state;
-use anyhow::Context;
 use chrono::Utc;
+use eyre::Context;
 use sqlx::SqlitePool;
 use std::collections::HashMap;
 use tauri::{AppHandle, Window};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn create_version<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     version_id: UUIDv7Base64URL,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pot_id: UUIDv7Base64URL = window.label().try_into()?;
 
     create_version_impl(app_handle, pot_id, version_id).await
@@ -25,7 +25,7 @@ async fn create_version_impl<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     pot_id: UUIDv7Base64URL,
     version_id: UUIDv7Base64URL,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let mut updates_map: HashMap<UUIDv7Base64URL, Vec<BytesBase64URL>> = HashMap::new();
@@ -51,7 +51,7 @@ async fn create_version_impl<R: tauri::Runtime>(
             .map(|data| YUpdate::new(y_doc_id, BytesBase64URL::from(data)))
             .context("failed to merge updates")
         })
-        .collect::<anyhow::Result<Vec<YUpdate>>>()?;
+        .collect::<eyre::Result<Vec<YUpdate>>>()?;
 
     let now = Utc::now().timestamp_millis();
 
@@ -74,7 +74,7 @@ pub mod test {
         app_handle: AppHandle<R>,
         pot_id: UUIDv7Base64URL,
         version_id: UUIDv7Base64URL,
-    ) -> anyhow::Result<()> {
+    ) -> eyre::Result<()> {
         create_version_impl(app_handle, pot_id, version_id).await
     }
 }

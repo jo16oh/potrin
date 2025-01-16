@@ -1,6 +1,6 @@
 pub mod query;
 
-use anyhow::anyhow;
+use eyre::eyre;
 use sqlx::migrate::{MigrateDatabase, Migrator};
 use sqlx::{Sqlite, SqlitePool};
 use std::any::TypeId;
@@ -10,11 +10,11 @@ use tauri::{AppHandle, Manager, Runtime};
 
 static MIGRATOR: Migrator = sqlx::migrate!("db/migrations");
 
-pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
+pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
     let pool = if TypeId::of::<R>() == TypeId::of::<MockRuntime>() {
         SqlitePool::connect("sqlite::memory:")
             .await
-            .map_err(|e| anyhow!(e.to_string()))?
+            .map_err(|e| eyre!(e.to_string()))?
     } else {
         let mut path = app_handle.path().app_data_dir()?;
         path.push("sqlite");
@@ -25,12 +25,12 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 
         path.push("data.db");
 
-        let url = path.to_str().ok_or(anyhow!("invalid sqlite url"))?;
+        let url = path.to_str().ok_or(eyre!("invalid sqlite url"))?;
         Sqlite::create_database(url).await?;
 
         SqlitePool::connect(url)
             .await
-            .map_err(|e| anyhow!(e.to_string()))?
+            .map_err(|e| eyre!(e.to_string()))?
     };
 
     MIGRATOR.run(&pool).await?;

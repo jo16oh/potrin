@@ -19,11 +19,6 @@ use types::util::UUIDv7Base64URL;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    #[cfg(debug_assertions)]
-    {
-        color_eyre::install().unwrap();
-    }
-
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(commands::commands())
         .events(events::events())
@@ -121,8 +116,6 @@ fn setup<R: Runtime>(
         async move { reconciler::init(&app_handle).await }
     });
     async_runtime::block_on(reconciler_handle)??;
-
-    async_runtime::spawn(commands::test_tracing::will_fail());
 
     Ok(())
 }

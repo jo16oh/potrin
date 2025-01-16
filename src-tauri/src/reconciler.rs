@@ -8,7 +8,7 @@ use crate::{
     },
     utils::{extract_text_from_doc, get_state},
 };
-use anyhow::Context;
+use eyre::OptionExt;
 use itertools::{Either, Itertools};
 use serde::Deserialize;
 use sqlx::SqlitePool;
@@ -34,7 +34,7 @@ pub struct Reconciler {
 }
 
 impl Reconciler {
-    pub async fn send(&self, target: DatabaseChange) -> anyhow::Result<()> {
+    pub async fn send(&self, target: DatabaseChange) -> eyre::Result<()> {
         self.sender.send(target).await.map_err(|e| e.into())
     }
 }
@@ -53,7 +53,7 @@ impl DatabaseChange {
     }
 }
 
-pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
+pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
     let change = fetch::oplog_rowids_all(pool)
         .await
@@ -83,7 +83,7 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> anyhow::Result<()> {
 async fn reconcile<R: Runtime>(
     app_handle: &AppHandle<R>,
     change: DatabaseChange,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
 
     let logs = fetch::oplogs_by_rowid(pool, &change.oplog_rowids).await?;
@@ -125,7 +125,7 @@ async fn process_outline_changes<R: Runtime>(
     outline_logs: Vec<&Oplog>,
     y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
     origin: &Origin,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
 
     let operation_logs_map = outline_logs
@@ -139,11 +139,11 @@ async fn process_outline_changes<R: Runtime>(
                 let inserted_ids: Vec<UUIDv7Base64URL> = logs
                     .into_iter()
                     .map(|log| {
-                        let status = log.status.as_ref().context("status is not set")?;
+                        let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: Status = serde_sqlite_jsonb::from_slice(status)?;
                         Ok((log, decoded_status.is_deleted))
                     })
-                    .collect::<anyhow::Result<Vec<_>>>()?
+                    .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
                     .filter(|(_, is_deleted)| *is_deleted)
                     .map(|(log, _)| log.primary_key)
@@ -171,7 +171,7 @@ async fn process_outline_changes<R: Runtime>(
                                     updated_at: e.updated_at,
                                 })
                             })
-                            .collect::<anyhow::Result<Vec<IndexTarget>>>()?,
+                            .collect::<eyre::Result<Vec<IndexTarget>>>()?,
                     )
                     .await?;
 
@@ -181,13 +181,13 @@ async fn process_outline_changes<R: Runtime>(
                             .map(|o| {
                                 let y_updates = y_updates_map
                                     .remove(&o.id)
-                                    .context("")?
+                                    .ok_or_eyre("")?
                                     .into_iter()
                                     .map(|y| y.data)
                                     .collect();
                                 Ok(Target::new(o, y_updates))
                             })
-                            .collect::<anyhow::Result<Vec<Target<OutlineForIndex>>>>()?,
+                            .collect::<eyre::Result<Vec<Target<OutlineForIndex>>>>()?,
                         origin.clone(),
                     );
                 }
@@ -196,11 +196,11 @@ async fn process_outline_changes<R: Runtime>(
                 let (updated_ids, deleted_ids): (Vec<UUIDv7Base64URL>, Vec<UUIDv7Base64URL>) = logs
                     .into_iter()
                     .map(|log| {
-                        let status = log.status.as_ref().context("status is not set")?;
+                        let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: Status = serde_sqlite_jsonb::from_slice(status)?;
                         Ok((log, decoded_status.is_deleted))
                     })
-                    .collect::<anyhow::Result<Vec<_>>>()?
+                    .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
                     .partition_map(|(log, is_deleted)| {
                         if is_deleted {
@@ -232,7 +232,7 @@ async fn process_outline_changes<R: Runtime>(
                                     updated_at: e.updated_at,
                                 })
                             })
-                            .collect::<anyhow::Result<Vec<IndexTarget>>>()?,
+                            .collect::<eyre::Result<Vec<IndexTarget>>>()?,
                     )
                     .await?;
 
@@ -242,13 +242,13 @@ async fn process_outline_changes<R: Runtime>(
                             .map(|o| {
                                 let y_updates = y_updates_map
                                     .remove(&o.id)
-                                    .context("")?
+                                    .ok_or_eyre("")?
                                     .into_iter()
                                     .map(|y| y.data)
                                     .collect();
                                 Ok(Target::new(o, y_updates))
                             })
-                            .collect::<anyhow::Result<Vec<Target<OutlineForIndex>>>>()?,
+                            .collect::<eyre::Result<Vec<Target<OutlineForIndex>>>>()?,
                         origin.clone(),
                     )
                     .emit(app_handle)?;
@@ -268,7 +268,7 @@ async fn process_outline_changes<R: Runtime>(
                 let delete_targets = logs
                     .into_iter()
                     .map(|log| {
-                        let status = log.status.as_ref().context("status is not set")?;
+                        let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: DeleteLogStatus =
                             serde_sqlite_jsonb::from_slice(status)?;
                         let pot_id: UUIDv7Base64URL =
@@ -279,7 +279,7 @@ async fn process_outline_changes<R: Runtime>(
                             pot_id,
                         })
                     })
-                    .collect::<anyhow::Result<Vec<DeleteTarget>>>()?;
+                    .collect::<eyre::Result<Vec<DeleteTarget>>>()?;
 
                 remove_index(app_handle, delete_targets).await?;
 
@@ -297,7 +297,7 @@ async fn process_card_changes<R: Runtime>(
     card_logs: Vec<&Oplog>,
     y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
     origin: &Origin,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
 
     let operation_logs_map = card_logs.iter().into_group_map_by(|l| l.operation.as_str());
@@ -309,11 +309,11 @@ async fn process_card_changes<R: Runtime>(
                 let inserted_ids: Vec<UUIDv7Base64URL> = logs
                     .into_iter()
                     .map(|log| {
-                        let status = log.status.as_ref().context("status is not set")?;
+                        let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: Status = serde_sqlite_jsonb::from_slice(status)?;
                         Ok((log, decoded_status.is_deleted))
                     })
-                    .collect::<anyhow::Result<Vec<_>>>()?
+                    .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
                     .filter(|(_, is_deleted)| *is_deleted)
                     .map(|(log, _)| log.primary_key)
@@ -338,7 +338,7 @@ async fn process_card_changes<R: Runtime>(
                                     updated_at: e.updated_at,
                                 })
                             })
-                            .collect::<anyhow::Result<Vec<IndexTarget>>>()?,
+                            .collect::<eyre::Result<Vec<IndexTarget>>>()?,
                     )
                     .await?;
 
@@ -348,13 +348,13 @@ async fn process_card_changes<R: Runtime>(
                             .map(|c| {
                                 let y_updates = y_updates_map
                                     .remove(&c.id)
-                                    .context("")?
+                                    .ok_or_eyre("")?
                                     .into_iter()
                                     .map(|y| y.data)
                                     .collect();
                                 Ok(Target::new(c, y_updates))
                             })
-                            .collect::<anyhow::Result<Vec<Target<CardForIndex>>>>()?,
+                            .collect::<eyre::Result<Vec<Target<CardForIndex>>>>()?,
                         origin.clone(),
                     );
                 }
@@ -363,11 +363,11 @@ async fn process_card_changes<R: Runtime>(
                 let (updated_ids, deleted_ids): (Vec<UUIDv7Base64URL>, Vec<UUIDv7Base64URL>) = logs
                     .into_iter()
                     .map(|log| {
-                        let status = log.status.as_ref().context("status is not set")?;
+                        let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: Status = serde_sqlite_jsonb::from_slice(status)?;
                         Ok((log, decoded_status.is_deleted))
                     })
-                    .collect::<anyhow::Result<Vec<_>>>()?
+                    .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
                     .partition_map(|(log, is_deleted)| {
                         if is_deleted {
@@ -396,7 +396,7 @@ async fn process_card_changes<R: Runtime>(
                                     updated_at: e.updated_at,
                                 })
                             })
-                            .collect::<anyhow::Result<Vec<IndexTarget>>>()?,
+                            .collect::<eyre::Result<Vec<IndexTarget>>>()?,
                     )
                     .await?;
 
@@ -406,13 +406,13 @@ async fn process_card_changes<R: Runtime>(
                             .map(|c| {
                                 let y_updates = y_updates_map
                                     .remove(&c.id)
-                                    .context("")?
+                                    .ok_or_eyre("")?
                                     .into_iter()
                                     .map(|y| y.data)
                                     .collect();
                                 Ok(Target::new(c, y_updates))
                             })
-                            .collect::<anyhow::Result<Vec<Target<CardForIndex>>>>()?,
+                            .collect::<eyre::Result<Vec<Target<CardForIndex>>>>()?,
                         origin.clone(),
                     )
                     .emit(app_handle)?;
@@ -430,7 +430,7 @@ async fn process_card_changes<R: Runtime>(
                 let delete_targets = logs
                     .into_iter()
                     .map(|log| {
-                        let status = log.status.as_ref().context("status is not set")?;
+                        let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: DeleteLogStatus =
                             serde_sqlite_jsonb::from_slice(status)?;
                         let pot_id: UUIDv7Base64URL =
@@ -441,7 +441,7 @@ async fn process_card_changes<R: Runtime>(
                             pot_id,
                         })
                     })
-                    .collect::<anyhow::Result<Vec<DeleteTarget>>>()?;
+                    .collect::<eyre::Result<Vec<DeleteTarget>>>()?;
 
                 remove_index(app_handle, delete_targets).await?;
 
@@ -454,7 +454,7 @@ async fn process_card_changes<R: Runtime>(
     Ok(())
 }
 
-async fn update_path(pool: &SqlitePool, outline_ids: &[UUIDv7Base64URL]) -> anyhow::Result<()> {
+async fn update_path(pool: &SqlitePool, outline_ids: &[UUIDv7Base64URL]) -> eyre::Result<()> {
     let outlines = fetch::outline_trees(pool, outline_ids, None).await?;
     let ancestors: HashMap<UUIDv7Base64URL, Ancestor> = fetch::ancestors(
         pool,
@@ -488,7 +488,7 @@ async fn update_path(pool: &SqlitePool, outline_ids: &[UUIDv7Base64URL]) -> anyh
 
             Ok((outline.id, serde_sqlite_jsonb::to_vec(&path)?))
         })
-        .collect::<anyhow::Result<Vec<(UUIDv7Base64URL, Vec<u8>)>>>()?;
+        .collect::<eyre::Result<Vec<(UUIDv7Base64URL, Vec<u8>)>>>()?;
 
     upsert::path(pool, &path).await?;
 

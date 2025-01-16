@@ -1,23 +1,9 @@
-use anyhow::anyhow;
+use eyre::eyre;
 use std::any::type_name;
-use std::future::Future;
 use tauri::async_runtime::RwLock;
 use tauri::{Manager, Runtime, State};
 
-pub async fn anyhow_task<F>(task: F, context: &str) -> anyhow::Result<()>
-where
-    F: Future<Output = anyhow::Result<()>> + Send,
-{
-    let result = task.await;
-
-    if let Err(ref e) = result {
-        println!("async task failed ({:?}): {:?}", context, e);
-    }
-
-    result
-}
-
-pub async fn set_rw_state<R: Runtime, T>(manager: &impl Manager<R>, value: T) -> anyhow::Result<()>
+pub async fn set_rw_state<R: Runtime, T>(manager: &impl Manager<R>, value: T) -> eyre::Result<()>
 where
     T: 'static + Sync + Send,
 {
@@ -33,28 +19,26 @@ where
     Ok(())
 }
 
-pub fn get_rw_state<R: Runtime, T>(
-    manager: &impl Manager<R>,
-) -> anyhow::Result<State<'_, RwLock<T>>>
+pub fn get_rw_state<R: Runtime, T>(manager: &impl Manager<R>) -> eyre::Result<State<'_, RwLock<T>>>
 where
     T: 'static + Sync + Send,
 {
     manager
         .try_state::<RwLock<T>>()
-        .ok_or_else(|| anyhow!(format!("failed to get state {}", type_name::<RwLock<T>>())))
+        .ok_or_else(|| eyre!(format!("failed to get state {}", type_name::<RwLock<T>>())))
 }
 
-pub fn get_state<R: Runtime, T>(manager: &impl Manager<R>) -> anyhow::Result<&T>
+pub fn get_state<R: Runtime, T>(manager: &impl Manager<R>) -> eyre::Result<&T>
 where
     T: 'static + Sync + Send,
 {
     manager
         .try_state::<T>()
         .map(|r| r.inner())
-        .ok_or_else(|| anyhow!(format!("failed to get state {}", type_name::<T>())))
+        .ok_or_else(|| eyre!(format!("failed to get state {}", type_name::<T>())))
 }
 
-pub fn extract_text_from_doc(doc: &str) -> anyhow::Result<String> {
+pub fn extract_text_from_doc(doc: &str) -> eyre::Result<String> {
     use serde::Deserialize;
 
     #[derive(Deserialize, Debug)]

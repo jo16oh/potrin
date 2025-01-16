@@ -8,12 +8,12 @@ use tauri::{AppHandle, Window};
 
 #[tauri::command]
 #[specta::specta]
-#[macros::anyhow_to_string]
+#[macros::eyre_to_any]
 pub async fn soft_delete_card<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     card: Card,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let rowids = delete::soft::cards(pool, &[card.id]).await?;
@@ -23,5 +23,5 @@ pub async fn soft_delete_card<R: tauri::Runtime>(
         .send(DatabaseChange::new(rowids, Origin::local(window.label())))
         .await?;
 
-    Ok(())
+    eyre::Ok(())
 }

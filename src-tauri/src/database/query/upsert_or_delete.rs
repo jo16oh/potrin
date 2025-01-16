@@ -9,7 +9,7 @@ pub async fn outline_links<'a>(
     conn: &mut Transaction<'a, Sqlite>,
     outline_id: UUIDv7Base64URL,
     links: &Links,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let query = format!(
         r#"
             DELETE FROM outline_links
@@ -64,7 +64,7 @@ pub async fn card_links<'a>(
     conn: &mut Transaction<'a, Sqlite>,
     card_id: UUIDv7Base64URL,
     links: &Links,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let query = format!(
         r#"
             DELETE FROM card_links
@@ -119,15 +119,15 @@ pub async fn quote<'a>(
     conn: &mut Transaction<'a, Sqlite>,
     card_id: UUIDv7Base64URL,
     quote: &Option<Quote>,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     if let Some(quote) = quote {
         sqlx::query!(
             r#"
                 INSERT INTO quotes (card_id, quote_id, version_id)
                 VALUES (?, ?, ?)
-                ON CONFLICT 
+                ON CONFLICT
                 DO UPDATE
-                SET 
+                SET
                     quote_id = excluded.quote_id,
                     version_id = excluded.version_id;
             "#,
@@ -140,7 +140,7 @@ pub async fn quote<'a>(
     } else {
         sqlx::query!(
             r#"
-                DELETE 
+                DELETE
                 FROM quotes
                 WHERE card_id = ?;
             "#,

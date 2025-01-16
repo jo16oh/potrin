@@ -6,7 +6,7 @@ use crate::{
 };
 use tauri::{AppHandle, Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 
-pub async fn init_windows(app_handle: &AppHandle) -> anyhow::Result<()> {
+pub async fn init_windows(app_handle: &AppHandle) -> eyre::Result<()> {
     let app_state_lock = get_rw_state::<_, AppState>(app_handle)?;
     let app_state = app_state_lock.read().await;
 
@@ -21,7 +21,7 @@ pub async fn init_windows(app_handle: &AppHandle) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn open_pot_selector(app_handle: &AppHandle) -> anyhow::Result<()> {
+pub fn open_pot_selector(app_handle: &AppHandle) -> eyre::Result<()> {
     let win_builder =
         WebviewWindowBuilder::new(app_handle, "pot-selector", WebviewUrl::App("".into()))
             .title("Potrin")
@@ -42,7 +42,7 @@ pub async fn open_pot(
     app_handle: &AppHandle,
     pot_id: UUIDv7Base64URL,
     pot_name: &str,
-) -> anyhow::Result<()> {
+) -> eyre::Result<()> {
     let win_builder = WebviewWindowBuilder::new(
         app_handle,
         pot_id,
