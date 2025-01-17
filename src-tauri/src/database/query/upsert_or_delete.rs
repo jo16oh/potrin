@@ -5,8 +5,8 @@ use crate::types::{
     util::UUIDv7Base64URL,
 };
 
-pub async fn outline_links<'a>(
-    conn: &mut Transaction<'a, Sqlite>,
+pub async fn outline_links(
+    conn: &mut Transaction<'_, Sqlite>,
     outline_id: UUIDv7Base64URL,
     links: &Links,
 ) -> eyre::Result<()> {
@@ -60,8 +60,8 @@ pub async fn outline_links<'a>(
     Ok(())
 }
 
-pub async fn paragraph_links<'a>(
-    conn: &mut Transaction<'a, Sqlite>,
+pub async fn paragraph_links(
+    conn: &mut Transaction<'_, Sqlite>,
     paragraph_id: UUIDv7Base64URL,
     links: &Links,
 ) -> eyre::Result<()> {
@@ -115,25 +115,26 @@ pub async fn paragraph_links<'a>(
     Ok(())
 }
 
-pub async fn quote<'a>(
-    conn: &mut Transaction<'a, Sqlite>,
+pub async fn quote(
+    conn: &mut Transaction<'_, Sqlite>,
     paragraph_id: UUIDv7Base64URL,
     quote: &Option<Quote>,
 ) -> eyre::Result<()> {
     if let Some(quote) = quote {
         sqlx::query!(
             r#"
-                INSERT INTO quotes (paragraph_id, quote_id, version_id)
-                VALUES (?, ?, ?)
+                INSERT INTO quotes (paragraph_id, quoted_id, version_id, doc)
+                VALUES (?, ?, ?, ?)
                 ON CONFLICT
                 DO UPDATE
                 SET
-                    quote_id = excluded.quote_id,
+                    quoted_id = excluded.quoted_id,
                     version_id = excluded.version_id;
             "#,
             paragraph_id,
             quote.id,
-            quote.version_id
+            quote.version_id,
+            quote.doc
         )
         .execute(&mut **conn)
         .await?;

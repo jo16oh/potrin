@@ -159,6 +159,7 @@ CREATE INDEX y_docs$created_at ON y_docs(created_at);
 CREATE TABLE y_updates (
   id BLOB PRIMARY KEY,
   y_doc_id BLOB REFERENCES y_docs(id) ON DELETE CASCADE NOT NULL,
+  author BLOB, -- implicitly referes to users(id)
   data BLOB NOT NULL,
   version_id BLOB REFERENCES versions(id) ON DELETE RESTRICT,
   created_at INTEGER NOT NULL,
@@ -385,6 +386,8 @@ CREATE TABLE outlines (
   text TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
+  collapse INTEGER NOT NULL DEFAULT 0,
+  hidden INTEGER NOT NULL DEFAULT 0,
   is_deleted INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
@@ -458,7 +461,7 @@ END;
 CREATE TABLE outline_links(
     rowid INTEGER PRIMARY KEY, -- set rowid as PK to specify the changed record in the operation_logs
     id_from BLOB REFERENCES outlines(id) ON DELETE CASCADE,
-    id_to BLOB NOT NULL, -- implicitly referes to outlines(id), but is not constrained by FK to avoid inconsistency from y_updates
+    id_to BLOB NOT NULL, -- implicitly referes to outlines(id)
     UNIQUE (id_from, id_to)
 ) STRICT;
 
@@ -482,6 +485,7 @@ CREATE TABLE paragraphs (
   doc TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
+  hidden INTEGER NOT NULL DEFAULT 0,
   is_deleted INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
@@ -554,7 +558,7 @@ END;
 CREATE TABLE paragraph_links (
     rowid INTEGER PRIMARY KEY, -- set rowid as PK to specify the changed record in the operation_logs
     id_from BLOB REFERENCES paragraphs(id) ON DELETE CASCADE NOT NULL,
-    id_to BLOB NOT NULL, -- implicitly referes to outlines(id), but is not constrained by FK to avoid inconsistency from y_updates
+    id_to BLOB NOT NULL, -- implicitly referes to outlines(id)
     UNIQUE (id_from, id_to)
 ) STRICT;
 
@@ -564,9 +568,10 @@ CREATE INDEX paragraph_links$id_to ON paragraph_links(id_to);
 
 CREATE TABLE quotes (
     paragraph_id BLOB REFERENCES paragraphs(id) ON DELETE CASCADE PRIMARY KEY,
-    quote_id BLOB NOT NULL, -- implicitly referes to paragraphs(id), but is not constrained by FK to avoid inconsistency from y_updates
-    version_id BLOB NOT NULL -- same as above
+    quoted_id BLOB NOT NULL, -- implicitly referes to paragraphs(id)
+    version_id BLOB NOT NULL, -- implicitly referes to versions(id)
+    doc TEXT NOT NULL -- copy of the quoted paragraph's doc in the version
 ) STRICT;
 
-CREATE INDEX quotes$quote_id ON quotes(quote_id);
+CREATE INDEX quotes$quoted_id ON quotes(quoted_id);
 CREATE INDEX quotes$version_id ON quotes(version_id);

@@ -105,7 +105,7 @@ pub struct RawParagraph {
     pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
     pub doc: String,
-    pub quote_id: Option<UUIDv7Base64URL>,
+    pub quoted_id: Option<UUIDv7Base64URL>,
     pub quote_version_id: Option<UUIDv7Base64URL>,
     pub links: Links,
     pub created_at: i64,
@@ -119,12 +119,13 @@ impl From<RawParagraph> for Paragraph {
             outline_id: value.outline_id,
             fractional_index: value.fractional_index,
             doc: value.doc,
-            quote: if let (Some(quote_id), Some(version_id)) =
-                (value.quote_id, value.quote_version_id)
+            quote: if let (Some(quoted_id), Some(version_id)) =
+                (value.quoted_id, value.quote_version_id)
             {
                 Some(Quote {
-                    id: quote_id,
+                    id: quoted_id,
                     version_id,
+                    doc: String::new(),
                 })
             } else {
                 None
@@ -173,7 +174,7 @@ pub struct RawparagraphForIndex {
     pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
     pub doc: String,
-    pub quote_id: Option<UUIDv7Base64URL>,
+    pub quoted_id: Option<UUIDv7Base64URL>,
     pub quote_version_id: Option<UUIDv7Base64URL>,
     pub path: Path,
     pub links: Links,
@@ -189,12 +190,13 @@ impl From<RawparagraphForIndex> for ParagraphForIndex {
             outline_id: value.outline_id,
             fractional_index: value.fractional_index,
             doc: value.doc,
-            quote: if let (Some(quote_id), Some(version_id)) =
-                (value.quote_id, value.quote_version_id)
+            quote: if let (Some(quoted_id), Some(version_id)) =
+                (value.quoted_id, value.quote_version_id)
             {
                 Some(Quote {
-                    id: quote_id,
+                    id: quoted_id,
                     version_id,
+                    doc: String::new(),
                 })
             } else {
                 None
@@ -212,6 +214,7 @@ impl From<RawparagraphForIndex> for ParagraphForIndex {
 pub struct Quote {
     pub id: UUIDv7Base64URL,
     pub version_id: UUIDv7Base64URL,
+    pub doc: String,
 }
 
 impl Paragraph {

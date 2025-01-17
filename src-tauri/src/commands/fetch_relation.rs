@@ -122,15 +122,17 @@ mod test {
 
         sqlx::query!(
             r#"
-                INSERT INTO quotes (paragraph_id, quote_id, version_id)
-                VALUES (?, ?, ?), (?, ?, ?);
+                INSERT INTO quotes (paragraph_id, quoted_id, version_id, doc)
+                VALUES (?, ?, ?, ?), (?, ?, ?, ?);
             "#,
             c1.id,
             c2.id,
             version_id,
+            "",
             c2.id,
             c3.id,
             version_id,
+            "",
         )
         .execute(pool)
         .await

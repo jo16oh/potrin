@@ -140,6 +140,7 @@ mod test {
             Some(Quote {
                 id: c2.id,
                 version_id,
+                doc: String::new(),
             }),
         );
         upsert_paragraph(app_handle, pot_id, &c1, vec![])
@@ -244,6 +245,7 @@ mod test {
             Some(Quote {
                 id: c1.id,
                 version_id,
+                doc: String::new(),
             }),
         );
         upsert_paragraph(app_handle, pot_id, &c2, vec![])

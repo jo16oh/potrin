@@ -125,7 +125,7 @@ pub async fn paragraphs_by_id(
             WITH c1 AS (
                 SELECT
                     paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                    quotes.quote_id AS quote_id,
+                    quotes.quoted_id AS quoted_id,
                     quotes.version_id AS quote_version_id,
                     paragraphs.created_at,
                     paragraphs.updated_at
@@ -136,17 +136,17 @@ pub async fn paragraphs_by_id(
                 UNION
                 SELECT
                     paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                    quotes.quote_id AS quote_id,
+                    quotes.quoted_id AS quoted_id,
                     quotes.version_id AS quote_version_id,
                     paragraphs.created_at,
                     paragraphs.updated_at
                 FROM paragraphs
-                JOIN c1 ON paragraphs.id = c1.quote_id
+                JOIN c1 ON paragraphs.id = c1.quoted_id
                 LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
                 WHERE is_deleted = false
             )
             SELECT
-                c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
+                c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quoted_id, c1.quote_version_id,
                 jsonb_group_array(outline_paths.path) AS links,
                 c1.created_at,
                 c1.updated_at
@@ -184,7 +184,7 @@ pub async fn paragraphs_for_index_by_id(
             WITH c1 AS (
                 SELECT
                     paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                    quotes.quote_id AS quote_id,
+                    quotes.quoted_id AS quoted_id,
                     quotes.version_id AS quote_version_id,
                     paragraphs.created_at,
                     paragraphs.updated_at
@@ -195,12 +195,12 @@ pub async fn paragraphs_for_index_by_id(
                 UNION
                 SELECT
                     paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                    quotes.quote_id AS quote_id,
+                    quotes.quoted_id AS quoted_id,
                     quotes.version_id AS quote_version_id,
                     paragraphs.created_at,
                     paragraphs.updated_at
                 FROM paragraphs
-                JOIN c1 ON paragraphs.id = c1.quote_id
+                JOIN c1 ON paragraphs.id = c1.quoted_id
                 LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
                 WHERE is_deleted = false
             )
@@ -209,7 +209,7 @@ pub async fn paragraphs_for_index_by_id(
                 y_docs.pot_id,
                 c1.outline_id,
                 c1.fractional_index,
-                c1.doc, c1.quote_id,
+                c1.doc, c1.quoted_id,
                 c1.quote_version_id,
                 path.path,
                 jsonb_group_array(links.path) AS links,
@@ -256,7 +256,7 @@ pub async fn paragraphs_by_outline_id(
             WITH c1 AS (
                 SELECT
                     paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                    quotes.quote_id AS quote_id,
+                    quotes.quoted_id AS quoted_id,
                     quotes.version_id AS quote_version_id,
                     paragraphs.created_at,
                     paragraphs.updated_at
@@ -266,17 +266,17 @@ pub async fn paragraphs_by_outline_id(
                 UNION
                 SELECT
                     paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                    quotes.quote_id AS quote_id,
+                    quotes.quoted_id AS quoted_id,
                     quotes.version_id AS quote_version_id,
                     paragraphs.created_at,
                     paragraphs.updated_at
                 FROM paragraphs
-                JOIN c1 ON paragraphs.id = c1.quote_id
+                JOIN c1 ON paragraphs.id = c1.quoted_id
                 LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
                 WHERE is_deleted = false
             )
             SELECT
-                c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
+                c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quoted_id, c1.quote_version_id,
                 jsonb_group_array(outline_paths.path) AS links,
                 c1.created_at,
                 c1.updated_at
@@ -317,7 +317,7 @@ pub async fn paragraphs_by_created_at(
         WITH c1 AS (
             SELECT
                 paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                quotes.quote_id AS quote_id,
+                quotes.quoted_id AS quoted_id,
                 quotes.version_id AS quote_version_id,
                 paragraphs.created_at,
                 paragraphs.updated_at
@@ -327,18 +327,18 @@ pub async fn paragraphs_by_created_at(
             UNION
             SELECT
                 paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                quotes.quote_id AS quote_id,
+                quotes.quoted_id AS quoted_id,
                 quotes.version_id AS quote_version_id,
                 paragraphs.created_at,
                 paragraphs.updated_at
             FROM paragraphs
             LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-            INNER JOIN c1 ON paragraphs.id = c1.quote_id
+            INNER JOIN c1 ON paragraphs.id = c1.quoted_id
             WHERE is_deleted = false
             ORDER BY created_at DESC
         )
         SELECT
-            c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
+            c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quoted_id, c1.quote_version_id,
             jsonb_group_array(outline_paths.path) AS links,
             c1.created_at,
             c1.updated_at
@@ -754,7 +754,7 @@ pub async fn relation_back(
                 WITH c1 AS (
                     SELECT
                         paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                        quotes.quote_id AS quote_id,
+                        quotes.quoted_id AS quoted_id,
                         quotes.version_id AS quote_version_id,
                         paragraphs.created_at,
                         paragraphs.updated_at
@@ -765,27 +765,27 @@ pub async fn relation_back(
                     UNION
                     SELECT
                         paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                        quotes.quote_id AS quote_id,
+                        quotes.quoted_id AS quoted_id,
                         quotes.version_id AS quote_version_id,
                         paragraphs.created_at,
                         paragraphs.updated_at
                     FROM quotes
                     INNER JOIN paragraphs ON quotes.paragraph_id = paragraphs.id
-                    WHERE quotes.quote_id IN ({}) AND paragraphs.is_deleted = false
+                    WHERE quotes.quoted_id IN ({}) AND paragraphs.is_deleted = false
                     UNION
                     SELECT
                         paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                        quotes.quote_id AS quote_id,
+                        quotes.quoted_id AS quoted_id,
                         quotes.version_id AS quote_version_id,
                         paragraphs.created_at,
                         paragraphs.updated_at
                     FROM paragraphs
-                    INNER JOIN c1 ON c1.quote_id = paragraphs.id
+                    INNER JOIN c1 ON c1.quoted_id = paragraphs.id
                     INNER JOIN quotes ON quotes.paragraph_id = paragraphs.id
                     WHERE paragraphs.is_deleted = false
                 )
                 SELECT
-                    c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
+                    c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quoted_id, c1.quote_version_id,
                     jsonb_group_array(outline_paths.path) AS links,
                     c1.created_at,
                     c1.updated_at
@@ -870,28 +870,28 @@ pub async fn relation_forward(
                 WITH c1 AS (
                     SELECT
                         paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                        q2.quote_id AS quote_id,
+                        q2.quoted_id AS quoted_id,
                         q2.version_id AS quote_version_id,
                         paragraphs.created_at,
                         paragraphs.updated_at
                     FROM paragraphs
-                    INNER JOIN quotes AS q1 ON q1.quote_id = paragraphs.id
+                    INNER JOIN quotes AS q1 ON q1.quoted_id = paragraphs.id
                     LEFT JOIN quotes AS q2 ON q2.paragraph_id = paragraphs.id
                     WHERE q1.paragraph_id IN ({}) AND paragraphs.is_deleted = false
                     UNION
                     SELECT
                         paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                        quotes.quote_id AS quote_id,
+                        quotes.quoted_id AS quoted_id,
                         quotes.version_id AS quote_version_id,
                         paragraphs.created_at,
                         paragraphs.updated_at
                     FROM paragraphs
-                    INNER JOIN c1 ON c1.quote_id = paragraphs.id
+                    INNER JOIN c1 ON c1.quoted_id = paragraphs.id
                     LEFT JOIN quotes ON quotes.paragraph_id = paragraphs.id
                     WHERE paragraphs.is_deleted = false
                 )
                 SELECT
-                    c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
+                    c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quoted_id, c1.quote_version_id,
                     jsonb_group_array(outline_paths.path) AS links,
                     c1.created_at,
                     c1.updated_at
@@ -957,7 +957,7 @@ pub async fn relation_count(
                 (
                     SELECT COUNT(*)
                     FROM quotes
-                    WHERE quote_id = this.id
+                    WHERE quoted_id = this.id
                 ) AS back,
                 (
                     (
@@ -1051,7 +1051,7 @@ pub async fn recursive_relation_count(
                     (
                         SELECT COUNT(*)
                         FROM quotes
-                        WHERE quote_id
+                        WHERE quoted_id
                          IN ((
                             SELECT id
                             FROM tree_paragraphs
@@ -1099,7 +1099,7 @@ pub async fn recursive_relation_count(
                 (
                     SELECT COUNT(*)
                     FROM quotes
-                    WHERE quote_id = this.id
+                    WHERE quoted_id = this.id
                 ) AS back,
                 (
                     (
