@@ -1,11 +1,11 @@
 <script lang="ts">
   import { App } from "$lib/models/App.svelte";
   import { commands } from "../generated/tauri-commands";
-  import * as Dialog from "$lib/components/ui/dialog";
-  import Button from "$lib/components/ui/button/button.svelte";
-  import { Input } from "$lib/components/ui/input";
+  // import * as Dialog from "$lib/components/ui/dialog";
+  // import Button from "$lib/components/ui/button/button.svelte";
+  // import { Input } from "$lib/components/ui/input";
   import { uuidv7 } from "$lib/utils";
-  import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
+  // import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import { getCurrent } from "@tauri-apps/api/window";
 
   const app = App.state();
@@ -64,29 +64,29 @@
     <div class="text-md my-auto cursor-default select-none font-semibold">
       Create new pot
     </div>
-    <Dialog.Root bind:open={newPotDialogOpen}>
-      <Button
-        class="mr-1"
-        variant="default"
-        onclick={() => (newPotDialogOpen = true)}>Create</Button
-      >
-      <Dialog.Content>
-        <Dialog.Header>
-          <Dialog.Title>Create new Pot</Dialog.Title>
-          <Dialog.Description>
-            <div class="flex flex-wrap justify-end">
-              <Input
-                class="my-4"
-                bind:value={newPotName}
-                placeholder="name"
-                {onkeypress}
-              />
-              <Button class="ml-auto" onclick={createPot}>Create</Button>
-            </div>
-          </Dialog.Description>
-        </Dialog.Header>
-      </Dialog.Content>
-    </Dialog.Root>
+    <!-- <Dialog.Root bind:open={newPotDialogOpen}> -->
+    <!--   <Button -->
+    <!--     class="mr-1" -->
+    <!--     variant="default" -->
+    <!--     onclick={() => (newPotDialogOpen = true)}>Create</Button -->
+    <!--   > -->
+    <!--   <Dialog.Content> -->
+    <!--     <Dialog.Header> -->
+    <!--       <Dialog.Title>Create new Pot</Dialog.Title> -->
+    <!--       <Dialog.Description> -->
+    <!--         <div class="flex flex-wrap justify-end"> -->
+    <!--           <Input -->
+    <!--             class="my-4" -->
+    <!--             bind:value={newPotName} -->
+    <!--             placeholder="name" -->
+    <!--             {onkeypress} -->
+    <!--           /> -->
+    <!--           <Button class="ml-auto" onclick={createPot}>Create</Button> -->
+    <!--         </div> -->
+    <!--       </Dialog.Description> -->
+    <!--     </Dialog.Header> -->
+    <!--   </Dialog.Content> -->
+    <!-- </Dialog.Root> -->
   </div>
 
   {#await pots then pots}
@@ -95,47 +95,47 @@
         <div class="text-md my-auto cursor-default select-none font-semibold">
           Open pot
         </div>
-        <Dialog.Root bind:open={potSelectDialogOpen}>
-          <Button
-            class="mr-1"
-            variant="default"
-            onclick={() => (potSelectDialogOpen = true)}>Select</Button
-          >
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>Open pot</Dialog.Title>
-              <Dialog.Description>
-                <ScrollArea class="h-80 w-full">
-                  <ul>
-                    {#each pots as pot}
-                      {@const createdAt = new Date(
-                        pot.createdAt,
-                      ).toLocaleDateString()}
-                      <li
-                        class="flex w-full justify-between rounded-sm px-3 py-2 transition-all"
-                      >
-                        <Button
-                          class="flex w-full select-none border-none text-foreground"
-                          variant="outline"
-                          onclick={() => selectPot(pot)}
-                        >
-                          <div class="flex-grow">
-                            <div class="text-lg">
-                              {pot.name}
-                            </div>
-                            <div class="text-sm text-secondary-foreground">
-                              {createdAt}
-                            </div>
-                          </div>
-                        </Button>
-                      </li>
-                    {/each}
-                  </ul>
-                </ScrollArea>
-              </Dialog.Description>
-            </Dialog.Header>
-          </Dialog.Content>
-        </Dialog.Root>
+        <!-- <Dialog.Root bind:open={potSelectDialogOpen}> -->
+        <!--   <Button -->
+        <!--     class="mr-1" -->
+        <!--     variant="default" -->
+        <!--     onclick={() => (potSelectDialogOpen = true)}>Select</Button -->
+        <!--   > -->
+        <!--   <Dialog.Content> -->
+        <!--     <Dialog.Header> -->
+        <!--       <Dialog.Title>Open pot</Dialog.Title> -->
+        <!--       <Dialog.Description> -->
+        <!--         <ScrollArea class="h-80 w-full"> -->
+        <!--           <ul> -->
+        <!--             {#each pots as pot} -->
+        <!--               {@const createdAt = new Date( -->
+        <!--                 pot.createdAt, -->
+        <!--               ).toLocaleDateString()} -->
+        <!--               <li -->
+        <!--                 class="flex w-full justify-between rounded-sm px-3 py-2 transition-all" -->
+        <!--               > -->
+        <!--                 <Button -->
+        <!--                   class="flex w-full select-none border-none text-foreground" -->
+        <!--                   variant="outline" -->
+        <!--                   onclick={() => selectPot(pot)} -->
+        <!--                 > -->
+        <!--                   <div class="flex-grow"> -->
+        <!--                     <div class="text-lg"> -->
+        <!--                       {pot.name} -->
+        <!--                     </div> -->
+        <!--                     <div class="text-sm text-secondary-foreground"> -->
+        <!--                       {createdAt} -->
+        <!--                     </div> -->
+        <!--                   </div> -->
+        <!--                 </Button> -->
+        <!--               </li> -->
+        <!--             {/each} -->
+        <!--           </ul> -->
+        <!--         </ScrollArea> -->
+        <!--       </Dialog.Description> -->
+        <!--     </Dialog.Header> -->
+        <!--   </Dialog.Content> -->
+        <!-- </Dialog.Root> -->
       </div>
     {/if}
   {/await}

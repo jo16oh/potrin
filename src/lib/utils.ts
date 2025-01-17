@@ -1,12 +1,8 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { uuidv7obj } from "uuidv7";
+// @ts-expect-error no type declaration
 import { toBytes, toBase64 } from "fast-base64/js";
+// @ts-expect-error no type declaration
 import { toUrl, fromUrl } from "fast-base64/url";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 declare const _brand: unique symbol;
 

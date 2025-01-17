@@ -12,3 +12,7 @@ src/generated/client/*
 src-tauri/target/*
 src-tauri/macros/target/*
 src-tauri/db/dev.db*
+
+## Panda
+styled-system
+styled-system-studio

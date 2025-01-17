@@ -1,22 +1,28 @@
 import js from "@eslint/js";
-import ts from "typescript-eslint";
 import svelte from "eslint-plugin-svelte";
 import svelteParser from "svelte-eslint-parser";
 import prettier from "eslint-config-prettier";
-import tailwind from "eslint-plugin-tailwindcss";
 import globals from "globals";
 import sveltePlugin from "eslint-plugin-svelte";
 import tseslint from "typescript-eslint";
 
-export default ts.config(
+// @ts-expect-error no type declaration
+import panda from "@pandacss/eslint-plugin";
+
+export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  ...tailwind.configs["flat/recommended"],
   ...sveltePlugin.configs["flat/recommended"],
   prettier,
   ...svelte.configs["flat/prettier"],
   {
     files: ["**/*.svelte", "*.svelte"],
+    plugins: {
+      "@pandacss": panda,
+    },
+    rules: {
+      ...panda.configs.recommended.rules,
+    },
     settings: {
       svelte: {
         ignoreWarnings: [
@@ -40,18 +46,12 @@ export default ts.config(
     },
   },
   {
-    files: ["**/*.svelte.ts", "*.svelte.ts"],
+    files: ["**/*.svelte.ts", "*.svelte.ts", "**/*.svelte.js", "*.svelte.js"],
     languageOptions: {
       parser: svelteParser,
       parserOptions: {
         parser: tseslint.parser,
       },
-    },
-  },
-  {
-    files: ["**/*.svelte.js", "*.svelte.js"],
-    languageOptions: {
-      parser: svelteParser,
     },
   },
   {
@@ -71,6 +71,7 @@ export default ts.config(
       "**/*.test.js",
       "**/*.test.svelte.ts",
       "**/*.test.svelte.js",
+      "styled-system",
     ],
   },
 );
