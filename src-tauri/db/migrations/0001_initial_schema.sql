@@ -150,11 +150,8 @@ CREATE TABLE y_docs (
   pot_id BLOB REFERENCES pots(id) ON DELETE CASCADE NOT NULL,
   author BLOB, -- implicitly referes to users(id)
   type TEXT NOT NULL,
-  created_at INTEGER NOT NULL,
   from_remote INTEGER NOT NULL
 ) STRICT;
-
-CREATE INDEX y_docs$created_at ON y_docs(created_at);
 
 CREATE TABLE y_updates (
   id BLOB PRIMARY KEY,
@@ -235,11 +232,9 @@ END;
 CREATE TABLE versions (
   id BLOB PRIMARY KEY,
   pot_id BLOB REFERENCES pots(id) ON DELETE CASCADE NOT NULL,
-  created_at INTEGER NOT NULL,
   from_remote INTEGER NOT NULL
 ) STRICT;
 
-CREATE INDEX versions$created_at ON versions(created_at);
 
 CREATE TRIGGER before_insert_versions
 BEFORE INSERT ON versions
@@ -268,19 +263,6 @@ BEGIN
   SELECT RAISE(FAIL, 'update is not allowed');
 END;
 
-CREATE TRIGGER before_delete_versions
-BEFORE DELETE ON versions
-FOR EACH ROW
-BEGIN
-  INSERT INTO operation_logs (primary_key, tablename, operation, updated_at)
-  VALUES (
-    OLD.id,
-    "versions",
-    "delete",
-    unixepoch('now', 'subsec') * 1000
-  );
-END;
-
 
 /*
   This table holds each version's previous version. A `prev_version` represents the latest version
@@ -297,6 +279,15 @@ CREATE TABLE prev_versions (
 
 CREATE INDEX prev_versions$id ON prev_versions(id);
 CREATE INDEX prev_versions$prev_id ON prev_versions(prev_id);
+
+
+/*
+  This table stores the branch_id of versions.
+*/
+CREATE TABLE versions_branch_id (
+  id BLOB REFERENCES versions(id) ON DELETE CASCADE PRIMARY KEY,
+  branch_id INTEGER NOT NULL
+) STRICT;
 
 
 /*
@@ -323,18 +314,21 @@ BEGIN
 END;
 
 /*
-  Reconcile prev_version link when a version deleted
+  Set min branch_id of prev_versions as new version's branch_id.
 */
-CREATE TRIGGER insert_prev_versions$before_delete_versions
-BEFORE DELETE ON versions
+CREATE TRIGGER set_branch_id$after_insert_versions
+AFTER INSERT ON versions
 FOR EACH ROW
 BEGIN
-  INSERT OR IGNORE INTO prev_versions
-  SELECT next.id AS id, prev.id AS prev_id, false AS from_remote
-  FROM prev_versions AS current
-  INNER JOIN prev_versions AS prev ON current.prev_id = prev.id
-  INNER JOIN prev_versions AS next ON current.id = next.prev_id
-  WHERE current.id = OLD.id;
+  INSERT INTO versions_branch_id (id, branch_id)
+  VALUES (
+    NEW.id,
+    COALESCE((
+      SELECT MIN(branch_id)
+      FROM prev_versions
+      INNER JOIN versions_branch_id ON prev_versions.prev_id = versions_branch_id.id
+      WHERE prev_versions.id = NEW.id
+    ), 0));
 END;
 
 /*
@@ -366,7 +360,6 @@ BEGIN
   DELETE FROM version_heads
   WHERE id = NEW.prev_id;
 END;
-
 
 
 

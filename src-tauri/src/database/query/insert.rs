@@ -17,12 +17,11 @@ pub mod from_local {
         conn: E,
         pot_id: UUIDv7Base64URL,
         version_id: UUIDv7Base64URL,
-        timestamp: i64,
     ) -> eyre::Result<i64>
     where
         E: SqliteExecutor<'a>,
     {
-        super::version(conn, pot_id, version_id, timestamp, false).await
+        super::version(conn, pot_id, version_id, false).await
     }
 
     pub async fn y_updates<'a, E>(
@@ -65,12 +64,11 @@ pub mod from_local {
         id: UUIDv7Base64URL,
         pot_id: UUIDv7Base64URL,
         user_id: Option<UUIDv7Base64URL>,
-        timestamp: i64,
     ) -> eyre::Result<()>
     where
         E: SqliteExecutor<'a>,
     {
-        super::y_doc(conn, id, pot_id, user_id, doc_type, timestamp, false).await
+        super::y_doc(conn, id, pot_id, user_id, doc_type, false).await
     }
 }
 
@@ -125,7 +123,6 @@ async fn y_doc<'a, E>(
     pot_id: UUIDv7Base64URL,
     user_id: Option<UUIDv7Base64URL>,
     doc_type: &str,
-    timestamp: i64,
     from_remote: bool,
 ) -> eyre::Result<()>
 where
@@ -135,14 +132,13 @@ where
 
     sqlx::query!(
         r#"
-            INSERT OR IGNORE INTO y_docs (id, pot_id, author, type, created_at, from_remote)
-            VALUES (?, ?, ?, ?, ?, ?);
+            INSERT OR IGNORE INTO y_docs (id, pot_id, author, type, from_remote)
+            VALUES (?, ?, ?, ?, ?);
         "#,
         id,
         pot_id,
         user_id,
         doc_type,
-        timestamp,
         from_remote
     )
     .execute(conn)
@@ -200,7 +196,6 @@ async fn version<'a, E>(
     conn: E,
     pot_id: UUIDv7Base64URL,
     version_id: UUIDv7Base64URL,
-    timestamp: i64,
     from_remote: bool,
 ) -> eyre::Result<i64>
 where
@@ -210,15 +205,14 @@ where
 
     sqlx::query_scalar!(
         r#"
-            INSERT OR IGNORE INTO versions (id, pot_id, created_at, from_remote)
-            VALUES (?, ?, ?, ?)
+            INSERT OR IGNORE INTO versions (id, pot_id, from_remote)
+            VALUES (?, ?, ?)
             RETURNING (
               SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
         version_id,
         pot_id,
-        timestamp,
         from_remote
     )
     .fetch_one(conn)

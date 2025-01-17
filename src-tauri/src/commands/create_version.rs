@@ -58,7 +58,7 @@ async fn create_version_impl<R: tauri::Runtime>(
     let mut tx = pool.begin().await?;
 
     delete::y_updates(&mut *tx, &unversioned_update_ids).await?;
-    insert::from_local::version(&mut *tx, pot_id, version_id, now).await?;
+    insert::from_local::version(&mut *tx, pot_id, version_id).await?;
     insert::from_local::y_updates(&mut *tx, &merged_updates, Some(version_id), now).await?;
 
     tx.commit().await?;

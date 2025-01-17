@@ -49,15 +49,7 @@ async fn upsert_outline_impl<R: Runtime>(
 
     let mut rowids: Vec<i64> = vec![];
 
-    insert::from_local::y_doc(
-        &mut *tx,
-        "outline",
-        outline.id,
-        pot_id,
-        user_id,
-        outline.created_at,
-    )
-    .await?;
+    insert::from_local::y_doc(&mut *tx, "outline", outline.id, pot_id, user_id).await?;
     rowids.extend(
         insert::from_local::y_updates(&mut *tx, &y_updates, None, outline.updated_at).await?,
     );

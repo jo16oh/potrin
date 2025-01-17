@@ -49,15 +49,7 @@ async fn upsert_paragraph_impl<R: Runtime>(
 
     let mut rowids: Vec<i64> = vec![];
 
-    insert::from_local::y_doc(
-        &mut *tx,
-        "outline",
-        paragraph.id,
-        pot_id,
-        user_id,
-        paragraph.created_at,
-    )
-    .await?;
+    insert::from_local::y_doc(&mut *tx, "outline", paragraph.id, pot_id, user_id).await?;
     rowids.extend(
         insert::from_local::y_updates(&mut *tx, &y_updates, None, paragraph.updated_at).await?,
     );
