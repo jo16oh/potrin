@@ -162,9 +162,9 @@ pub async fn load_index<R: Runtime>(
     })
 }
 
-pub async fn add_index<'a, R: Runtime>(
+pub async fn add_index<R: Runtime>(
     app_handle: &AppHandle<R>,
-    index_targets: Vec<IndexTarget<'a>>,
+    index_targets: Vec<IndexTarget<'_>>,
 ) -> eyre::Result<()> {
     let windows = app_handle.webview_windows();
     let targets_map = index_targets.into_iter().into_group_map_by(|t| t.pot_id);
@@ -182,9 +182,9 @@ pub async fn add_index<'a, R: Runtime>(
     Ok(())
 }
 
-async fn process_targets<'a>(
+async fn process_targets(
     index: &SearchIndex,
-    index_targets: Vec<IndexTarget<'a>>,
+    index_targets: Vec<IndexTarget<'_>>,
 ) -> eyre::Result<()> {
     let mut writer = index.writer.lock().await;
 
