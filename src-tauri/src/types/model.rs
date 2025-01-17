@@ -88,7 +88,7 @@ impl From<OutlineForIndex> for Outline {
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct Card {
+pub struct Paragraph {
     pub id: UUIDv7Base64URL,
     pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
@@ -100,7 +100,7 @@ pub struct Card {
 }
 
 #[derive(FromRow)]
-pub struct RawCard {
+pub struct RawParagraph {
     pub id: UUIDv7Base64URL,
     pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
@@ -112,8 +112,8 @@ pub struct RawCard {
     pub updated_at: i64,
 }
 
-impl From<RawCard> for Card {
-    fn from(value: RawCard) -> Self {
+impl From<RawParagraph> for Paragraph {
+    fn from(value: RawParagraph) -> Self {
         Self {
             id: value.id,
             outline_id: value.outline_id,
@@ -138,7 +138,7 @@ impl From<RawCard> for Card {
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct CardForIndex {
+pub struct ParagraphForIndex {
     pub id: UUIDv7Base64URL,
     pub pot_id: UUIDv7Base64URL,
     pub outline_id: UUIDv7Base64URL,
@@ -151,8 +151,8 @@ pub struct CardForIndex {
     pub updated_at: i64,
 }
 
-impl From<CardForIndex> for Card {
-    fn from(value: CardForIndex) -> Self {
+impl From<ParagraphForIndex> for Paragraph {
+    fn from(value: ParagraphForIndex) -> Self {
         Self {
             id: value.id,
             outline_id: value.outline_id,
@@ -167,7 +167,7 @@ impl From<CardForIndex> for Card {
 }
 
 #[derive(FromRow)]
-pub struct RawCardForIndex {
+pub struct RawparagraphForIndex {
     pub id: UUIDv7Base64URL,
     pub pot_id: UUIDv7Base64URL,
     pub outline_id: UUIDv7Base64URL,
@@ -181,8 +181,8 @@ pub struct RawCardForIndex {
     pub updated_at: i64,
 }
 
-impl From<RawCardForIndex> for CardForIndex {
-    fn from(value: RawCardForIndex) -> Self {
+impl From<RawparagraphForIndex> for ParagraphForIndex {
+    fn from(value: RawparagraphForIndex) -> Self {
         Self {
             id: value.id,
             pot_id: value.pot_id,
@@ -214,7 +214,7 @@ pub struct Quote {
     pub version_id: UUIDv7Base64URL,
 }
 
-impl Card {
+impl Paragraph {
     #[cfg(test)]
     pub fn new(outline_id: UUIDv7Base64URL, quote: Option<Quote>) -> Self {
         let now = chrono::Utc::now().timestamp_millis();

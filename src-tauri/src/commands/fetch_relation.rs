@@ -1,6 +1,6 @@
 use crate::database::query::fetch;
-use crate::types::model::Card;
 use crate::types::model::Outline;
+use crate::types::model::Paragraph;
 use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
 use serde::Deserialize;
@@ -25,7 +25,7 @@ enum Direction {
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
 struct IncludeChildrenOption {
-    include_cards: bool,
+    include_paragraphs: bool,
 }
 
 #[tauri::command]
@@ -34,29 +34,29 @@ struct IncludeChildrenOption {
 pub async fn fetch_relation<R: Runtime>(
     app_handle: AppHandle<R>,
     outline_ids: Vec<UUIDv7Base64URL>,
-    card_ids: Vec<UUIDv7Base64URL>,
+    paragraph_ids: Vec<UUIDv7Base64URL>,
     option: RelationOption,
-) -> eyre::Result<(Vec<Outline>, Vec<Card>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
-    let (outline_ids, card_ids) = match option.include_children {
-        Some(opt) => fetch::descendant_ids(pool, &outline_ids, opt.include_cards).await?,
-        None => (outline_ids, card_ids),
+    let (outline_ids, paragraph_ids) = match option.include_children {
+        Some(opt) => fetch::descendant_ids(pool, &outline_ids, opt.include_paragraphs).await?,
+        None => (outline_ids, paragraph_ids),
     };
 
-    let (outlines, cards) = match option.direction {
-        Direction::Back => fetch::relation_back(pool, &outline_ids, &card_ids).await,
-        Direction::Forward => fetch::relation_forward(pool, &outline_ids, &card_ids).await,
+    let (outlines, paragraphs) = match option.direction {
+        Direction::Back => fetch::relation_back(pool, &outline_ids, &paragraph_ids).await,
+        Direction::Forward => fetch::relation_forward(pool, &outline_ids, &paragraph_ids).await,
     }?;
 
-    eyre::Ok((outlines, cards))
+    eyre::Ok((outlines, paragraphs))
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::commands::create_version::test::create_version;
-    use crate::commands::upsert_card::test::upsert_card;
+    use crate::commands::upsert_paragraph::test::upsert_paragraph;
     use crate::database::test::create_mock_user_and_pot;
     use crate::database::test::create_tree;
     use crate::test::run_in_mock_app;
@@ -76,14 +76,20 @@ mod test {
         let r1 = create_tree(app_handle, pot_id, None, 3, 0).await;
         let r2 = create_tree(app_handle, pot_id, None, 3, 0).await;
 
-        let c1 = Card::new(r1.id, None);
-        upsert_card(app_handle, pot_id, &c1, vec![]).await.unwrap();
+        let c1 = Paragraph::new(r1.id, None);
+        upsert_paragraph(app_handle, pot_id, &c1, vec![])
+            .await
+            .unwrap();
 
-        let c2 = Card::new(r2.id, None);
-        upsert_card(app_handle, pot_id, &c2, vec![]).await.unwrap();
+        let c2 = Paragraph::new(r2.id, None);
+        upsert_paragraph(app_handle, pot_id, &c2, vec![])
+            .await
+            .unwrap();
 
-        let c3 = Card::new(r1.id, None);
-        upsert_card(app_handle, pot_id, &c3, vec![]).await.unwrap();
+        let c3 = Paragraph::new(r1.id, None);
+        upsert_paragraph(app_handle, pot_id, &c3, vec![])
+            .await
+            .unwrap();
 
         sqlx::query!(
             r#"
@@ -99,7 +105,7 @@ mod test {
 
         sqlx::query!(
             r#"
-                INSERT INTO card_links (id_from, id_to)
+                INSERT INTO paragraph_links (id_from, id_to)
                 VALUES (?, ?);
             "#,
             c1.id,
@@ -116,7 +122,7 @@ mod test {
 
         sqlx::query!(
             r#"
-                INSERT INTO quotes (card_id, quote_id, version_id)
+                INSERT INTO quotes (paragraph_id, quote_id, version_id)
                 VALUES (?, ?, ?), (?, ?, ?);
             "#,
             c1.id,
@@ -130,14 +136,14 @@ mod test {
         .await
         .unwrap();
 
-        let (outlines, cards) = fetch_relation(
+        let (outlines, paragraphs) = fetch_relation(
             app_handle.clone(),
             vec![r2.id],
             vec![],
             RelationOption {
                 direction: Direction::Back,
                 include_children: Some(IncludeChildrenOption {
-                    include_cards: true,
+                    include_paragraphs: true,
                 }),
             },
         )
@@ -145,16 +151,16 @@ mod test {
         .unwrap();
 
         assert_eq!(outlines.len(), 1);
-        assert_eq!(cards.len(), 2);
+        assert_eq!(paragraphs.len(), 2);
 
-        let (outlines, cards) = fetch_relation(
+        let (outlines, paragraphs) = fetch_relation(
             app_handle.clone(),
             vec![r1.id],
             vec![],
             RelationOption {
                 direction: Direction::Forward,
                 include_children: Some(IncludeChildrenOption {
-                    include_cards: true,
+                    include_paragraphs: true,
                 }),
             },
         )
@@ -162,6 +168,6 @@ mod test {
         .unwrap();
 
         assert_eq!(outlines.len(), 1);
-        assert_eq!(cards.len(), 2);
+        assert_eq!(paragraphs.len(), 2);
     }
 }

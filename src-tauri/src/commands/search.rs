@@ -2,7 +2,7 @@ use crate::{
     database::query::fetch,
     search_engine::{self, OrderBy, SearchIndex, SearchResult},
     types::{
-        model::{Card, Outline},
+        model::{Outline, Paragraph},
         state::AppState,
         util::UUIDv7Base64URL,
     },
@@ -20,7 +20,7 @@ pub async fn search<R: Runtime>(
     query: &str,
     order_by: OrderBy,
     limit: u8,
-) -> eyre::Result<(Vec<Outline>, Vec<Card>, Vec<SearchResult>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>, Vec<SearchResult>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
     let app_state_lock = get_rw_state::<R, AppState>(&app_handle)?;
     let app_state = app_state_lock.read().await;
@@ -35,14 +35,14 @@ pub async fn search<R: Runtime>(
     )
     .await?;
 
-    let cards = {
-        let card_ids = search_results
+    let paragraphs = {
+        let paragraph_ids = search_results
             .iter()
-            .filter(|r| r.doc_type == "card")
+            .filter(|r| r.doc_type == "paragraph")
             .map(|r| r.id)
             .collect::<Vec<UUIDv7Base64URL>>();
 
-        fetch::cards_by_id(pool, &card_ids).await?
+        fetch::paragraphs_by_id(pool, &paragraph_ids).await?
     };
 
     let outlines = {
@@ -52,12 +52,15 @@ pub async fn search<R: Runtime>(
                 .filter(|r| r.doc_type == "outline")
                 .map(|r| r.id)
                 .collect::<Vec<UUIDv7Base64URL>>(),
-            cards.iter().map(|c| c.id).collect::<Vec<UUIDv7Base64URL>>(),
+            paragraphs
+                .iter()
+                .map(|c| c.id)
+                .collect::<Vec<UUIDv7Base64URL>>(),
         ]
         .concat();
 
         fetch::outlines_by_id(pool, &outline_ids).await?
     };
 
-    eyre::Ok((outlines, cards, search_results))
+    eyre::Ok((outlines, paragraphs, search_results))
 }

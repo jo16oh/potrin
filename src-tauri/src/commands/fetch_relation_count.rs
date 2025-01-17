@@ -10,15 +10,15 @@ use tauri::{AppHandle, Runtime};
 pub async fn fetch_relation_count<R: Runtime>(
     app_handle: AppHandle<R>,
     outline_ids: Vec<UUIDv7Base64URL>,
-    card_ids: Vec<UUIDv7Base64URL>,
+    paragraph_ids: Vec<UUIDv7Base64URL>,
     count_children: bool,
 ) -> eyre::Result<Vec<LinkCount>> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     if count_children {
-        fetch::recursive_relation_count(pool, &outline_ids, &card_ids).await
+        fetch::recursive_relation_count(pool, &outline_ids, &paragraph_ids).await
     } else {
-        fetch::relation_count(pool, &outline_ids, &card_ids).await
+        fetch::relation_count(pool, &outline_ids, &paragraph_ids).await
     }
 }
 
@@ -26,11 +26,11 @@ pub async fn fetch_relation_count<R: Runtime>(
 mod test {
     use super::*;
     use crate::commands::create_version::test::create_version;
-    use crate::commands::upsert_card::test::upsert_card;
     use crate::commands::upsert_outline::test::upsert_outline;
+    use crate::commands::upsert_paragraph::test::upsert_paragraph;
     use crate::database::test::create_mock_user_and_pot;
     use crate::test::run_in_mock_app;
-    use crate::types::model::{Card, Outline, Quote};
+    use crate::types::model::{Outline, Paragraph, Quote};
     use tauri::test::MockRuntime;
 
     #[test]
@@ -52,8 +52,8 @@ mod test {
     async fn test_count(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
         let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
 
-        // outline1, card1 → outline2
-        // card1 → card2
+        // outline1, paragraph1 → outline2
+        // paragraph1 → paragraph2
         let ((o1, o2), (c1, c2)) = insert_test_data_for_test_count(app_handle, pool, pot_id).await;
 
         let mut result = fetch_relation_count(app_handle.clone(), vec![o1.id], vec![], false)
@@ -114,7 +114,7 @@ mod test {
         app_handle: &AppHandle<MockRuntime>,
         pool: &SqlitePool,
         pot_id: UUIDv7Base64URL,
-    ) -> ((Outline, Outline), (Card, Card)) {
+    ) -> ((Outline, Outline), (Paragraph, Paragraph)) {
         let version_id = UUIDv7Base64URL::new();
         create_version(app_handle.clone(), pot_id, version_id)
             .await
@@ -130,17 +130,21 @@ mod test {
             .await
             .unwrap();
 
-        let c2 = Card::new(o2.id, None);
-        upsert_card(app_handle, pot_id, &c2, vec![]).await.unwrap();
+        let c2 = Paragraph::new(o2.id, None);
+        upsert_paragraph(app_handle, pot_id, &c2, vec![])
+            .await
+            .unwrap();
 
-        let c1 = Card::new(
+        let c1 = Paragraph::new(
             o1.id,
             Some(Quote {
                 id: c2.id,
                 version_id,
             }),
         );
-        upsert_card(app_handle, pot_id, &c1, vec![]).await.unwrap();
+        upsert_paragraph(app_handle, pot_id, &c1, vec![])
+            .await
+            .unwrap();
 
         sqlx::query!(
             r#"
@@ -156,7 +160,7 @@ mod test {
 
         sqlx::query!(
             r#"
-                INSERT INTO card_links (id_from, id_to)
+                INSERT INTO paragraph_links (id_from, id_to)
                 VALUES (?, ?);
             "#,
             c1.id,
@@ -183,7 +187,7 @@ mod test {
             Outline,
             Outline,
         ),
-        (Card, Card),
+        (Paragraph, Paragraph),
     ) {
         let version_id = UUIDv7Base64URL::new();
         create_version(app_handle.clone(), pot_id, version_id)
@@ -230,17 +234,21 @@ mod test {
             .await
             .unwrap();
 
-        let c1 = Card::new(o2.id, None);
-        upsert_card(app_handle, pot_id, &c1, vec![]).await.unwrap();
+        let c1 = Paragraph::new(o2.id, None);
+        upsert_paragraph(app_handle, pot_id, &c1, vec![])
+            .await
+            .unwrap();
 
-        let c2 = Card::new(
+        let c2 = Paragraph::new(
             o3.id,
             Some(Quote {
                 id: c1.id,
                 version_id,
             }),
         );
-        upsert_card(app_handle, pot_id, &c2, vec![]).await.unwrap();
+        upsert_paragraph(app_handle, pot_id, &c2, vec![])
+            .await
+            .unwrap();
 
         sqlx::query!(
             r#"
@@ -262,7 +270,7 @@ mod test {
 
         sqlx::query!(
             r#"
-                INSERT INTO card_links (id_from, id_to)
+                INSERT INTO paragraph_links (id_from, id_to)
                 VALUES (?, ?), (?, ?);
             "#,
             c1.id,

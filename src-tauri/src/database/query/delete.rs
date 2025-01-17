@@ -81,20 +81,20 @@ where
 pub mod soft {
     use super::*;
 
-    pub async fn cards<'a, E>(conn: E, card_ids: &[UUIDv7Base64URL]) -> eyre::Result<Vec<i64>>
+    pub async fn paragraphs<'a, E>(conn: E, paragraph_ids: &[UUIDv7Base64URL]) -> eyre::Result<Vec<i64>>
     where
         E: SqliteExecutor<'a>,
     {
         let query = format!(
             r#"
-                UPDATE cards
+                UPDATE paragraphs
                 SET is_deleted = true
                 WHERE id IN ({})
                 RETURNING (
                   SELECT rowid FROM operation_logs WHERE primary_key = id
                 ) AS rowid;
             "#,
-            card_ids
+            paragraph_ids
                 .iter()
                 .map(|_| "?".to_string())
                 .collect::<Vec<String>>()
@@ -103,7 +103,7 @@ pub mod soft {
 
         let mut query_builder = sqlx::query_scalar(&query);
 
-        for id in card_ids.iter() {
+        for id in paragraph_ids.iter() {
             query_builder = query_builder.bind(id);
         }
 

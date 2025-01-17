@@ -60,14 +60,14 @@ pub async fn outline_links<'a>(
     Ok(())
 }
 
-pub async fn card_links<'a>(
+pub async fn paragraph_links<'a>(
     conn: &mut Transaction<'a, Sqlite>,
-    card_id: UUIDv7Base64URL,
+    paragraph_id: UUIDv7Base64URL,
     links: &Links,
 ) -> eyre::Result<()> {
     let query = format!(
         r#"
-            DELETE FROM card_links
+            DELETE FROM paragraph_links
             WHERE id_from = ? AND id_to NOT IN ({});
         "#,
         links
@@ -79,7 +79,7 @@ pub async fn card_links<'a>(
 
     let mut query_builder = sqlx::query(&query);
 
-    query_builder = query_builder.bind(card_id);
+    query_builder = query_builder.bind(paragraph_id);
 
     for (id_to, _) in links.iter() {
         query_builder = query_builder.bind(id_to);
@@ -90,7 +90,7 @@ pub async fn card_links<'a>(
     if !links.is_empty() {
         let query = format!(
             r#"
-                INSERT INTO card_links (id_from, id_to)
+                INSERT INTO paragraph_links (id_from, id_to)
                 VALUES {}
                 ON CONFLICT
                 DO NOTHING;
@@ -105,7 +105,7 @@ pub async fn card_links<'a>(
         let mut query_builder = sqlx::query(&query);
 
         for (id_to, _) in links.iter() {
-            query_builder = query_builder.bind(card_id);
+            query_builder = query_builder.bind(paragraph_id);
             query_builder = query_builder.bind(id_to);
         }
 
@@ -117,13 +117,13 @@ pub async fn card_links<'a>(
 
 pub async fn quote<'a>(
     conn: &mut Transaction<'a, Sqlite>,
-    card_id: UUIDv7Base64URL,
+    paragraph_id: UUIDv7Base64URL,
     quote: &Option<Quote>,
 ) -> eyre::Result<()> {
     if let Some(quote) = quote {
         sqlx::query!(
             r#"
-                INSERT INTO quotes (card_id, quote_id, version_id)
+                INSERT INTO quotes (paragraph_id, quote_id, version_id)
                 VALUES (?, ?, ?)
                 ON CONFLICT
                 DO UPDATE
@@ -131,7 +131,7 @@ pub async fn quote<'a>(
                     quote_id = excluded.quote_id,
                     version_id = excluded.version_id;
             "#,
-            card_id,
+            paragraph_id,
             quote.id,
             quote.version_id
         )
@@ -142,9 +142,9 @@ pub async fn quote<'a>(
             r#"
                 DELETE
                 FROM quotes
-                WHERE card_id = ?;
+                WHERE paragraph_id = ?;
             "#,
-            card_id
+            paragraph_id
         )
         .execute(&mut **conn)
         .await?;

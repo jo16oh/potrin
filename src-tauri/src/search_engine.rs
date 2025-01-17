@@ -375,7 +375,7 @@ mod tests {
                 IndexTarget {
                     id: one,
                     pot_id,
-                    doc_type: "card",
+                    doc_type: "paragraph",
                     doc: r#"{ "text": "content brûlée connection" }"#,
                     path: &path,
                     links: &links,
@@ -405,7 +405,7 @@ mod tests {
                 IndexTarget {
                     id: four,
                     pot_id,
-                    doc_type: "card",
+                    doc_type: "paragraph",
                     doc: r#"{ "text": "デカすぎで草" }"#,
                     path: &path,
                     links: &links,
@@ -426,7 +426,7 @@ mod tests {
                     .unwrap(),
                 vec![SearchResult {
                     id: one,
-                    doc_type: String::from("card")
+                    doc_type: String::from("paragraph")
                 },]
             );
 
@@ -437,7 +437,7 @@ mod tests {
                     .unwrap(),
                 vec![SearchResult {
                     id: one,
-                    doc_type: String::from("card")
+                    doc_type: String::from("paragraph")
                 },]
             );
 
@@ -454,7 +454,7 @@ mod tests {
                 .unwrap(),
                 vec![SearchResult {
                     id: one,
-                    doc_type: String::from("card")
+                    doc_type: String::from("paragraph")
                 },]
             );
 
@@ -465,7 +465,7 @@ mod tests {
                     .unwrap(),
                 vec![SearchResult {
                     id: one,
-                    doc_type: String::from("card")
+                    doc_type: String::from("paragraph")
                 },]
             );
 
@@ -476,7 +476,7 @@ mod tests {
                     .unwrap(),
                 vec![SearchResult {
                     id: one,
-                    doc_type: String::from("card")
+                    doc_type: String::from("paragraph")
                 },]
             );
 
@@ -531,7 +531,7 @@ mod tests {
                     .unwrap(),
                 vec![SearchResult {
                     id: four,
-                    doc_type: String::from("card")
+                    doc_type: String::from("paragraph")
                 },]
             );
         });

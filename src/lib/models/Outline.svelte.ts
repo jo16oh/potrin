@@ -9,12 +9,12 @@ import { SvelteSet } from "svelte/reactivity";
 import {
   type Links,
   type Outline as RawOutline,
-  type Card as RawCard,
+  type Paragraph as RawParagraph,
   type Path,
   commands,
   events,
 } from "../../generated/tauri-commands";
-import { Card } from "./Card.svelte";
+import { Paragraph } from "./Paragraph.svelte";
 import * as Y from "yjs";
 import { generateKeyBetween } from "fractional-indexing-jittered";
 import { ReversedLinkIndex, WeakRefMap } from "./utils";
@@ -43,7 +43,7 @@ export class Outline {
   readonly createdAt: Readonly<Date>;
   updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   private _children = $state.raw<Outline[]>() as Outline[];
-  private _cards = $state.raw<Card[]>() as Card[];
+  private _paragraphs = $state.raw<Paragraph[]>() as Paragraph[];
   private _parentId = $state<string | null>(null);
   private _parentRef = $state.raw<WeakRef<Outline> | undefined>();
   private _path = $state<Path | undefined>();
@@ -159,10 +159,10 @@ export class Outline {
     });
   }
 
-  static tree(outlines: RawOutline[], cards: RawCard[]): Outline[] {
+  static tree(outlines: RawOutline[], paragraphs: RawParagraph[]): Outline[] {
     const roots: RawOutline[] = [];
     const childrenMap = new Map<string, RawOutline[]>();
-    const cardsMap = new Map<string, RawCard[]>();
+    const paragraphsMap = new Map<string, RawParagraph[]>();
 
     for (const e of outlines) {
       if (!e.parentId) {
@@ -179,22 +179,22 @@ export class Outline {
       }
     }
 
-    for (const e of cards) {
-      const cards = cardsMap.get(e.outlineId);
-      if (cards) {
-        cards.push(e);
+    for (const e of paragraphs) {
+      const paragraphs = paragraphsMap.get(e.outlineId);
+      if (paragraphs) {
+        paragraphs.push(e);
       } else {
-        cardsMap.set(e.id, []);
+        paragraphsMap.set(e.id, []);
       }
     }
 
-    return roots.map((e) => this.createTree(e, childrenMap, cardsMap));
+    return roots.map((e) => this.createTree(e, childrenMap, paragraphsMap));
   }
 
   private static createTree(
     root: RawOutline,
     childrenMap: Map<string, RawOutline[]>,
-    cardsMap: Map<string, RawCard[]>,
+    paragraphsMap: Map<string, RawParagraph[]>,
     parent_ref?: Outline,
   ): Outline {
     const parent = Outline.from(root, parent_ref);
@@ -202,13 +202,13 @@ export class Outline {
     parent._children =
       childrenMap
         .get(root.id)
-        ?.map((c) => this.createTree(c, childrenMap, cardsMap, parent))
+        ?.map((c) => this.createTree(c, childrenMap, paragraphsMap, parent))
         .sort(byFractionalIndex) ?? [];
 
-    parent._cards =
-      cardsMap
+    parent._paragraphs =
+      paragraphsMap
         .get(root.id)
-        ?.map((c) => Card.from(c, parent))
+        ?.map((c) => Paragraph.from(c, parent))
         .sort(byFractionalIndex) ?? [];
 
     return parent;
@@ -222,8 +222,8 @@ export class Outline {
     return this._children;
   }
 
-  get cards(): Readonly<Card[]> {
-    return this._cards;
+  get paragraphs(): Readonly<Paragraph[]> {
+    return this._paragraphs;
   }
 
   get parentId() {
@@ -286,8 +286,8 @@ export class Outline {
     this._children = [...this._children.sort(byFractionalIndex)];
   }
 
-  sortCards() {
-    this._cards = [...this._cards.sort(byFractionalIndex)];
+  sortParagraphs() {
+    this._paragraphs = [...this._paragraphs.sort(byFractionalIndex)];
   }
 
   async moveTo(target: Outline | "root", index: number | "last") {
@@ -334,18 +334,20 @@ export class Outline {
     this._children = [...insertToFractionalIndexArray(this._children, child)];
   }
 
-  _insertCard(card: Card) {
-    this._cards = [...insertToFractionalIndexArray(this._cards, card)];
+  _insertParagraph(paragraph: Paragraph) {
+    this._paragraphs = [
+      ...insertToFractionalIndexArray(this._paragraphs, paragraph),
+    ];
   }
 
   _removeChild(child: Outline) {
     const idx = this._children.findIndex((c) => c.id === child.id);
-    this._cards = [...this._cards.splice(idx, 1)];
+    this._paragraphs = [...this._paragraphs.splice(idx, 1)];
   }
 
-  _removeCard(card: Card) {
-    const idx = this._cards.findIndex((c) => c.id === card.id);
-    this._cards = [...this._cards.splice(idx, 1)];
+  _removeParagraph(paragraph: Paragraph) {
+    const idx = this._paragraphs.findIndex((c) => c.id === paragraph.id);
+    this._paragraphs = [...this._paragraphs.splice(idx, 1)];
   }
 
   flatten(): Outline[] {
@@ -369,7 +371,7 @@ export class Outline {
   static #updateLinks(id_to: string, path: Path) {
     const backlinks = [
       ...Outline.reversedLinkIndex.get(id_to),
-      ...Card.reversedLinkIndex.get(id_to),
+      ...Paragraph.reversedLinkIndex.get(id_to),
     ];
     for (const o of backlinks) {
       o.links[id_to] = path;

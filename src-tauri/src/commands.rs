@@ -16,11 +16,11 @@ pub mod get_workspace_state;
 pub mod hard_delete_y_doc;
 pub mod insert_pending_y_update;
 pub mod search;
-pub mod soft_delete_card;
+pub mod soft_delete_paragraph;
 pub mod soft_delete_outline;
 pub mod update_app_state;
 pub mod update_workspace_state;
-pub mod upsert_card;
+pub mod upsert_paragraph;
 pub mod upsert_outline;
 
 pub mod test_tracing {
@@ -77,13 +77,13 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         create_user::create_user::<tauri::Wry>,
         create_pot::create_pot::<tauri::Wry>,
         upsert_outline::upsert_outline::<tauri::Wry>,
-        upsert_card::upsert_card::<tauri::Wry>,
+        upsert_paragraph::upsert_paragraph::<tauri::Wry>,
         create_version::create_version::<tauri::Wry>,
         insert_pending_y_update::insert_pending_y_update::<tauri::Wry>,
-        soft_delete_card::soft_delete_card::<tauri::Wry>,
+        soft_delete_paragraph::soft_delete_paragraph::<tauri::Wry>,
         soft_delete_outline::soft_delete_outline::<tauri::Wry>,
         hard_delete_y_doc::hard_delete_outline::<tauri::Wry>,
-        hard_delete_y_doc::hard_delete_card::<tauri::Wry>,
+        hard_delete_y_doc::hard_delete_paragraph::<tauri::Wry>,
         fetch_pots::fetch_pots::<tauri::Wry>,
         fetch_tree::fetch_tree::<tauri::Wry>,
         fetch_timeline::fetch_timeline::<tauri::Wry>,

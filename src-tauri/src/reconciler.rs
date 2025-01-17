@@ -1,12 +1,13 @@
 use crate::{
     database::query::{delete, fetch, upsert},
-    events::{CardChange, Origin, OutlineChange, Target},
+    events::{Origin, OutlineChange, ParagraphChange, Target},
     search_engine::{add_index, remove_index, DeleteTarget, IndexTarget},
     types::{
-        model::{Ancestor, CardForIndex, Link, Oplog, OutlineForIndex, YUpdate},
+        error::AnyError,
+        model::{Ancestor, Link, Oplog, OutlineForIndex, ParagraphForIndex, YUpdate},
         util::UUIDv7Base64URL,
     },
-    utils::{extract_text_from_doc, get_state},
+    utils::get_state,
 };
 use eyre::OptionExt;
 use itertools::{Either, Itertools};
@@ -55,6 +56,7 @@ impl DatabaseChange {
 
 pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
+
     let change = fetch::oplog_rowids_all(pool)
         .await
         .map(|ids| DatabaseChange::new(ids, Origin::Init))?;
@@ -68,11 +70,10 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
         let app_handle = app_handle.clone();
         async move {
             while let Some(change) = receiver.recv().await {
-                let r = reconcile(&app_handle, change).await;
-
-                if let Err(e) = r {
-                    println!("{}", e);
-                }
+                let _ = reconcile(&app_handle, change)
+                    .await
+                    .map_err(AnyError::from)
+                    .inspect_err(|e| eprintln!("{}", e));
             }
         }
     });
@@ -108,8 +109,9 @@ async fn reconcile<R: Runtime>(
                 process_outline_changes(app_handle, logs, &mut y_updates_map, &change.origin)
                     .await?
             }
-            "cards" => {
-                process_card_changes(app_handle, logs, &mut y_updates_map, &change.origin).await?
+            "paragraphs" => {
+                process_paragraph_changes(app_handle, logs, &mut y_updates_map, &change.origin)
+                    .await?
             }
             _ => {}
         }
@@ -292,15 +294,17 @@ async fn process_outline_changes<R: Runtime>(
     Ok(())
 }
 
-async fn process_card_changes<R: Runtime>(
+async fn process_paragraph_changes<R: Runtime>(
     app_handle: &AppHandle<R>,
-    card_logs: Vec<&Oplog>,
+    paragraph_logs: Vec<&Oplog>,
     y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
     origin: &Origin,
 ) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
 
-    let operation_logs_map = card_logs.iter().into_group_map_by(|l| l.operation.as_str());
+    let operation_logs_map = paragraph_logs
+        .iter()
+        .into_group_map_by(|l| l.operation.as_str());
 
     for (operation, logs) in operation_logs_map.into_iter() {
         match operation {
@@ -320,17 +324,18 @@ async fn process_card_changes<R: Runtime>(
                     .collect();
 
                 if !inserted_ids.is_empty() {
-                    let inserted_cards = fetch::cards_for_index_by_id(pool, &inserted_ids).await?;
+                    let inserted_paragraphs =
+                        fetch::paragraphs_for_index_by_id(pool, &inserted_ids).await?;
 
                     add_index(
                         app_handle,
-                        inserted_cards
+                        inserted_paragraphs
                             .iter()
                             .map(|e| {
                                 Ok(IndexTarget {
                                     id: e.id,
                                     pot_id: e.pot_id,
-                                    doc_type: "card",
+                                    doc_type: "paragraph",
                                     doc: &e.doc,
                                     path: &e.path,
                                     links: &e.links,
@@ -342,8 +347,8 @@ async fn process_card_changes<R: Runtime>(
                     )
                     .await?;
 
-                    CardChange::insert(
-                        inserted_cards
+                    ParagraphChange::insert(
+                        inserted_paragraphs
                             .into_iter()
                             .map(|c| {
                                 let y_updates = y_updates_map
@@ -354,7 +359,7 @@ async fn process_card_changes<R: Runtime>(
                                     .collect();
                                 Ok(Target::new(c, y_updates))
                             })
-                            .collect::<eyre::Result<Vec<Target<CardForIndex>>>>()?,
+                            .collect::<eyre::Result<Vec<Target<ParagraphForIndex>>>>()?,
                         origin.clone(),
                     );
                 }
@@ -378,17 +383,18 @@ async fn process_card_changes<R: Runtime>(
                     });
 
                 if !updated_ids.is_empty() {
-                    let updated_cards = fetch::cards_for_index_by_id(pool, &updated_ids).await?;
+                    let updated_paragraphs =
+                        fetch::paragraphs_for_index_by_id(pool, &updated_ids).await?;
 
                     add_index(
                         app_handle,
-                        updated_cards
+                        updated_paragraphs
                             .iter()
                             .map(|e| {
                                 Ok(IndexTarget {
                                     id: e.id,
                                     pot_id: e.pot_id,
-                                    doc_type: "card",
+                                    doc_type: "paragraph",
                                     doc: &e.doc,
                                     path: &e.path,
                                     links: &e.links,
@@ -400,8 +406,8 @@ async fn process_card_changes<R: Runtime>(
                     )
                     .await?;
 
-                    CardChange::update(
-                        updated_cards
+                    ParagraphChange::update(
+                        updated_paragraphs
                             .into_iter()
                             .map(|c| {
                                 let y_updates = y_updates_map
@@ -412,17 +418,18 @@ async fn process_card_changes<R: Runtime>(
                                     .collect();
                                 Ok(Target::new(c, y_updates))
                             })
-                            .collect::<eyre::Result<Vec<Target<CardForIndex>>>>()?,
+                            .collect::<eyre::Result<Vec<Target<ParagraphForIndex>>>>()?,
                         origin.clone(),
                     )
                     .emit(app_handle)?;
                 }
 
                 if !deleted_ids.is_empty() {
-                    let delete_targets = fetch::card_delete_targets(pool, &deleted_ids).await?;
+                    let delete_targets =
+                        fetch::paragraph_delete_targets(pool, &deleted_ids).await?;
                     remove_index(app_handle, delete_targets).await?;
 
-                    CardChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
+                    ParagraphChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
                 }
             }
             "delete" => {

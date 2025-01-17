@@ -14,8 +14,8 @@ async createPot(pot: Pot) : Promise<null> {
 async upsertOutline(outline: Outline, yUpdates: BytesBase64URL[]) : Promise<null> {
     return await TAURI_INVOKE("upsert_outline", { outline, yUpdates });
 },
-async upsertCard(card: Card, yUpdates: BytesBase64URL[]) : Promise<null> {
-    return await TAURI_INVOKE("upsert_card", { card, yUpdates });
+async upsertParagraph(paragraph: Paragraph, yUpdates: BytesBase64URL[]) : Promise<null> {
+    return await TAURI_INVOKE("upsert_paragraph", { paragraph, yUpdates });
 },
 async createVersion(versionId: UUIDv7Base64URL) : Promise<null> {
     return await TAURI_INVOKE("create_version", { versionId });
@@ -23,8 +23,8 @@ async createVersion(versionId: UUIDv7Base64URL) : Promise<null> {
 async insertPendingYUpdate(yDocId: UUIDv7Base64URL, yUpdate: BytesBase64URL) : Promise<null> {
     return await TAURI_INVOKE("insert_pending_y_update", { yDocId, yUpdate });
 },
-async softDeleteCard(card: Card) : Promise<null> {
-    return await TAURI_INVOKE("soft_delete_card", { card });
+async softDeleteParagraph(paragraph: Paragraph) : Promise<null> {
+    return await TAURI_INVOKE("soft_delete_paragraph", { paragraph });
 },
 async softDeleteOutline(outline: Outline) : Promise<null> {
     return await TAURI_INVOKE("soft_delete_outline", { outline });
@@ -32,23 +32,23 @@ async softDeleteOutline(outline: Outline) : Promise<null> {
 async hardDeleteOutline(outline: Outline) : Promise<null> {
     return await TAURI_INVOKE("hard_delete_outline", { outline });
 },
-async hardDeleteCard(card: Card) : Promise<null> {
-    return await TAURI_INVOKE("hard_delete_card", { card });
+async hardDeleteParagraph(paragraph: Paragraph) : Promise<null> {
+    return await TAURI_INVOKE("hard_delete_paragraph", { paragraph });
 },
 async fetchPots() : Promise<Pot[]> {
     return await TAURI_INVOKE("fetch_pots");
 },
-async fetchTree(id: UUIDv7Base64URL, depth: number | null) : Promise<[Outline[], Card[]]> {
+async fetchTree(id: UUIDv7Base64URL, depth: number | null) : Promise<[Outline[], Paragraph[]]> {
     return await TAURI_INVOKE("fetch_tree", { id, depth });
 },
-async fetchTimeline(from: string) : Promise<[Outline[], Card[]]> {
+async fetchTimeline(from: string) : Promise<[Outline[], Paragraph[]]> {
     return await TAURI_INVOKE("fetch_timeline", { from });
 },
-async fetchRelation(outlineIds: UUIDv7Base64URL[], cardIds: UUIDv7Base64URL[], option: RelationOption) : Promise<[Outline[], Card[]]> {
-    return await TAURI_INVOKE("fetch_relation", { outlineIds, cardIds, option });
+async fetchRelation(outlineIds: UUIDv7Base64URL[], paragraphIds: UUIDv7Base64URL[], option: RelationOption) : Promise<[Outline[], Paragraph[]]> {
+    return await TAURI_INVOKE("fetch_relation", { outlineIds, paragraphIds, option });
 },
-async fetchRelationCount(outlineIds: UUIDv7Base64URL[], cardIds: UUIDv7Base64URL[], countChildren: boolean) : Promise<LinkCount[]> {
-    return await TAURI_INVOKE("fetch_relation_count", { outlineIds, cardIds, countChildren });
+async fetchRelationCount(outlineIds: UUIDv7Base64URL[], paragraphIds: UUIDv7Base64URL[], countChildren: boolean) : Promise<LinkCount[]> {
+    return await TAURI_INVOKE("fetch_relation_count", { outlineIds, paragraphIds, countChildren });
 },
 async fetchPath(parentId: UUIDv7Base64URL) : Promise<Path> {
     return await TAURI_INVOKE("fetch_path", { parentId });
@@ -59,7 +59,7 @@ async fetchYUpdatesByDocId(yDocId: UUIDv7Base64URL) : Promise<BytesBase64URL[]> 
 async fetchConflictingOutlineIds(outlineId: UUIDv7Base64URL, parentId: UUIDv7Base64URL | null, text: string) : Promise<([UUIDv7Base64URL, string])[]> {
     return await TAURI_INVOKE("fetch_conflicting_outline_ids", { outlineId, parentId, text });
 },
-async search(query: string, orderBy: OrderBy, limit: number) : Promise<[Outline[], Card[], SearchResult[]]> {
+async search(query: string, orderBy: OrderBy, limit: number) : Promise<[Outline[], Paragraph[], SearchResult[]]> {
     return await TAURI_INVOKE("search", { query, orderBy, limit });
 },
 async getAppState() : Promise<AppState> {
@@ -93,13 +93,13 @@ async willFail() : Promise<null> {
 
 export const events = __makeEvents__<{
 appStateChange: AppStateChange,
-cardChange: CardChange,
 outlineChange: OutlineChange,
+paragraphChange: ParagraphChange,
 workspaceStateChange: WorkspaceStateChange
 }>({
 appStateChange: "app-state-change",
-cardChange: "card-change",
 outlineChange: "outline-change",
+paragraphChange: "paragraph-change",
 workspaceStateChange: "workspace-state-change"
 })
 
@@ -114,12 +114,9 @@ export type AppSetting = { levenshteinDistance: number }
 export type AppState = { clientId: UUIDv7Base64URL; user: UserState | null; pots: Partial<{ [key in string]: string }>; setting: AppSetting }
 export type AppStateChange = { patch: string }
 export type BytesBase64URL = string
-export type Card = { id: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; links: Links; createdAt: number; updatedAt: number }
-export type CardChange = { operation: Operation<CardForIndex>; origin: Origin }
-export type CardForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; path: Path; links: Links; createdAt: number; updatedAt: number }
 export type Direction = "back" | "forward"
 export type FocusState = { timeline: Record<string, never> } | { search: Record<string, never> } | { tabs: { index: number } }
-export type IncludeChildrenOption = { includeCards: boolean }
+export type IncludeChildrenOption = { includeParagraphs: boolean }
 export type Link = { id: UUIDv7Base64URL; text: string }
 export type LinkCount = { id: UUIDv7Base64URL; back: number; forward: number }
 export type Links = Partial<{ [key in string]: Path }>
@@ -130,6 +127,9 @@ export type Origin = "init" | "remote" | { local: { window_label: string } }
 export type Outline = { id: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path | null; links: Links; createdAt: number; updatedAt: number }
 export type OutlineChange = { operation: Operation<OutlineForIndex>; origin: Origin }
 export type OutlineForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path; links: Links; createdAt: number; updatedAt: number }
+export type Paragraph = { id: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; links: Links; createdAt: number; updatedAt: number }
+export type ParagraphChange = { operation: Operation<ParagraphForIndex>; origin: Origin }
+export type ParagraphForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; path: Path; links: Links; createdAt: number; updatedAt: number }
 export type Path = Link[]
 export type Pot = { id: UUIDv7Base64URL; name: string; owner: UUIDv7Base64URL | null; createdAt: number }
 export type PotState = { id: UUIDv7Base64URL; name: string }

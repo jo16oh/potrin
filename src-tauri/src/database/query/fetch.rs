@@ -2,8 +2,8 @@ use crate::{
     search_engine::DeleteTarget,
     types::{
         model::{
-            Ancestor, Card, CardForIndex, LinkCount, Oplog, Outline, OutlineForIndex, Path, Pot,
-            RawCard, RawCardForIndex, YUpdate,
+            Ancestor, LinkCount, Oplog, Outline, OutlineForIndex, Paragraph, ParagraphForIndex,
+            Path, Pot, RawParagraph, RawparagraphForIndex, YUpdate,
         },
         util::{BytesBase64URL, UUIDv7Base64URL},
     },
@@ -116,30 +116,33 @@ pub async fn y_updates_by_id(
         .map_err(eyre::Error::from)
 }
 
-pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64URL]) -> Result<Vec<Card>> {
+pub async fn paragraphs_by_id(
+    pool: &SqlitePool,
+    paragraph_ids: &[UUIDv7Base64URL],
+) -> Result<Vec<Paragraph>> {
     let query = format!(
         r#"
             WITH c1 AS (
                 SELECT
-                    cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                    paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                     quotes.quote_id AS quote_id,
                     quotes.version_id AS quote_version_id,
-                    cards.created_at,
-                    cards.updated_at
-                FROM cards
-                LEFT JOIN quotes ON cards.id = quotes.card_id
-                GROUP BY cards.id
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM paragraphs
+                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
+                GROUP BY paragraphs.id
                 WHERE id IN ({}) AND is_deleted = false
                 UNION
                 SELECT
-                    cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                    paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                     quotes.quote_id AS quote_id,
                     quotes.version_id AS quote_version_id,
-                    cards.created_at,
-                    cards.updated_at
-                FROM cards
-                JOIN c1 ON cards.id = c1.quote_id
-                LEFT JOIN quotes ON cards.id = quotes.card_id
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM paragraphs
+                JOIN c1 ON paragraphs.id = c1.quote_id
+                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
                 WHERE is_deleted = false
             )
             SELECT
@@ -148,57 +151,57 @@ pub async fn cards_by_id(pool: &SqlitePool, card_ids: &[UUIDv7Base64URL]) -> Res
                 c1.created_at,
                 c1.updated_at
             FROM c1
-            LEFT JOIN card_links ON c1.id = card_links.id_from
-            LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
+            LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+            LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
             GROUP BY id;
         "#,
-        card_ids
+        paragraph_ids
             .iter()
             .map(|_| "?".to_string())
             .collect::<Vec<String>>()
             .join(", ")
     );
 
-    let mut query_builder = sqlx::query_as::<_, RawCard>(&query);
+    let mut query_builder = sqlx::query_as::<_, RawParagraph>(&query);
 
-    for id in card_ids {
+    for id in paragraph_ids {
         query_builder = query_builder.bind(id)
     }
 
     query_builder
         .fetch_all(pool)
         .await
-        .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
+        .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())
         .map_err(eyre::Error::from)
 }
 
-pub async fn cards_for_index_by_id(
+pub async fn paragraphs_for_index_by_id(
     pool: &SqlitePool,
-    card_ids: &[UUIDv7Base64URL],
-) -> Result<Vec<CardForIndex>> {
+    paragraph_ids: &[UUIDv7Base64URL],
+) -> Result<Vec<ParagraphForIndex>> {
     let query = format!(
         r#"
             WITH c1 AS (
                 SELECT
-                    cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                    paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                     quotes.quote_id AS quote_id,
                     quotes.version_id AS quote_version_id,
-                    cards.created_at,
-                    cards.updated_at
-                FROM cards
-                LEFT JOIN quotes ON cards.id = quotes.card_id
-                GROUP BY cards.id
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM paragraphs
+                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
+                GROUP BY paragraphs.id
                 WHERE id IN ({}) AND is_deleted = false
                 UNION
                 SELECT
-                    cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                    paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                     quotes.quote_id AS quote_id,
                     quotes.version_id AS quote_version_id,
-                    cards.created_at,
-                    cards.updated_at
-                FROM cards
-                JOIN c1 ON cards.id = c1.quote_id
-                LEFT JOIN quotes ON cards.id = quotes.card_id
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM paragraphs
+                JOIN c1 ON paragraphs.id = c1.quote_id
+                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
                 WHERE is_deleted = false
             )
             SELECT
@@ -214,57 +217,62 @@ pub async fn cards_for_index_by_id(
                 c1.updated_at
             FROM c1
             INNER JOIN y_docs ON c1.id = y_docs.id
-            LEFT JOIN card_links ON c1.id = card_links.id_from
+            LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
             LEFT JOIN outline_paths AS path ON c1.outline_id = path.outline_id
-            LEFT JOIN outline_paths AS links ON card_links.id_to = links.outline_id
+            LEFT JOIN outline_paths AS links ON paragraph_links.id_to = links.outline_id
             GROUP BY id;
         "#,
-        card_ids
+        paragraph_ids
             .iter()
             .map(|_| "?".to_string())
             .collect::<Vec<String>>()
             .join(", ")
     );
 
-    let mut query_builder = sqlx::query_as::<_, RawCardForIndex>(&query);
+    let mut query_builder = sqlx::query_as::<_, RawparagraphForIndex>(&query);
 
-    for id in card_ids {
+    for id in paragraph_ids {
         query_builder = query_builder.bind(id)
     }
 
     query_builder
         .fetch_all(pool)
         .await
-        .map(|raw_cards| raw_cards.into_iter().map(CardForIndex::from).collect())
+        .map(|raw_paragraphs| {
+            raw_paragraphs
+                .into_iter()
+                .map(ParagraphForIndex::from)
+                .collect()
+        })
         .map_err(eyre::Error::from)
 }
 
-pub async fn cards_by_outline_id(
+pub async fn paragraphs_by_outline_id(
     pool: &SqlitePool,
     outline_ids: &[UUIDv7Base64URL],
-) -> Result<Vec<Card>> {
+) -> Result<Vec<Paragraph>> {
     let query = format!(
         r#"
             WITH c1 AS (
                 SELECT
-                    cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                    paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                     quotes.quote_id AS quote_id,
                     quotes.version_id AS quote_version_id,
-                    cards.created_at,
-                    cards.updated_at
-                FROM cards
-                LEFT JOIN quotes ON cards.id = quotes.card_id
-                WHERE cards.outline_id IN ({}) AND is_deleted = false
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM paragraphs
+                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
+                WHERE paragraphs.outline_id IN ({}) AND is_deleted = false
                 UNION
                 SELECT
-                    cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                    paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                     quotes.quote_id AS quote_id,
                     quotes.version_id AS quote_version_id,
-                    cards.created_at,
-                    cards.updated_at
-                FROM cards
-                JOIN c1 ON cards.id = c1.quote_id
-                LEFT JOIN quotes ON cards.id = quotes.card_id
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM paragraphs
+                JOIN c1 ON paragraphs.id = c1.quote_id
+                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
                 WHERE is_deleted = false
             )
             SELECT
@@ -273,8 +281,8 @@ pub async fn cards_by_outline_id(
                 c1.created_at,
                 c1.updated_at
             FROM c1
-            LEFT JOIN card_links ON c1.id = card_links.id_from
-            LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
+            LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+            LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
             GROUP BY id;
         "#,
         outline_ids
@@ -284,7 +292,7 @@ pub async fn cards_by_outline_id(
             .join(", ")
     );
 
-    let mut query_builder = sqlx::query_as::<_, RawCard>(&query);
+    let mut query_builder = sqlx::query_as::<_, RawParagraph>(&query);
 
     for id in outline_ids {
         query_builder = query_builder.bind(id)
@@ -293,39 +301,39 @@ pub async fn cards_by_outline_id(
     query_builder
         .fetch_all(pool)
         .await
-        .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
+        .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())
         .map_err(eyre::Error::from)
 }
 
-pub async fn cards_by_created_at(
+pub async fn paragraphs_by_created_at(
     pool: &SqlitePool,
     from: DateTime<Utc>,
     to: DateTime<Utc>,
-) -> Result<Vec<Card>> {
+) -> Result<Vec<Paragraph>> {
     let from = from.timestamp_millis();
     let to = to.timestamp_millis();
 
     let query = r#"
         WITH c1 AS (
             SELECT
-                cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                 quotes.quote_id AS quote_id,
                 quotes.version_id AS quote_version_id,
-                cards.created_at,
-                cards.updated_at
-            FROM cards
-            LEFT JOIN quotes ON cards.id = quotes.card_id
+                paragraphs.created_at,
+                paragraphs.updated_at
+            FROM paragraphs
+            LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
             WHERE ? <= created_at AND created_at < ? AND is_deleted = false
             UNION
             SELECT
-                cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                 quotes.quote_id AS quote_id,
                 quotes.version_id AS quote_version_id,
-                cards.created_at,
-                cards.updated_at
-            FROM cards
-            LEFT JOIN quotes ON cards.id = quotes.card_id
-            INNER JOIN c1 ON cards.id = c1.quote_id
+                paragraphs.created_at,
+                paragraphs.updated_at
+            FROM paragraphs
+            LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
+            INNER JOIN c1 ON paragraphs.id = c1.quote_id
             WHERE is_deleted = false
             ORDER BY created_at DESC
         )
@@ -335,12 +343,12 @@ pub async fn cards_by_created_at(
             c1.created_at,
             c1.updated_at
         FROM c1
-        LEFT JOIN card_links ON c1.id = card_links.id_from
-        LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
+        LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+        LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
         GROUP BY id;
     "#;
 
-    let mut query_builder = sqlx::query_as::<_, RawCard>(query);
+    let mut query_builder = sqlx::query_as::<_, RawParagraph>(query);
 
     query_builder = query_builder.bind(from);
     query_builder = query_builder.bind(to);
@@ -348,18 +356,18 @@ pub async fn cards_by_created_at(
     query_builder
         .fetch_all(pool)
         .await
-        .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())
+        .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())
         .map_err(eyre::Error::from)
 }
 
-pub async fn card_delete_targets(
+pub async fn paragraph_delete_targets(
     pool: &SqlitePool,
     deleted_ids: &[UUIDv7Base64URL],
 ) -> eyre::Result<Vec<DeleteTarget>> {
     let query = format!(
         r#"
             SELECT id, pot_id
-            FROM cards
+            FROM paragraphs
             WHERE id IN ({});
         "#,
         &deleted_ids
@@ -425,7 +433,7 @@ pub async fn conflicting_outline_ids(
 pub async fn descendant_ids(
     pool: &SqlitePool,
     outline_ids: &[UUIDv7Base64URL],
-    include_cards: bool,
+    include_paragraphs: bool,
 ) -> Result<(Vec<UUIDv7Base64URL>, Vec<UUIDv7Base64URL>)> {
     let outline_ids = {
         let query = format!(
@@ -458,10 +466,10 @@ pub async fn descendant_ids(
         query_builder.fetch_all(pool).await?
     };
 
-    let card_ids = if include_cards {
+    let paragraph_ids = if include_paragraphs {
         let query = format!(
             r#"
-                SELECT id FROM cards WHERE outline_id IN ({}) AND is_deleted = false;
+                SELECT id FROM paragraphs WHERE outline_id IN ({}) AND is_deleted = false;
             "#,
             outline_ids
                 .iter()
@@ -481,7 +489,7 @@ pub async fn descendant_ids(
         vec![]
     };
 
-    Ok((outline_ids, card_ids))
+    Ok((outline_ids, paragraph_ids))
 }
 
 pub async fn outline_trees(
@@ -704,8 +712,8 @@ pub async fn outline_delete_targets(
 pub async fn relation_back(
     pool: &SqlitePool,
     outline_ids: &[UUIDv7Base64URL],
-    card_ids: &[UUIDv7Base64URL],
-) -> Result<(Vec<Outline>, Vec<Card>)> {
+    paragraph_ids: &[UUIDv7Base64URL],
+) -> Result<(Vec<Outline>, Vec<Paragraph>)> {
     let outlines = {
         let query = format!(
             r#"
@@ -740,41 +748,41 @@ pub async fn relation_back(
         query_builder.fetch_all(pool).await?
     };
 
-    let cards: Vec<Card> = {
+    let paragraphs: Vec<Paragraph> = {
         let query = format!(
             r#"
                 WITH c1 AS (
                     SELECT
-                        cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                        paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                         quotes.quote_id AS quote_id,
                         quotes.version_id AS quote_version_id,
-                        cards.created_at,
-                        cards.updated_at
-                    FROM card_links
-                    INNER JOIN cards ON card_links.id_from = cards.id
-                    LEFT JOIN quotes ON quotes.card_id = cards.id
-                    WHERE card_links.id_to IN ({}) AND cards.is_deleted = false
+                        paragraphs.created_at,
+                        paragraphs.updated_at
+                    FROM paragraph_links
+                    INNER JOIN paragraphs ON paragraph_links.id_from = paragraphs.id
+                    LEFT JOIN quotes ON quotes.paragraph_id = paragraphs.id
+                    WHERE paragraph_links.id_to IN ({}) AND paragraphs.is_deleted = false
                     UNION
                     SELECT
-                        cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                        paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                         quotes.quote_id AS quote_id,
                         quotes.version_id AS quote_version_id,
-                        cards.created_at,
-                        cards.updated_at
+                        paragraphs.created_at,
+                        paragraphs.updated_at
                     FROM quotes
-                    INNER JOIN cards ON quotes.card_id = cards.id
-                    WHERE quotes.quote_id IN ({}) AND cards.is_deleted = false
+                    INNER JOIN paragraphs ON quotes.paragraph_id = paragraphs.id
+                    WHERE quotes.quote_id IN ({}) AND paragraphs.is_deleted = false
                     UNION
                     SELECT
-                        cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                        paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                         quotes.quote_id AS quote_id,
                         quotes.version_id AS quote_version_id,
-                        cards.created_at,
-                        cards.updated_at
-                    FROM cards
-                    INNER JOIN c1 ON c1.quote_id = cards.id
-                    INNER JOIN quotes ON quotes.card_id = cards.id
-                    WHERE cards.is_deleted = false
+                        paragraphs.created_at,
+                        paragraphs.updated_at
+                    FROM paragraphs
+                    INNER JOIN c1 ON c1.quote_id = paragraphs.id
+                    INNER JOIN quotes ON quotes.paragraph_id = paragraphs.id
+                    WHERE paragraphs.is_deleted = false
                 )
                 SELECT
                     c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
@@ -782,8 +790,8 @@ pub async fn relation_back(
                     c1.created_at,
                     c1.updated_at
                 FROM c1
-                LEFT JOIN card_links ON c1.id = card_links.id_from
-                LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
+                LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+                LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
                 GROUP BY id;
             "#,
             outline_ids
@@ -791,37 +799,37 @@ pub async fn relation_back(
                 .map(|_| "?".to_string())
                 .collect::<Vec<String>>()
                 .join(", "),
-            card_ids
+            paragraph_ids
                 .iter()
                 .map(|_| "?".to_string())
                 .collect::<Vec<String>>()
                 .join(", "),
         );
 
-        let mut query_builder = sqlx::query_as::<_, RawCard>(&query);
+        let mut query_builder = sqlx::query_as::<_, RawParagraph>(&query);
 
         for id in outline_ids.iter() {
             query_builder = query_builder.bind(id);
         }
 
-        for id in card_ids.iter() {
+        for id in paragraph_ids.iter() {
             query_builder = query_builder.bind(id);
         }
 
         query_builder
             .fetch_all(pool)
             .await
-            .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())?
+            .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())?
     };
 
-    Ok((outlines, cards))
+    Ok((outlines, paragraphs))
 }
 
 pub async fn relation_forward(
     pool: &SqlitePool,
     outline_ids: &[UUIDv7Base64URL],
-    card_ids: &[UUIDv7Base64URL],
-) -> Result<(Vec<Outline>, Vec<Card>)> {
+    paragraph_ids: &[UUIDv7Base64URL],
+) -> Result<(Vec<Outline>, Vec<Paragraph>)> {
     let outlines = {
         let query = format!(
             r#"
@@ -856,31 +864,31 @@ pub async fn relation_forward(
         query_builder.fetch_all(pool).await?
     };
 
-    let cards: Vec<Card> = {
+    let paragraphs: Vec<Paragraph> = {
         let query = format!(
             r#"
                 WITH c1 AS (
                     SELECT
-                        cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                        paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                         q2.quote_id AS quote_id,
                         q2.version_id AS quote_version_id,
-                        cards.created_at,
-                        cards.updated_at
-                    FROM cards
-                    INNER JOIN quotes AS q1 ON q1.quote_id = cards.id
-                    LEFT JOIN quotes AS q2 ON q2.card_id = cards.id
-                    WHERE q1.card_id IN ({}) AND cards.is_deleted = false
+                        paragraphs.created_at,
+                        paragraphs.updated_at
+                    FROM paragraphs
+                    INNER JOIN quotes AS q1 ON q1.quote_id = paragraphs.id
+                    LEFT JOIN quotes AS q2 ON q2.paragraph_id = paragraphs.id
+                    WHERE q1.paragraph_id IN ({}) AND paragraphs.is_deleted = false
                     UNION
                     SELECT
-                        cards.id, cards.outline_id, cards.fractional_index, cards.doc,
+                        paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
                         quotes.quote_id AS quote_id,
                         quotes.version_id AS quote_version_id,
-                        cards.created_at,
-                        cards.updated_at
-                    FROM cards
-                    INNER JOIN c1 ON c1.quote_id = cards.id
-                    LEFT JOIN quotes ON quotes.card_id = cards.id
-                    WHERE cards.is_deleted = false
+                        paragraphs.created_at,
+                        paragraphs.updated_at
+                    FROM paragraphs
+                    INNER JOIN c1 ON c1.quote_id = paragraphs.id
+                    LEFT JOIN quotes ON quotes.paragraph_id = paragraphs.id
+                    WHERE paragraphs.is_deleted = false
                 )
                 SELECT
                     c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quote_id, c1.quote_version_id,
@@ -888,36 +896,36 @@ pub async fn relation_forward(
                     c1.created_at,
                     c1.updated_at
                 FROM c1
-                LEFT JOIN card_links ON c1.id = card_links.id_from
-                LEFT JOIN outline_paths ON card_links.id_to = outline_paths.outline_id
+                LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+                LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
                 GROUP BY id;
             "#,
-            card_ids
+            paragraph_ids
                 .iter()
                 .map(|_| "?".to_string())
                 .collect::<Vec<String>>()
                 .join(", ")
         );
 
-        let mut query_builder = sqlx::query_as::<_, RawCard>(&query);
+        let mut query_builder = sqlx::query_as::<_, RawParagraph>(&query);
 
-        for id in card_ids {
+        for id in paragraph_ids {
             query_builder = query_builder.bind(id);
         }
 
         query_builder
             .fetch_all(pool)
             .await
-            .map(|raw_cards| raw_cards.into_iter().map(Card::from).collect())?
+            .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())?
     };
 
-    Ok((outlines, cards))
+    Ok((outlines, paragraphs))
 }
 
 pub async fn relation_count(
     pool: &SqlitePool,
     outline_ids: &[UUIDv7Base64URL],
-    card_ids: &[UUIDv7Base64URL],
+    paragraph_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<LinkCount>> {
     let query = format!(
         r#"
@@ -932,8 +940,8 @@ pub async fn relation_count(
                     +
                     (
                         SELECT COUNT(*)
-                        FROM card_links
-                        WHERE card_links.id_to = this.id
+                        FROM paragraph_links
+                        WHERE paragraph_links.id_to = this.id
                     )
                 ) AS back,
                 (
@@ -954,17 +962,17 @@ pub async fn relation_count(
                 (
                     (
                         SELECT COUNT(*)
-                        FROM card_links
-                        WHERE card_links.id_from = this.id
+                        FROM paragraph_links
+                        WHERE paragraph_links.id_from = this.id
                     )
                     +
                     (
                         SELECT COUNT(*)
                         FROM quotes
-                        WHERE card_id = this.id
+                        WHERE paragraph_id = this.id
                     )
                 ) AS forward
-            FROM cards AS this
+            FROM paragraphs AS this
             WHERE id IN ({});
         "#,
         outline_ids
@@ -972,7 +980,7 @@ pub async fn relation_count(
             .map(|_| "?".to_string())
             .collect::<Vec<String>>()
             .join(", "),
-        card_ids
+        paragraph_ids
             .iter()
             .map(|_| "?".to_string())
             .collect::<Vec<String>>()
@@ -985,7 +993,7 @@ pub async fn relation_count(
         query_builder = query_builder.bind(id);
     }
 
-    for id in card_ids.iter() {
+    for id in paragraph_ids.iter() {
         query_builder = query_builder.bind(id);
     }
 
@@ -998,7 +1006,7 @@ pub async fn relation_count(
 pub async fn recursive_relation_count(
     pool: &SqlitePool,
     outline_ids: &[UUIDv7Base64URL],
-    card_ids: &[UUIDv7Base64URL],
+    paragraph_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<LinkCount>> {
     let query = format!(
         r#"
@@ -1012,10 +1020,10 @@ pub async fn recursive_relation_count(
                 JOIN outlines AS child ON parent.id = child.parent_id
                 WHERE child.is_deleted = false
             ),
-            tree_cards AS (
-                SELECT cards.id, tree.root_id
-                FROM cards
-                INNER JOIN tree ON cards.outline_id = tree.id
+            tree_paragraphs AS (
+                SELECT paragraphs.id, tree.root_id
+                FROM paragraphs
+                INNER JOIN tree ON paragraphs.outline_id = tree.id
             )
             SELECT
                 id,
@@ -1032,8 +1040,8 @@ pub async fn recursive_relation_count(
                     +
                     (
                         SELECT COUNT(*)
-                        FROM card_links
-                        WHERE card_links.id_to IN ((
+                        FROM paragraph_links
+                        WHERE paragraph_links.id_to IN ((
                             SELECT id
                             FROM tree
                             WHERE tree.root_id = this.id
@@ -1046,8 +1054,8 @@ pub async fn recursive_relation_count(
                         WHERE quote_id
                          IN ((
                             SELECT id
-                            FROM tree_cards
-                            WHERE tree_cards.root_id = this.id
+                            FROM tree_paragraphs
+                            WHERE tree_paragraphs.root_id = this.id
                         ))
                     )
                 ) AS back,
@@ -1064,11 +1072,11 @@ pub async fn recursive_relation_count(
                 (
                     (
                         SELECT COUNT(*)
-                        FROM card_links
-                        WHERE card_links.id_from IN ((
+                        FROM paragraph_links
+                        WHERE paragraph_links.id_from IN ((
                             SELECT id
-                            FROM tree_cards
-                            WHERE tree_cards.root_id = this.id
+                            FROM tree_paragraphs
+                            WHERE tree_paragraphs.root_id = this.id
                         ))
                     )
                     +
@@ -1076,10 +1084,10 @@ pub async fn recursive_relation_count(
                         SELECT COUNT(*)
                         FROM quotes
                         WHERE
-                            card_id IN ((
+                            paragraph_id IN ((
                                 SELECT id
-                                FROM tree_cards
-                                WHERE tree_cards.root_id = this.id
+                                FROM tree_paragraphs
+                                WHERE tree_paragraphs.root_id = this.id
                             ))
                     )
                 ) AS forward
@@ -1096,17 +1104,17 @@ pub async fn recursive_relation_count(
                 (
                     (
                         SELECT COUNT(*)
-                        FROM card_links
-                        WHERE card_links.id_from = this.id
+                        FROM paragraph_links
+                        WHERE paragraph_links.id_from = this.id
                     )
                     +
                     (
                         SELECT COUNT(*)
                         FROM quotes
-                        WHERE card_id = this.id
+                        WHERE paragraph_id = this.id
                     )
                 ) AS forward
-            FROM tree_cards AS this
+            FROM tree_paragraphs AS this
             WHERE id IN ({});
         "#,
         outline_ids
@@ -1114,7 +1122,7 @@ pub async fn recursive_relation_count(
             .map(|_| "?".to_string())
             .collect::<Vec<String>>()
             .join(", "),
-        card_ids
+        paragraph_ids
             .iter()
             .map(|_| "?".to_string())
             .collect::<Vec<String>>()
@@ -1127,7 +1135,7 @@ pub async fn recursive_relation_count(
         query_builder = query_builder.bind(id);
     }
 
-    for id in card_ids.iter() {
+    for id in paragraph_ids.iter() {
         query_builder = query_builder.bind(id);
     }
 

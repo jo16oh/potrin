@@ -41,9 +41,9 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
 
 #[cfg(test)]
 pub mod test {
-    use crate::commands::upsert_card::test::upsert_card;
     use crate::commands::upsert_outline::test::upsert_outline;
-    use crate::types::model::{Card, Outline, Pot, User};
+    use crate::commands::upsert_paragraph::test::upsert_paragraph;
+    use crate::types::model::{Outline, Paragraph, Pot, User};
     use crate::types::state::{AppState, UserState};
     use crate::types::util::UUIDv7Base64URL;
     use crate::utils::get_rw_state;
@@ -66,8 +66,8 @@ pub mod test {
             .await
             .unwrap();
 
-        let card = Card::new(outline.id, None);
-        upsert_card(app_handle, pot_id, &card, vec![])
+        let paragraph = Paragraph::new(outline.id, None);
+        upsert_paragraph(app_handle, pot_id, &paragraph, vec![])
             .await
             .unwrap();
 

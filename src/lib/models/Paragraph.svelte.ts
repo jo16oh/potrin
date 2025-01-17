@@ -5,7 +5,7 @@ import {
 } from "$lib/utils";
 import { generateKeyBetween } from "fractional-indexing-jittered";
 import {
-  type Card as RawCard,
+  type Paragraph as RawParagraph,
   type Quote,
   type Links,
   type Path,
@@ -16,7 +16,7 @@ import { Outline } from "./Outline.svelte";
 import * as Y from "yjs";
 import { ReversedLinkIndex, WeakRefMap } from "./utils";
 
-export type { RawCard };
+export type { RawParagraph };
 
 type Commands = Pick<
   typeof commands,
@@ -24,12 +24,12 @@ type Commands = Pick<
   | "fetchConflictingOutlineIds"
   | "fetchYUpdatesByDocId"
   | "insertPendingYUpdate"
-  | "upsertCard"
+  | "upsertParagraph"
 >;
 
-export class Card {
+export class Paragraph {
   static #commands: Commands = commands;
-  static buffer: WeakRefMap<string, Card> = new WeakRefMap();
+  static buffer: WeakRefMap<string, Paragraph> = new WeakRefMap();
   static reversedLinkIndex = new ReversedLinkIndex(this.buffer);
 
   readonly id: string;
@@ -49,7 +49,7 @@ export class Card {
     this.#commands = commands;
   }
 
-  private constructor(data: RawCard, outline: Outline) {
+  private constructor(data: RawParagraph, outline: Outline) {
     this.id = data.id;
     this.fractionalIndex = data.fractionalIndex;
     this.doc = data.doc;
@@ -61,28 +61,28 @@ export class Card {
     this._outlineRef = new WeakRef(outline);
   }
 
-  static from(data: RawCard, outline: Outline) {
-    const card = this.buffer.get(data.id);
+  static from(data: RawParagraph, outline: Outline) {
+    const paragraph = this.buffer.get(data.id);
 
-    if (card) {
-      card.fractionalIndex = data.fractionalIndex;
-      card.doc = data.doc;
-      card.quote = data.quote;
-      card.links = data.links;
-      card._outlineId = data.outlineId;
-      card._outlineRef = new WeakRef(outline);
-      card.#initEffect();
-      return card;
+    if (paragraph) {
+      paragraph.fractionalIndex = data.fractionalIndex;
+      paragraph.doc = data.doc;
+      paragraph.quote = data.quote;
+      paragraph.links = data.links;
+      paragraph._outlineId = data.outlineId;
+      paragraph._outlineRef = new WeakRef(outline);
+      paragraph.#initEffect();
+      return paragraph;
     } else {
-      const card = new Card(data, outline);
-      this.buffer.set(card.id, card);
-      card.#initEffect();
-      return card;
+      const paragraph = new Paragraph(data, outline);
+      this.buffer.set(paragraph.id, paragraph);
+      paragraph.#initEffect();
+      return paragraph;
     }
   }
 
-  static new(outline: Outline, fractionalIndex?: string): Card {
-    const card = Card.from(
+  static new(outline: Outline, fractionalIndex?: string): Paragraph {
+    const paragraph = Paragraph.from(
       {
         id: uuidv7(),
         outlineId: outline.id,
@@ -96,24 +96,24 @@ export class Card {
       outline,
     );
 
-    card._ydoc = new Y.Doc();
-    card._ydoc.on("updateV2", (u) => {
-      card._pendingYUpdates.push(u);
-      void Card.#commands.insertPendingYUpdate(
-        card.id,
+    paragraph._ydoc = new Y.Doc();
+    paragraph._ydoc.on("updateV2", (u) => {
+      paragraph._pendingYUpdates.push(u);
+      void Paragraph.#commands.insertPendingYUpdate(
+        paragraph.id,
         uint8ArrayToBase64URL(u),
       );
     });
 
-    const yFractionalIndex = card._ydoc.getText("fractionalIndex");
+    const yFractionalIndex = paragraph._ydoc.getText("fractionalIndex");
     yFractionalIndex.insert(0, outline.fractionalIndex);
 
-    return card;
+    return paragraph;
   }
 
   #initEffect() {
     $effect(() => {
-      Card.reversedLinkIndex.set(this.id, this.links);
+      Paragraph.reversedLinkIndex.set(this.id, this.links);
     });
   }
 
@@ -133,7 +133,7 @@ export class Card {
     if (this._path) {
       return Promise.resolve(this._path);
     } else {
-      return Card.#commands.fetchPath(this._outlineId).then((path) => {
+      return Paragraph.#commands.fetchPath(this._outlineId).then((path) => {
         this._path = path;
         return path;
       });
@@ -145,14 +145,14 @@ export class Card {
       this._ydoc = new Y.Doc();
       this._ydoc.on("updateV2", (u) => {
         this._pendingYUpdates.push(u);
-        void Card.#commands.insertPendingYUpdate(
+        void Paragraph.#commands.insertPendingYUpdate(
           this.id,
           uint8ArrayToBase64URL(u),
         );
       });
     }
 
-    const updates = await Card.#commands.fetchYUpdatesByDocId(this.id);
+    const updates = await Paragraph.#commands.fetchYUpdatesByDocId(this.id);
 
     for (const u of updates) {
       Y.applyUpdateV2(this._ydoc, base64URLToUint8Array(u));
@@ -162,7 +162,7 @@ export class Card {
   }
 
   async save() {
-    await Card.#commands.upsertCard(
+    await Paragraph.#commands.upsertParagraph(
       this.toJSON(),
       this._pendingYUpdates.map((u) => uint8ArrayToBase64URL(u)),
     );
@@ -172,7 +172,7 @@ export class Card {
     const ydoc = await this.ydoc();
 
     if (this._outlineId !== target.id) {
-      this.outline?._removeCard(this);
+      this.outline?._removeParagraph(this);
 
       this._outlineId = target.id;
       this._outlineRef = new WeakRef(target);
@@ -183,20 +183,22 @@ export class Card {
     }
 
     const prev =
-      target.cards[index === "last" ? target.cards.length - 1 : index]
+      target.paragraphs[index === "last" ? target.paragraphs.length - 1 : index]
         ?.fractionalIndex ?? null;
     const next =
-      index === "last" ? null : (target.cards[index]?.fractionalIndex ?? null);
+      index === "last"
+        ? null
+        : (target.paragraphs[index]?.fractionalIndex ?? null);
     this.fractionalIndex = generateKeyBetween(prev, next);
 
     const yFractionalIndex = ydoc.getText("fractionalIndex");
     yFractionalIndex.delete(0, yFractionalIndex.length);
     yFractionalIndex.insert(0, this.fractionalIndex);
 
-    target._insertCard(this);
+    target._insertParagraph(this);
   }
 
-  toJSON(): RawCard {
+  toJSON(): RawParagraph {
     return {
       id: this.id,
       outlineId: this._outlineId,
@@ -210,7 +212,7 @@ export class Card {
   }
 
   static async init() {
-    await events.cardChange.listen((e) => {
+    await events.paragraphChange.listen((e) => {
       const payload = e.payload;
 
       const operation = payload.operation;
@@ -218,45 +220,46 @@ export class Card {
       if ("insert" in operation) {
         for (const { currentValue } of operation.insert.targets) {
           const outline = Outline.buffer.get(currentValue.outlineId);
-          outline?._insertCard(Card.from(currentValue, outline));
+          outline?._insertParagraph(Paragraph.from(currentValue, outline));
         }
       } else if ("update" in operation) {
         for (const { currentValue, relatedYUpdates } of operation.update
           .targets) {
-          const card = this.buffer.get(currentValue.id);
+          const paragraph = this.buffer.get(currentValue.id);
 
-          if (card) {
-            card.fractionalIndex = currentValue.fractionalIndex;
-            card.doc = currentValue.doc;
-            card.quote = currentValue.quote;
-            card.links = currentValue.links;
+          if (paragraph) {
+            paragraph.fractionalIndex = currentValue.fractionalIndex;
+            paragraph.doc = currentValue.doc;
+            paragraph.quote = currentValue.quote;
+            paragraph.links = currentValue.links;
 
-            if (currentValue.outlineId !== card._outlineId) {
-              card.outline?._removeCard(card);
-              card._outlineId = currentValue.outlineId;
+            if (currentValue.outlineId !== paragraph._outlineId) {
+              paragraph.outline?._removeParagraph(paragraph);
+              paragraph._outlineId = currentValue.outlineId;
               const outline = Outline.buffer.get(currentValue.outlineId);
-              if (outline) card._outlineRef = new WeakRef(outline);
+              if (outline) paragraph._outlineRef = new WeakRef(outline);
             } else {
-              card.outline?.sortCards();
+              paragraph.outline?.sortParagraphs();
             }
 
-            if (card._ydoc) {
+            if (paragraph._ydoc) {
               for (const u of relatedYUpdates) {
-                Y.applyUpdateV2(card._ydoc, base64URLToUint8Array(u));
+                Y.applyUpdateV2(paragraph._ydoc, base64URLToUint8Array(u));
               }
             }
           } else {
             const outline = Outline.buffer.get(currentValue.outlineId);
-            if (outline) outline._insertCard(Card.from(currentValue, outline));
+            if (outline)
+              outline._insertParagraph(Paragraph.from(currentValue, outline));
           }
         }
       } else if ("delete" in operation) {
-        const deletedCards = operation.delete.target_ids
-          .map((id) => Card.buffer.get(id))
+        const deletedParagraphs = operation.delete.target_ids
+          .map((id) => Paragraph.buffer.get(id))
           .filter((o) => o !== undefined);
 
-        for (const card of deletedCards) {
-          card.outline?._removeCard(card);
+        for (const paragraph of deletedParagraphs) {
+          paragraph.outline?._removeParagraph(paragraph);
         }
       }
     });

@@ -27,13 +27,13 @@ CREATE TABLE workspaces (
 -- # Operation Log
 
 /*
-  This table logs changes to other tables to ensure continuous synchronization 
-  and indexing. Changes are recorded in a transaction by triggers. The `rowid` 
-  is set as the primary key to uniquely identify each change, preventing any 
+  This table logs changes to other tables to ensure continuous synchronization
+  and indexing. Changes are recorded in a transaction by triggers. The `rowid`
+  is set as the primary key to uniquely identify each change, preventing any
   changes from being missed during processing.
 */
 CREATE TABLE operation_logs (
-  rowid INTEGER PRIMARY KEY, 
+  rowid INTEGER PRIMARY KEY,
   primary_key BLOB NOT NULL,
   tablename TEXT NOT NULL,
   operation TEXT NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE operation_logs (
 CREATE INDEX operation_logs$primary_key ON operation_logs(primary_key);
 
 /*
-  Before inserting into operation_logs, delete any existing logs 
+  Before inserting into operation_logs, delete any existing logs
   with the same primary key, to save storage space.
 */
 CREATE TRIGGER before_insert_operation_logs
@@ -52,8 +52,8 @@ BEFORE INSERT ON operation_logs
 FOR EACH ROW
 BEGIN
   DELETE FROM operation_logs
-  WHERE 
-    primary_key = NEW.primary_key 
+  WHERE
+    primary_key = NEW.primary_key
     AND tablename = NEW.tablename;
 END;
 
@@ -73,8 +73,8 @@ CREATE TABLE users (
 ) STRICT;
 
 /*
-  The `name` column can be updated locally, then synced to remote 
-  by last-write-win strategy. 
+  The `name` column can be updated locally, then synced to remote
+  by last-write-win strategy.
 */
 CREATE TABLE pots (
   id BLOB PRIMARY KEY,
@@ -84,7 +84,7 @@ CREATE TABLE pots (
   updated_at INTEGER NOT NULL
 ) STRICT;
 
-CREATE TRIGGER before_insert_pots 
+CREATE TRIGGER before_insert_pots
 BEFORE INSERT ON pots
 FOR EACH ROW
 BEGIN
@@ -97,7 +97,7 @@ BEGIN
     );
 END;
 
-CREATE TRIGGER before_update_pots 
+CREATE TRIGGER before_update_pots
 BEFORE UPDATE ON pots
 FOR EACH ROW
 BEGIN
@@ -110,7 +110,7 @@ BEGIN
     );
 END;
 
-CREATE TRIGGER before_delete_pots 
+CREATE TRIGGER before_delete_pots
 BEFORE DELETE ON pots
 FOR EACH ROW
 BEGIN
@@ -139,7 +139,7 @@ END;
 -- # Yjs Tables
 
 /*
-  These tables represent the Yjs data model. 
+  These tables represent the Yjs data model.
   All rows are immutable; UPDATE operation is not allowed.
   The `from_remote` column indicates the origin of the row,
   helping to determine which rows should be sent to remote.
@@ -176,8 +176,8 @@ BEGIN
     "insert",
     unixepoch('now', 'subsec') * 1000,
     jsonb_object(
-      'from_remote', 
-      CASE NEW.from_remote 
+      'from_remote',
+      CASE NEW.from_remote
         WHEN 0 THEN jsonb('false')
         ELSE jsonb('true')
       END
@@ -220,8 +220,8 @@ CREATE TRIGGER delete_pending_y_updates
 BEFORE INSERT ON y_updates
 FOR EACH ROW
 BEGIN
-  DELETE FROM pending_y_updates 
-  WHERE 
+  DELETE FROM pending_y_updates
+  WHERE
     y_doc_id = NEW.y_doc_id
     AND from_remote = 0;
 END;
@@ -251,8 +251,8 @@ BEGIN
       "insert",
       unixepoch('now', 'subsec') * 1000,
       jsonb_object(
-        'from_remote', 
-        CASE NEW.from_remote 
+        'from_remote',
+        CASE NEW.from_remote
           WHEN 0 THEN jsonb('false')
           ELSE jsonb('true')
         END
@@ -282,9 +282,9 @@ END;
 
 
 /*
-  This table holds each version's previous version. A `prev_version` represents the latest version 
-  in the local db before inserting the new one. This table creates a singly linked list of updates. 
-  By traveling this list, we can enumerate all updates that existed on the device when the version 
+  This table holds each version's previous version. A `prev_version` represents the latest version
+  in the local db before inserting the new one. This table creates a singly linked list of updates.
+  By traveling this list, we can enumerate all updates that existed on the device when the version
   was tagged, even if concurrent updates occured on other devices.
 */
 CREATE TABLE prev_versions (
@@ -307,7 +307,7 @@ CREATE TABLE version_heads (
 
 
 /*
-  Mark previous head as `prev_version` of the newly inserted update. 
+  Mark previous head as `prev_version` of the newly inserted update.
 */
 CREATE TRIGGER insert_prev_versions$before_insert_versions
 BEFORE INSERT ON versions
@@ -347,7 +347,7 @@ BEGIN
   SELECT id
   FROM versions
   WHERE
-    id = NEW.id 
+    id = NEW.id
     AND NOT EXISTS (
       SELECT 1
       FROM prev_versions
@@ -362,7 +362,7 @@ CREATE TRIGGER delete_version_heads$after_insert_prev_versions
 AFTER INSERT ON prev_versions
 FOR EACH ROW
 BEGIN
-  DELETE FROM version_heads 
+  DELETE FROM version_heads
   WHERE id = NEW.prev_id;
 END;
 
@@ -373,7 +373,7 @@ END;
 -- # Materialized Tables
 /*
   These tables' records are "materialized" from y_updates. That means clients receive y_updates
-  from remote and then "materialize" them into corresponding entities. All changes should be recorded 
+  from remote and then "materialize" them into corresponding entities. All changes should be recorded
   in y_updates. Materialized records are sent to remote using the last-write-win strategy.
 */
 
@@ -404,8 +404,8 @@ BEGIN
       "insert",
       NEW.updated_at,
       jsonb_object(
-        'is_deleted', 
-        CASE NEW.is_deleted 
+        'is_deleted',
+        CASE NEW.is_deleted
           WHEN 0 THEN jsonb('false')
           ELSE jsonb('true')
         END
@@ -424,8 +424,8 @@ BEGIN
     "update",
     NEW.updated_at,
     jsonb_object(
-      'is_deleted', 
-      CASE NEW.is_deleted 
+      'is_deleted',
+      CASE NEW.is_deleted
         WHEN 0 THEN jsonb('false')
         ELSE jsonb('true')
       END
@@ -466,7 +466,7 @@ CREATE INDEX outline_links$id_from ON outline_links(id_from);
 CREATE INDEX outline_links$id_to ON outline_links(id_to);
 
 /*
-  By separating path from the outlines table, 
+  By separating path from the outlines table,
   we exclude path changes from outline operation_logs, enabling lazy updates.
 */
 CREATE TABLE outline_paths(
@@ -475,7 +475,7 @@ CREATE TABLE outline_paths(
 ) STRICT;
 
 
-CREATE TABLE cards (
+CREATE TABLE paragraphs (
   id BLOB REFERENCES y_docs(id) ON DELETE CASCADE PRIMARY KEY,
   outline_id BLOB REFERENCES outlines(id) ON DELETE CASCADE NOT NULL,
   fractional_index TEXT NOT NULL,
@@ -485,23 +485,23 @@ CREATE TABLE cards (
   is_deleted INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
-CREATE INDEX cards$outline_id ON cards(outline_id);
-CREATE INDEX cards$created_at ON cards(created_at);
-CREATE INDEX cards$updated_at ON cards(updated_at);
+CREATE INDEX paragraphs$outline_id ON paragraphs(outline_id);
+CREATE INDEX paragraphs$created_at ON paragraphs(created_at);
+CREATE INDEX paragraphs$updated_at ON paragraphs(updated_at);
 
-CREATE TRIGGER before_insert_cards
-BEFORE INSERT ON cards
+CREATE TRIGGER before_insert_paragraphs
+BEFORE INSERT ON paragraphs
 FOR EACH ROW
 BEGIN
   INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
-    "cards",
+    "paragraphs",
     "insert",
     NEW.updated_at,
     jsonb_object(
-      'is_deleted', 
-      CASE NEW.is_deleted 
+      'is_deleted',
+      CASE NEW.is_deleted
         WHEN 0 THEN jsonb('false')
         ELSE jsonb('true')
       END
@@ -509,19 +509,19 @@ BEGIN
   );
 END;
 
-CREATE TRIGGER before_update_cards
-BEFORE UPDATE ON cards
+CREATE TRIGGER before_update_paragraphs
+BEFORE UPDATE ON paragraphs
 FOR EACH ROW
 BEGIN
   INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
     "update",
-    "cards",
+    "paragraphs",
     NEW.updated_at,
     jsonb_object(
-      'is_deleted', 
-      CASE NEW.is_deleted 
+      'is_deleted',
+      CASE NEW.is_deleted
         WHEN 0 THEN jsonb('false')
         ELSE jsonb('true')
       END
@@ -529,14 +529,14 @@ BEGIN
   );
 END;
 
-CREATE TRIGGER before_delete_cards
-BEFORE DELETE ON cards
+CREATE TRIGGER before_delete_paragraphs
+BEFORE DELETE ON paragraphs
 FOR EACH ROW
 BEGIN
   INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     OLD.id,
-    "cards",
+    "paragraphs",
     "delete",
     unixepoch('now', 'subsec') * 1000,
     jsonb_object(
@@ -551,23 +551,22 @@ BEGIN
 END;
 
 
-CREATE TABLE card_links (
+CREATE TABLE paragraph_links (
     rowid INTEGER PRIMARY KEY, -- set rowid as PK to specify the changed record in the operation_logs
-    id_from BLOB REFERENCES cards(id) ON DELETE CASCADE NOT NULL,
+    id_from BLOB REFERENCES paragraphs(id) ON DELETE CASCADE NOT NULL,
     id_to BLOB NOT NULL, -- implicitly referes to outlines(id), but is not constrained by FK to avoid inconsistency from y_updates
     UNIQUE (id_from, id_to)
 ) STRICT;
 
-CREATE INDEX card_links$id_from ON card_links(id_from);
-CREATE INDEX card_links$id_to ON card_links(id_to);
+CREATE INDEX paragraph_links$id_from ON paragraph_links(id_from);
+CREATE INDEX paragraph_links$id_to ON paragraph_links(id_to);
 
 
 CREATE TABLE quotes (
-    card_id BLOB REFERENCES cards(id) ON DELETE CASCADE PRIMARY KEY,
-    quote_id BLOB NOT NULL, -- implicitly referes to cards(id), but is not constrained by FK to avoid inconsistency from y_updates
+    paragraph_id BLOB REFERENCES paragraphs(id) ON DELETE CASCADE PRIMARY KEY,
+    quote_id BLOB NOT NULL, -- implicitly referes to paragraphs(id), but is not constrained by FK to avoid inconsistency from y_updates
     version_id BLOB NOT NULL -- same as above
 ) STRICT;
 
 CREATE INDEX quotes$quote_id ON quotes(quote_id);
 CREATE INDEX quotes$version_id ON quotes(version_id);
-

@@ -1,5 +1,5 @@
 use crate::types::{
-    model::{Card, Outline},
+    model::{Outline, Paragraph},
     util::UUIDv7Base64URL,
 };
 use eyre::{OptionExt, Result};
@@ -43,13 +43,13 @@ where
     .ok_or_eyre("failed to insert into oplog")
 }
 
-pub async fn card<'a, E>(conn: E, card: &Card) -> Result<i64>
+pub async fn paragraph<'a, E>(conn: E, paragraph: &Paragraph) -> Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
     sqlx::query_scalar!(
         r#"
-            INSERT INTO cards (
+            INSERT INTO paragraphs (
                 id, outline_id, fractional_index, doc, created_at, updated_at, is_deleted
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -65,12 +65,12 @@ where
               SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
-        card.id,
-        card.outline_id,
-        card.fractional_index,
-        card.doc,
-        card.created_at,
-        card.updated_at,
+        paragraph.id,
+        paragraph.outline_id,
+        paragraph.fractional_index,
+        paragraph.doc,
+        paragraph.created_at,
+        paragraph.updated_at,
         0
     )
     .fetch_one(conn)

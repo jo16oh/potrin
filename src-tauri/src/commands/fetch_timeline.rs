@@ -1,5 +1,5 @@
 use crate::database::query::fetch;
-use crate::types::model::{Card, Outline};
+use crate::types::model::{Outline, Paragraph};
 use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
 use chrono::{DateTime, Duration, Utc};
@@ -12,16 +12,16 @@ use tauri::{AppHandle, Runtime};
 pub async fn fetch_timeline<R: Runtime>(
     app_handle: AppHandle<R>,
     from: DateTime<Utc>,
-) -> eyre::Result<(Vec<Outline>, Vec<Card>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>)> {
     let to = from + Duration::days(1);
 
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
-    let cards = fetch::cards_by_created_at(pool, from, to).await?;
-    let outline_ids: Vec<UUIDv7Base64URL> = cards.iter().map(|c| c.outline_id).collect();
+    let paragraphs = fetch::paragraphs_by_created_at(pool, from, to).await?;
+    let outline_ids: Vec<UUIDv7Base64URL> = paragraphs.iter().map(|c| c.outline_id).collect();
     let outlines = fetch::outlines_by_id(pool, &outline_ids).await?;
 
-    eyre::Ok((outlines, cards))
+    eyre::Ok((outlines, paragraphs))
 }
 
 // #[cfg(test)]
@@ -55,7 +55,7 @@ pub async fn fetch_timeline<R: Runtime>(
 //             let time = (Utc::now() + Duration::days(3)).timestamp_millis();
 //             sqlx::query!(
 //                 r#"
-//                 UPDATE cards
+//                 UPDATE paragraphs
 //                 SET updated_at = ?;
 //             "#,
 //                 time
@@ -88,7 +88,7 @@ pub async fn fetch_timeline<R: Runtime>(
 //             .await
 //             .unwrap();
 //
-//             let (outlines, cards) = fetch_timeline(
+//             let (outlines, paragraphs) = fetch_timeline(
 //                 app_handle.clone(),
 //                 Utc::now() - Duration::minutes(1),
 //                 // TlOption::CreatedAt,
@@ -97,7 +97,7 @@ pub async fn fetch_timeline<R: Runtime>(
 //             .unwrap();
 //
 //             assert_eq!(outlines.len(), 0);
-//             assert_eq!(cards.len(), 0);
+//             assert_eq!(paragraphs.len(), 0);
 //         });
 //     }
 // }

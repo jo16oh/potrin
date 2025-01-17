@@ -1,5 +1,5 @@
 use crate::types::{
-    model::{CardForIndex, OutlineForIndex},
+    model::{OutlineForIndex, ParagraphForIndex},
     util::{BytesBase64URL, UUIDv7Base64URL},
 };
 use serde::{Deserialize, Serialize};
@@ -100,28 +100,28 @@ impl OutlineChange {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Type, Event)]
 #[serde(rename_all = "camelCase")]
-pub struct CardChange {
-    operation: Operation<CardForIndex>,
+pub struct ParagraphChange {
+    operation: Operation<ParagraphForIndex>,
     origin: Origin,
 }
 
-impl CardChange {
-    pub fn insert(targets: Vec<Target<CardForIndex>>, origin: Origin) -> Self {
-        CardChange {
+impl ParagraphChange {
+    pub fn insert(targets: Vec<Target<ParagraphForIndex>>, origin: Origin) -> Self {
+        ParagraphChange {
             operation: Operation::Insert { targets },
             origin,
         }
     }
 
-    pub fn update(targets: Vec<Target<CardForIndex>>, origin: Origin) -> Self {
-        CardChange {
+    pub fn update(targets: Vec<Target<ParagraphForIndex>>, origin: Origin) -> Self {
+        ParagraphChange {
             operation: Operation::Update { targets },
             origin,
         }
     }
 
     pub fn delete(target_ids: Vec<UUIDv7Base64URL>, origin: Origin) -> Self {
-        CardChange {
+        ParagraphChange {
             operation: Operation::Delete { target_ids },
             origin,
         }
@@ -133,6 +133,6 @@ pub fn events() -> tauri_specta::Events {
         AppStateChange,
         WorkspaceStateChange,
         OutlineChange,
-        CardChange
+        ParagraphChange
     ]
 }

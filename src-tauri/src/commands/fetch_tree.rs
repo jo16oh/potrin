@@ -1,6 +1,6 @@
 use crate::database::query::fetch;
-use crate::types::model::Card;
 use crate::types::model::Outline;
+use crate::types::model::Paragraph;
 use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
 use sqlx::SqlitePool;
@@ -13,7 +13,7 @@ pub async fn fetch_tree<R: Runtime>(
     app_handle: AppHandle<R>,
     id: UUIDv7Base64URL,
     depth: Option<u32>,
-) -> eyre::Result<(Vec<Outline>, Vec<Card>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let outlines = fetch::outline_trees(pool, &[id], depth).await?;
@@ -21,9 +21,9 @@ pub async fn fetch_tree<R: Runtime>(
         .iter()
         .map(|o| o.id)
         .collect::<Vec<UUIDv7Base64URL>>();
-    let cards = fetch::cards_by_outline_id(pool, &outline_ids).await?;
+    let paragraphs = fetch::paragraphs_by_outline_id(pool, &outline_ids).await?;
 
-    eyre::Ok((outlines, cards))
+    eyre::Ok((outlines, paragraphs))
 }
 
 #[cfg(test)]
@@ -44,11 +44,11 @@ mod test {
     async fn test(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
         let outline = create_tree(app_handle, pot_id, None, 2, 0).await;
 
-        let (outlines, cards) = fetch_tree(app_handle.clone(), outline.id, None)
+        let (outlines, paragraphs) = fetch_tree(app_handle.clone(), outline.id, None)
             .await
             .unwrap();
 
         assert_eq!(outlines.len(), 3);
-        assert_eq!(cards.len(), 3);
+        assert_eq!(paragraphs.len(), 3);
     }
 }
