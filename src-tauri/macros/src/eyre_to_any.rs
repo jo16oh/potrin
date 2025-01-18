@@ -44,22 +44,22 @@ pub fn eyre_to_any_impl(item: TokenStream) -> TokenStream {
                         .into();
                     };
 
-                // 新しい戻り値の型をResult<T, AnyError>に変更
+                // 新しい戻り値の型をResult<T, PotrinError::AnyError>に変更
                 let new_output =
-                    quote! { -> std::result::Result<#inner_ty, crate::types::error::AnyError> };
+                    quote! { -> std::result::Result<#inner_ty, crate::types::error::PotrinError> };
 
                 // 条件を満たしている場合は元の関数をラップして新しい関数を生成
                 let gen = match asyncness {
                     Some(_) => quote! {
                         #(#attrs)*
                         #visibility async fn #name #generics(#inputs) #new_output {
-                            async { #block }.await.map_err(crate::types::error::AnyError::from)
+                            async { #block }.await.map_err(crate::types::error::PotrinError::from)
                         }
                     },
                     None => quote! {
                         #(#attrs)*
                         #visibility fn #name #generics(#inputs) #new_output {
-                            {#block}.map_err(crate::types::error::AnyError::from)
+                            {#block}.map_err(crate::types::error::PotrinError::from)
                         }
                     },
                 };

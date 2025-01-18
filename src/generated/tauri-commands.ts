@@ -109,7 +109,6 @@ workspaceStateChange: "workspace-state-change"
 
 /** user-defined types **/
 
-export type AnyError = { root_cause: string; msg: string }
 export type AppSetting = { levenshteinDistance: number }
 export type AppState = { clientId: UUIDv7Base64URL; user: UserState | null; pots: Partial<{ [key in string]: string }>; setting: AppSetting }
 export type AppStateChange = { patch: string }
@@ -133,6 +132,7 @@ export type ParagraphForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; o
 export type Path = Link[]
 export type Pot = { id: UUIDv7Base64URL; name: string; owner: UUIDv7Base64URL | null; createdAt: number }
 export type PotState = { id: UUIDv7Base64URL; name: string }
+export type PotrinError = { anyError: { rootCause: string; msg: string } }
 export type Quote = { id: UUIDv7Base64URL; versionId: UUIDv7Base64URL; doc: string }
 export type RelationOption = { direction: Direction; includeChildren: IncludeChildrenOption | null }
 export type SearchResult = { id: UUIDv7Base64URL; doc_type: string }

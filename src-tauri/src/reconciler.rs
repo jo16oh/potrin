@@ -3,7 +3,7 @@ use crate::{
     events::{Origin, OutlineChange, ParagraphChange, Target},
     search_engine::{add_index, remove_index, DeleteTarget, IndexTarget},
     types::{
-        error::AnyError,
+        error::PotrinError,
         model::{Ancestor, Link, Oplog, OutlineForIndex, ParagraphForIndex, YUpdate},
         util::UUIDv7Base64URL,
     },
@@ -72,7 +72,7 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
             while let Some(change) = receiver.recv().await {
                 let _ = reconcile(&app_handle, change)
                     .await
-                    .map_err(AnyError::from)
+                    .map_err(PotrinError::from)
                     .inspect_err(|e| eprintln!("{}", e));
             }
         }

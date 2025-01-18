@@ -1,23 +1,24 @@
 #[derive(serde::Serialize, thiserror::Error, specta::Type, Debug)]
-#[error(
-    r#"
-------tauri command failed------
-Root cause: {root_cause}
+#[serde(rename_all = "camelCase")]
+pub enum PotrinError {
+    #[error(
+        r#"
+    ------tauri command failed------
+    Root cause: {root_cause}
 
-{msg}
---------------------------------
-"#
-)]
-pub struct AnyError {
-    root_cause: String,
-    msg: String,
+    {msg}
+    --------------------------------
+    "#
+    )]
+    #[serde(rename_all = "camelCase")]
+    AnyError { root_cause: String, msg: String },
 }
 
-impl From<eyre::Report> for AnyError {
+impl From<eyre::Report> for PotrinError {
     fn from(value: eyre::Report) -> Self {
         let root_cause = value.root_cause();
 
-        Self {
+        Self::AnyError {
             root_cause: format!("{}", root_cause),
             msg: format_eyre_message(value),
         }
