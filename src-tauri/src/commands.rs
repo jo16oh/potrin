@@ -1,5 +1,6 @@
 use crate::types::util::UUIDv7Base64URL;
 use tauri::AppHandle;
+
 pub mod create_pot;
 pub mod create_user;
 pub mod create_version;
@@ -16,12 +17,12 @@ pub mod get_workspace_state;
 pub mod hard_delete_y_doc;
 pub mod insert_pending_y_update;
 pub mod search;
-pub mod soft_delete_paragraph;
 pub mod soft_delete_outline;
+pub mod soft_delete_paragraph;
 pub mod update_app_state;
 pub mod update_workspace_state;
-pub mod upsert_paragraph;
 pub mod upsert_outline;
+pub mod upsert_paragraph;
 
 pub mod test_tracing {
     use eyre::Context;
