@@ -5,14 +5,12 @@
   import { App } from "$lib/models/App.svelte";
   import { onMount, type Snippet } from "svelte";
   import { getCurrent } from "@tauri-apps/api/webviewWindow";
-  import { commands } from "../generated/tauri-commands";
 
   let { data, children }: { data: LayoutData; children: Snippet } = $props();
   App.init(data.appState);
 
   onMount(async () => {
     await getCurrent().show();
-    commands.willFail().catch((e) => console.error(e));
   });
 
   window.addEventListener("keydown", (e) => {

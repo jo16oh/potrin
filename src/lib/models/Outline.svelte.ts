@@ -4,6 +4,7 @@ import {
   uint8ArrayToBase64URL,
   byFractionalIndex,
   uuidv7,
+  unwrap,
 } from "$lib/utils";
 import { SvelteSet } from "svelte/reactivity";
 import {
@@ -331,7 +332,8 @@ export class Outline {
     if (this.#path) {
       return Promise.resolve(this.#path);
     } else {
-      return Outline.#commands.fetchPath(this.id).then((path) => {
+      return Outline.#commands.fetchPath(this.id).then((r) => {
+        const path = unwrap(r);
         this.path = path;
         return path;
       });
@@ -376,10 +378,11 @@ export class Outline {
         void Outline.#commands
           .fetchConflictingOutlineIds(this.id, this.parentId, this.#text)
           .then((r) => {
-            for (const [id, text] of r) {
+            const result = unwrap(r);
+            for (const [id, text] of result) {
               checker.set(id, text);
             }
-            checker.reconcile(r.map((o) => o[0]));
+            checker.reconcile(result.map((o) => o[0]));
           });
       }
     } else {
@@ -389,10 +392,11 @@ export class Outline {
         void Outline.#commands
           .fetchConflictingOutlineIds(this.id, this.parentId, this.#text)
           .then((r) => {
-            for (const [id, text] of r) {
+            const result = unwrap(r);
+            for (const [id, text] of result) {
               checker.set(id, text);
             }
-            checker.reconcile(r.map((o) => o[0]));
+            checker.reconcile(result.map((o) => o[0]));
           });
       }
     }
@@ -412,7 +416,7 @@ export class Outline {
 
     const updates = await Outline.#commands.fetchYUpdatesByDocId(this.id);
 
-    for (const u of updates) {
+    for (const u of unwrap(updates)) {
       Y.applyUpdateV2(this.#ydoc, base64URLToUint8Array(u));
     }
 

@@ -1,6 +1,4 @@
-use crate::types::util::UUIDv7Base64URL;
-use tauri::AppHandle;
-
+pub mod app_version;
 pub mod create_pot;
 pub mod create_user;
 pub mod create_version;
@@ -16,6 +14,8 @@ pub mod get_app_state;
 pub mod get_workspace_state;
 pub mod hard_delete_y_doc;
 pub mod insert_pending_y_update;
+pub mod open_pot;
+pub mod open_pot_selector;
 pub mod search;
 pub mod soft_delete_outline;
 pub mod soft_delete_paragraph;
@@ -23,55 +23,6 @@ pub mod update_app_state;
 pub mod update_workspace_state;
 pub mod upsert_outline;
 pub mod upsert_paragraph;
-
-pub mod test_tracing {
-    use eyre::Context;
-
-    #[macros::eyre_to_any]
-    #[macros::log_err]
-    #[tauri::command]
-    #[specta::specta]
-    pub async fn will_fail() -> eyre::Result<()> {
-        fail()
-    }
-
-    fn fail() -> eyre::Result<()> {
-        inner().context("context")
-    }
-
-    fn inner() -> eyre::Result<()> {
-        more().context("more")
-    }
-
-    fn more() -> eyre::Result<()> {
-        std::fs::read("not exist")?;
-        Ok(())
-    }
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::eyre_to_any]
-async fn open_pot(
-    app_handle: AppHandle,
-    pot_id: UUIDv7Base64URL,
-    pot_name: String,
-) -> eyre::Result<()> {
-    crate::window::open_pot(&app_handle, pot_id, &pot_name).await
-}
-
-#[tauri::command]
-#[specta::specta]
-#[macros::eyre_to_any]
-fn open_pot_selector(app_handle: AppHandle) -> eyre::Result<()> {
-    crate::window::open_pot_selector(&app_handle)
-}
-
-#[tauri::command]
-#[specta::specta]
-fn app_version(app_handle: AppHandle) -> String {
-    app_handle.package_info().version.to_string()
-}
 
 pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
     tauri_specta::collect_commands![
@@ -98,9 +49,8 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         update_app_state::update_app_state::<tauri::Wry>,
         get_workspace_state::get_workspace_state,
         update_workspace_state::update_workspace_state::<tauri::Wry>,
-        open_pot,
-        open_pot_selector,
-        app_version,
-        test_tracing::will_fail
+        open_pot::open_pot,
+        open_pot_selector::open_pot_selector,
+        app_version::app_version,
     ]
 }

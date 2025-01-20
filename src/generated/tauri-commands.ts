@@ -5,86 +5,208 @@
 
 
 export const commands = {
-async createUser(user: User) : Promise<null> {
-    return await TAURI_INVOKE("create_user", { user });
+async createUser(user: User) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_user", { user }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async createPot(pot: Pot) : Promise<null> {
-    return await TAURI_INVOKE("create_pot", { pot });
+async createPot(pot: Pot) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_pot", { pot }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async upsertOutline(outline: Outline, yUpdates: BytesBase64URL[]) : Promise<null> {
-    return await TAURI_INVOKE("upsert_outline", { outline, yUpdates });
+async upsertOutline(outline: Outline, yUpdates: BytesBase64URL[]) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("upsert_outline", { outline, yUpdates }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async upsertParagraph(paragraph: Paragraph, yUpdates: BytesBase64URL[]) : Promise<null> {
-    return await TAURI_INVOKE("upsert_paragraph", { paragraph, yUpdates });
+async upsertParagraph(paragraph: Paragraph, yUpdates: BytesBase64URL[]) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("upsert_paragraph", { paragraph, yUpdates }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async createVersion(versionId: UUIDv7Base64URL) : Promise<null> {
-    return await TAURI_INVOKE("create_version", { versionId });
+async createVersion(versionId: UUIDv7Base64URL) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_version", { versionId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async insertPendingYUpdate(yDocId: UUIDv7Base64URL, yUpdate: BytesBase64URL) : Promise<null> {
-    return await TAURI_INVOKE("insert_pending_y_update", { yDocId, yUpdate });
+async insertPendingYUpdate(yDocId: UUIDv7Base64URL, yUpdate: BytesBase64URL) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("insert_pending_y_update", { yDocId, yUpdate }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async softDeleteParagraph(paragraph: Paragraph) : Promise<null> {
-    return await TAURI_INVOKE("soft_delete_paragraph", { paragraph });
+async softDeleteParagraph(paragraph: Paragraph) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("soft_delete_paragraph", { paragraph }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async softDeleteOutline(outline: Outline) : Promise<null> {
-    return await TAURI_INVOKE("soft_delete_outline", { outline });
+async softDeleteOutline(outline: Outline) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("soft_delete_outline", { outline }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async hardDeleteOutline(outline: Outline) : Promise<null> {
-    return await TAURI_INVOKE("hard_delete_outline", { outline });
+async hardDeleteOutline(outline: Outline) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("hard_delete_outline", { outline }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async hardDeleteParagraph(paragraph: Paragraph) : Promise<null> {
-    return await TAURI_INVOKE("hard_delete_paragraph", { paragraph });
+async hardDeleteParagraph(paragraph: Paragraph) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("hard_delete_paragraph", { paragraph }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async fetchPots() : Promise<Pot[]> {
-    return await TAURI_INVOKE("fetch_pots");
+async fetchPots() : Promise<Result<Pot[], PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_pots") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async fetchTree(id: UUIDv7Base64URL, depth: number | null) : Promise<[Outline[], Paragraph[]]> {
-    return await TAURI_INVOKE("fetch_tree", { id, depth });
+async fetchTree(id: UUIDv7Base64URL, depth: number | null) : Promise<Result<[Outline[], Paragraph[]], PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_tree", { id, depth }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async fetchTimeline(from: string) : Promise<[Outline[], Paragraph[]]> {
-    return await TAURI_INVOKE("fetch_timeline", { from });
+async fetchTimeline(from: string) : Promise<Result<[Outline[], Paragraph[]], PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_timeline", { from }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async fetchRelation(outlineIds: UUIDv7Base64URL[], paragraphIds: UUIDv7Base64URL[], option: RelationOption) : Promise<[Outline[], Paragraph[]]> {
-    return await TAURI_INVOKE("fetch_relation", { outlineIds, paragraphIds, option });
+async fetchRelation(outlineIds: UUIDv7Base64URL[], paragraphIds: UUIDv7Base64URL[], option: RelationOption) : Promise<Result<[Outline[], Paragraph[]], PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_relation", { outlineIds, paragraphIds, option }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async fetchRelationCount(outlineIds: UUIDv7Base64URL[], paragraphIds: UUIDv7Base64URL[], countChildren: boolean) : Promise<LinkCount[]> {
-    return await TAURI_INVOKE("fetch_relation_count", { outlineIds, paragraphIds, countChildren });
+async fetchRelationCount(outlineIds: UUIDv7Base64URL[], paragraphIds: UUIDv7Base64URL[], countChildren: boolean) : Promise<Result<LinkCount[], PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_relation_count", { outlineIds, paragraphIds, countChildren }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async fetchPath(parentId: UUIDv7Base64URL) : Promise<Path> {
-    return await TAURI_INVOKE("fetch_path", { parentId });
+async fetchPath(parentId: UUIDv7Base64URL) : Promise<Result<Path, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_path", { parentId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async fetchYUpdatesByDocId(yDocId: UUIDv7Base64URL) : Promise<BytesBase64URL[]> {
-    return await TAURI_INVOKE("fetch_y_updates_by_doc_id", { yDocId });
+async fetchYUpdatesByDocId(yDocId: UUIDv7Base64URL) : Promise<Result<BytesBase64URL[], PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_y_updates_by_doc_id", { yDocId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async fetchConflictingOutlineIds(outlineId: UUIDv7Base64URL, parentId: UUIDv7Base64URL | null, text: string) : Promise<([UUIDv7Base64URL, string])[]> {
-    return await TAURI_INVOKE("fetch_conflicting_outline_ids", { outlineId, parentId, text });
+async fetchConflictingOutlineIds(outlineId: UUIDv7Base64URL, parentId: UUIDv7Base64URL | null, text: string) : Promise<Result<([UUIDv7Base64URL, string])[], PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_conflicting_outline_ids", { outlineId, parentId, text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async search(query: string, orderBy: OrderBy, limit: number) : Promise<[Outline[], Paragraph[], SearchResult[]]> {
-    return await TAURI_INVOKE("search", { query, orderBy, limit });
+async search(query: string, orderBy: OrderBy, limit: number) : Promise<Result<[Outline[], Paragraph[], SearchResult[]], PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("search", { query, orderBy, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async getAppState() : Promise<AppState> {
-    return await TAURI_INVOKE("get_app_state");
+async getAppState() : Promise<Result<AppState, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_app_state") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async updateAppState(patch: string) : Promise<null> {
-    return await TAURI_INVOKE("update_app_state", { patch });
+async updateAppState(patch: string) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_app_state", { patch }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async getWorkspaceState() : Promise<WorkspaceState> {
-    return await TAURI_INVOKE("get_workspace_state");
+async getWorkspaceState() : Promise<Result<WorkspaceState, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_workspace_state") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async updateWorkspaceState(patch: string) : Promise<null> {
-    return await TAURI_INVOKE("update_workspace_state", { patch });
+async updateWorkspaceState(patch: string) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_workspace_state", { patch }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async openPot(potId: UUIDv7Base64URL, potName: string) : Promise<null> {
-    return await TAURI_INVOKE("open_pot", { potId, potName });
+async openPot(potId: UUIDv7Base64URL, potName: string) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_pot", { potId, potName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
-async openPotSelector() : Promise<null> {
-    return await TAURI_INVOKE("open_pot_selector");
+async openPotSelector() : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_pot_selector") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
 async appVersion() : Promise<string> {
     return await TAURI_INVOKE("app_version");
-},
-async willFail() : Promise<null> {
-    return await TAURI_INVOKE("will_fail");
 }
 }
 

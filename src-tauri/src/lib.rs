@@ -22,7 +22,7 @@ pub fn run() {
     let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
         .commands(commands::commands())
         .events(events::events())
-        .error_handling(tauri_specta::ErrorHandlingMode::Throw);
+        .error_handling(tauri_specta::ErrorHandlingMode::Result);
 
     #[cfg(debug_assertions)]
     specta_builder

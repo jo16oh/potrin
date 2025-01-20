@@ -3,6 +3,7 @@ import { uuidv7obj } from "uuidv7";
 import { toBytes, toBase64 } from "fast-base64/js";
 // @ts-expect-error no type declaration
 import { toUrl, fromUrl } from "fast-base64/url";
+import type { Result } from "../generated/tauri-commands";
 
 declare const _brand: unique symbol;
 
@@ -79,4 +80,12 @@ export function deepCloneOwnProperties<T extends Record<string, unknown>>(
   }
 
   return clone as ExcludeMethods<T>;
+}
+
+export function unwrap<T, E>(result: Result<T, E>) {
+  if (result.status === "ok") {
+    return result.data;
+  } else {
+    throw result.error;
+  }
 }

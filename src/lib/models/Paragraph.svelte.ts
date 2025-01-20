@@ -1,6 +1,7 @@
 import {
   base64URLToUint8Array,
   uint8ArrayToBase64URL,
+  unwrap,
   uuidv7,
 } from "$lib/utils";
 import { generateKeyBetween } from "fractional-indexing-jittered";
@@ -196,7 +197,8 @@ export class Paragraph {
     if (this.#path) {
       return Promise.resolve(this.#path);
     } else {
-      return Paragraph.#commands.fetchPath(this.#outlineId).then((path) => {
+      return Paragraph.#commands.fetchPath(this.#outlineId).then((r) => {
+        const path = unwrap(r);
         this.#path = path;
         return path;
       });
@@ -239,7 +241,7 @@ export class Paragraph {
 
     const updates = await Paragraph.#commands.fetchYUpdatesByDocId(this.id);
 
-    for (const u of updates) {
+    for (const u of unwrap(updates)) {
       Y.applyUpdateV2(this.#ydoc, base64URLToUint8Array(u));
     }
 
