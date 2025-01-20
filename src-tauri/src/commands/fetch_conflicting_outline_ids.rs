@@ -8,6 +8,7 @@ use tauri::Runtime;
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn fetch_conflicting_outline_ids<R: Runtime>(
     app_handle: AppHandle<R>,
     outline_id: UUIDv7Base64URL,
@@ -48,6 +49,7 @@ pub mod test {
                     text: text.to_string(),
                     links: Links::new(),
                     path: None,
+                    hidden: false,
                     created_at: now,
                     updated_at: now,
                 }

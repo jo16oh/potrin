@@ -4,6 +4,7 @@ use tauri::{AppHandle, Runtime, Window};
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn update_workspace_state<R: Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,

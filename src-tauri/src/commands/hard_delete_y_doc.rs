@@ -11,6 +11,7 @@ use tauri::{AppHandle, Window};
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn hard_delete_outline<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
@@ -31,6 +32,7 @@ pub async fn hard_delete_outline<R: tauri::Runtime>(
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn hard_delete_paragraph<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,

@@ -31,6 +31,7 @@ struct IncludeChildrenOption {
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn fetch_relation<R: Runtime>(
     app_handle: AppHandle<R>,
     outline_ids: Vec<UUIDv7Base64URL>,

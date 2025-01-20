@@ -9,6 +9,7 @@ use tauri::{AppHandle, Window};
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn soft_delete_outline<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,

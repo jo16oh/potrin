@@ -11,6 +11,7 @@ use tauri::{AppHandle, Window};
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn create_version<R: tauri::Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,

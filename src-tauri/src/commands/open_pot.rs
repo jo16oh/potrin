@@ -5,6 +5,7 @@ use tauri::AppHandle;
 #[specta::specta]
 #[macros::eyre_to_any]
 #[macros::log_err]
+#[macros::log_err]
 pub async fn open_pot(
     app_handle: AppHandle,
     pot_id: UUIDv7Base64URL,

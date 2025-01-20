@@ -9,6 +9,7 @@ use tauri::{AppHandle, Runtime};
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn fetch_tree<R: Runtime>(
     app_handle: AppHandle<R>,
     id: UUIDv7Base64URL,

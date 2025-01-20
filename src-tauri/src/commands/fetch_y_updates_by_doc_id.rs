@@ -9,6 +9,7 @@ use tauri::Runtime;
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
+#[macros::log_err]
 pub async fn fetch_y_updates_by_doc_id<R: Runtime>(
     app_handle: AppHandle<R>,
     y_doc_id: UUIDv7Base64URL,
