@@ -27,6 +27,7 @@ async fn create_version_impl<R: tauri::Runtime>(
     version_id: UUIDv7Base64URL,
 ) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
+    let mut tx = pool.begin().await?;
 
     let mut updates_map: HashMap<UUIDv7Base64URL, Vec<BytesBase64URL>> = HashMap::new();
     let mut unversioned_update_ids: Vec<UUIDv7Base64URL> = vec![];
@@ -54,8 +55,6 @@ async fn create_version_impl<R: tauri::Runtime>(
         .collect::<eyre::Result<Vec<YUpdate>>>()?;
 
     let now = Utc::now().timestamp_millis();
-
-    let mut tx = pool.begin().await?;
 
     delete::y_updates(&mut *tx, &unversioned_update_ids).await?;
     insert::from_local::version(&mut *tx, pot_id, version_id).await?;
