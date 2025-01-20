@@ -14,14 +14,23 @@ where
     sqlx::query_scalar!(
         r#"
             INSERT INTO outlines (
-                id, parent_id, fractional_index, doc, text, created_at, updated_at, is_deleted
+                id, 
+                parent_id, 
+                fractional_index, 
+                doc, 
+                text, 
+                hidden, 
+                created_at, 
+                updated_at, 
+                is_deleted
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT DO UPDATE
             SET
                 parent_id = excluded.parent_id,
                 fractional_index = excluded.fractional_index,
                 doc = excluded.doc,
+                hidden = excluded.hidden,
                 updated_at = excluded.updated_at,
                 is_deleted = excluded.is_deleted
             WHERE id = excluded.id
@@ -34,6 +43,7 @@ where
         outline.fractional_index,
         outline.doc,
         text,
+        outline.hidden,
         outline.created_at,
         outline.updated_at,
         0
@@ -50,14 +60,22 @@ where
     sqlx::query_scalar!(
         r#"
             INSERT INTO paragraphs (
-                id, outline_id, fractional_index, doc, created_at, updated_at, is_deleted
+                id, 
+                outline_id, 
+                fractional_index, 
+                doc, 
+                hidden,
+                created_at, 
+                updated_at, 
+                is_deleted
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT DO UPDATE
             SET
                 outline_id = excluded.outline_id,
                 fractional_index = excluded.fractional_index,
                 doc = excluded.doc,
+                hidden = excluded.hidden,
                 updated_at = excluded.updated_at,
                 is_deleted = excluded.is_deleted
             WHERE id = excluded.id
@@ -69,6 +87,7 @@ where
         paragraph.outline_id,
         paragraph.fractional_index,
         paragraph.doc,
+        paragraph.hidden,
         paragraph.created_at,
         paragraph.updated_at,
         0
