@@ -1,4 +1,6 @@
-import type { Links } from "../../generated/tauri-commands";
+import type { Links, Path } from "../../generated/tauri-commands";
+import type { Outline } from "./Outline.svelte";
+import type { Paragraph } from "./Paragraph.svelte";
 
 export class WeakRefMap<K, T extends WeakKey> {
   readonly #map: Map<K, WeakRef<T>> = new Map();
@@ -87,9 +89,7 @@ export class ReversedLinkIndex<T extends { links: Links }> {
       if (backlinks) {
         backlinks.add(id_from);
       } else {
-        const backlinks = new Set<string>();
-        backlinks.add(id_from);
-        this.#reversedLinkIndex.set(id_to, backlinks);
+        this.#reversedLinkIndex.set(id_to, new Set([id_from]));
       }
     }
 
@@ -102,6 +102,85 @@ export class ReversedLinkIndex<T extends { links: Links }> {
         .get(id_to)
         ?.keys()
         .map((id_from) => this.#buffer.get(id_from))
+        .filter((o) => o !== undefined)
+        .toArray() ?? []
+    );
+  }
+}
+
+export class DescendantsIndex {
+  readonly #descendantsMap = new Map<string, Set<string>>();
+  readonly #prevPathMap = new Map<string, Path>();
+  readonly #outlineBuffer: WeakRefMap<string, Outline>;
+  readonly #paragraphBuffer: WeakRefMap<string, Paragraph>;
+
+  constructor(
+    outlineBuffer: WeakRefMap<string, Outline>,
+    paragraphBuffer: WeakRefMap<string, Paragraph>,
+  ) {
+    this.#outlineBuffer = outlineBuffer;
+    this.#paragraphBuffer = paragraphBuffer;
+    this.#outlineBuffer.addHook(this.#reconcile);
+    this.#paragraphBuffer.addHook(this.#reconcile);
+  }
+
+  #reconcile(deletedId: string) {
+    if (
+      !(
+        this.#outlineBuffer.get(deletedId) ??
+        this.#paragraphBuffer.get(deletedId)
+      )
+    )
+      return;
+
+    const ancestors = this.#prevPathMap.get(deletedId);
+    if (!ancestors) return;
+
+    for (const { id } of ancestors) {
+      const ancestorsDescendants = this.#descendantsMap.get(id);
+      ancestorsDescendants?.delete(deletedId);
+    }
+
+    this.#prevPathMap.delete(deletedId);
+  }
+
+  set(descendantId: string, path: Path) {
+    // Exclude the last element because the last element
+    // represents the document itself, not its ancestors
+    const currentPath = path.slice(0, -1);
+
+    const prevPath = this.#prevPathMap.get(descendantId);
+    const prev = prevPath
+      ? new Set(prevPath.map((link) => link.id))
+      : new Set<string>();
+    const current = new Set(currentPath.map((link) => link.id));
+
+    for (const ancestorId of prev.difference(current)) {
+      const descendants = this.#descendantsMap.get(ancestorId);
+      descendants?.delete(descendantId);
+      if (descendants?.size === 0) this.#descendantsMap.delete(ancestorId);
+    }
+
+    for (const ancestorId of current.difference(prev)) {
+      const descendants = this.#descendantsMap.get(ancestorId);
+      if (descendants) {
+        descendants.add(descendantId);
+      } else {
+        this.#descendantsMap.set(ancestorId, new Set([descendantId]));
+      }
+    }
+
+    this.#prevPathMap.set(descendantId, currentPath);
+  }
+
+  get(ancestorId: string) {
+    return (
+      this.#descendantsMap
+        .get(ancestorId)
+        ?.keys()
+        .map(
+          (id) => this.#outlineBuffer.get(id) ?? this.#paragraphBuffer.get(id),
+        )
         .filter((o) => o !== undefined)
         .toArray() ?? []
     );
