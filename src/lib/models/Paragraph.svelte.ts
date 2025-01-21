@@ -88,10 +88,10 @@ export class Paragraph {
     return paragraph;
   }
 
-  static #updateQuote(id_to: string) {
+  static #updateQuote(id_to: string, doc: string) {
     for (const p of this.#reversedQuoteIndex.get(id_to)) {
       if (p.quote) {
-        p.quote.isLatest = false;
+        p.quote.latestDoc = doc;
       }
     }
   }
@@ -139,7 +139,7 @@ export class Paragraph {
               outline.insertParagraph(Paragraph.from(currentValue, outline));
           }
 
-          this.#updateQuote(currentValue.id);
+          this.#updateQuote(currentValue.id, currentValue.doc);
         }
       } else if ("delete" in operation) {
         const deletedParagraphs = operation.delete.target_ids

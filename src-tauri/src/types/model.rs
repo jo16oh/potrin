@@ -110,9 +110,10 @@ pub struct RawParagraph {
     pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
     pub doc: String,
-    pub quoted_id: Option<UUIDv7Base64URL>,
-    pub quote_version_id: Option<UUIDv7Base64URL>,
-    pub latest_quote_version_id: Option<UUIDv7Base64URL>,
+    pub quoted_paragraph_id: Option<UUIDv7Base64URL>,
+    pub quoted_version_id: Option<UUIDv7Base64URL>,
+    pub quoted_doc: Option<String>,
+    pub latest_quoted_doc: Option<String>,
     pub links: Links,
     pub hidden: bool,
     pub created_at: i64,
@@ -126,18 +127,16 @@ impl From<RawParagraph> for Paragraph {
             outline_id: value.outline_id,
             fractional_index: value.fractional_index,
             doc: value.doc,
-            quote: if let (Some(quoted_id), Some(version_id)) =
-                (value.quoted_id, value.quote_version_id)
-            {
-                Some(Quote {
+            quote: value
+                .quoted_paragraph_id
+                .zip(value.quoted_version_id)
+                .zip(value.quoted_doc)
+                .map(|((quoted_id, version_id), doc)| Quote {
                     id: quoted_id,
                     version_id,
-                    doc: String::new(),
-                    is_latest: value.quote_version_id == value.latest_quote_version_id,
-                })
-            } else {
-                None
-            },
+                    doc,
+                    latest_doc: value.latest_quoted_doc,
+                }),
             links: value.links,
             hidden: value.hidden,
             created_at: value.created_at,
@@ -179,15 +178,16 @@ impl From<ParagraphForIndex> for Paragraph {
 }
 
 #[derive(FromRow)]
-pub struct RawparagraphForIndex {
+pub struct RawParagraphForIndex {
     pub id: UUIDv7Base64URL,
     pub pot_id: UUIDv7Base64URL,
     pub outline_id: UUIDv7Base64URL,
     pub fractional_index: String,
     pub doc: String,
-    pub quoted_id: Option<UUIDv7Base64URL>,
-    pub quote_version_id: Option<UUIDv7Base64URL>,
-    pub latest_quote_version_id: Option<UUIDv7Base64URL>,
+    pub quoted_paragraph_id: Option<UUIDv7Base64URL>,
+    pub quoted_version_id: Option<UUIDv7Base64URL>,
+    pub quoted_doc: Option<String>,
+    pub latest_quoted_doc: Option<String>,
     pub path: Path,
     pub links: Links,
     pub hidden: bool,
@@ -195,26 +195,24 @@ pub struct RawparagraphForIndex {
     pub updated_at: i64,
 }
 
-impl From<RawparagraphForIndex> for ParagraphForIndex {
-    fn from(value: RawparagraphForIndex) -> Self {
+impl From<RawParagraphForIndex> for ParagraphForIndex {
+    fn from(value: RawParagraphForIndex) -> Self {
         Self {
             id: value.id,
             pot_id: value.pot_id,
             outline_id: value.outline_id,
             fractional_index: value.fractional_index,
             doc: value.doc,
-            quote: if let (Some(quoted_id), Some(version_id)) =
-                (value.quoted_id, value.quote_version_id)
-            {
-                Some(Quote {
+            quote: value
+                .quoted_paragraph_id
+                .zip(value.quoted_version_id)
+                .zip(value.quoted_doc)
+                .map(|((quoted_id, version_id), doc)| Quote {
                     id: quoted_id,
                     version_id,
-                    doc: String::new(),
-                    is_latest: value.quote_version_id == value.latest_quote_version_id,
-                })
-            } else {
-                None
-            },
+                    doc,
+                    latest_doc: value.latest_quoted_doc,
+                }),
             path: value.path,
             links: value.links,
             hidden: value.hidden,
@@ -230,7 +228,7 @@ pub struct Quote {
     pub id: UUIDv7Base64URL,
     pub version_id: UUIDv7Base64URL,
     pub doc: String,
-    pub is_latest: bool,
+    pub latest_doc: Option<String>,
 }
 
 impl Paragraph {

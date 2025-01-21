@@ -123,12 +123,12 @@ pub async fn quote(
     if let Some(quote) = quote {
         sqlx::query!(
             r#"
-                INSERT INTO quotes (paragraph_id, quoted_id, version_id, doc)
+                INSERT INTO quotes (paragraph_id, quoted_paragraph_id, version_id, doc)
                 VALUES (?, ?, ?, ?)
                 ON CONFLICT
                 DO UPDATE
                 SET
-                    quoted_id = excluded.quoted_id,
+                    quoted_paragraph_id = excluded.quoted_paragraph_id,
                     version_id = excluded.version_id;
             "#,
             paragraph_id,

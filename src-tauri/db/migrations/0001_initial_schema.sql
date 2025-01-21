@@ -163,9 +163,6 @@ CREATE TABLE y_updates (
   from_remote INTEGER NOT NULL
 ) STRICT;
 
-CREATE INDEX y_updates$author ON y_updates(author);
-CREATE INDEX y_updates$ydoc_id_created_at ON y_updates(y_doc_id, created_at DESC);
-
 CREATE TRIGGER before_insert_y_updates
 BEFORE INSERT ON y_updates
 FOR EACH ROW
@@ -564,10 +561,10 @@ CREATE INDEX paragraph_links$id_to ON paragraph_links(id_to);
 
 CREATE TABLE quotes (
     paragraph_id BLOB REFERENCES paragraphs(id) ON DELETE CASCADE PRIMARY KEY,
-    quoted_id BLOB NOT NULL, -- implicitly referes to paragraphs(id)
+    quoted_paragraph_id BLOB NOT NULL, -- implicitly referes to paragraphs(id)
     version_id BLOB NOT NULL, -- implicitly referes to versions(id)
     doc TEXT NOT NULL -- copy of the quoted paragraph's doc in the version
 ) STRICT;
 
-CREATE INDEX quotes$quoted_id ON quotes(quoted_id);
+CREATE INDEX quotes$quoted_paragraph_id ON quotes(quoted_paragraph_id);
 CREATE INDEX quotes$version_id ON quotes(version_id);

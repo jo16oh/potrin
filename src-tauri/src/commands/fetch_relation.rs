@@ -123,7 +123,7 @@ mod test {
 
         sqlx::query!(
             r#"
-                INSERT INTO quotes (paragraph_id, quoted_id, version_id, doc)
+                INSERT INTO quotes (paragraph_id, quoted_paragraph_id, version_id, doc)
                 VALUES (?, ?, ?, ?), (?, ?, ?, ?);
             "#,
             p1.id,
