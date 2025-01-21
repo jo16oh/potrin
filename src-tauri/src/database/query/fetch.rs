@@ -122,52 +122,29 @@ pub async fn paragraphs_by_id(
 ) -> Result<Vec<Paragraph>> {
     let query = format!(
         r#"
-            WITH c1 AS (
-                SELECT
-                    paragraphs.id, 
-                    paragraphs.outline_id, 
-                    paragraphs.fractional_index, 
-                    paragraphs.doc,
-                    quotes.quoted_id AS quoted_id,
-                    quotes.version_id AS quote_version_id,
-                    paragraphs.hidden,
-                    paragraphs.created_at,
-                    paragraphs.updated_at
-                FROM paragraphs
-                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-                GROUP BY paragraphs.id
-                WHERE id IN ({}) AND is_deleted = false
-                UNION
-                SELECT
-                    paragraphs.id, 
-                    paragraphs.outline_id, 
-                    paragraphs.fractional_index, 
-                    paragraphs.doc,
-                    quotes.quoted_id AS quoted_id,
-                    quotes.version_id AS quote_version_id,
-                    paragraphs.hidden,
-                    paragraphs.created_at,
-                    paragraphs.updated_at
-                FROM paragraphs
-                JOIN c1 ON paragraphs.id = c1.quoted_id
-                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-                WHERE is_deleted = false
-            )
             SELECT
-                c1.id, 
-                c1.outline_id, 
-                c1.fractional_index, 
-                c1.doc, 
-                c1.quoted_id, 
-                c1.quote_version_id,
+                paragraphs.id, 
+                paragraphs.outline_id, 
+                paragraphs.fractional_index, 
+                paragraphs.doc,
+                quotes.quoted_id AS quoted_id,
+                quotes.version_id AS quote_version_id,
+                y_updates.version_id AS latest_quote_version_id,
                 jsonb_group_array(outline_paths.path) AS links,
-                c1.hidden,
-                c1.created_at,
-                c1.updated_at
-            FROM c1
-            LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+                paragraphs.hidden,
+                paragraphs.created_at,
+                paragraphs.updated_at
+            FROM paragraphs
+            LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
+            LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-            GROUP BY id;
+            LEFT JOIN y_updates ON quotes.quoted_id = y_updates.y_doc_id
+            WHERE id IN ({}) AND is_deleted = false
+            GROUP BY paragraphs.id
+            HAVING 
+                y_updates.created_at = MAX(y_updates.created_at)
+                OR y_updates.y_doc_id IS NULL;
+
         "#,
         paragraph_ids
             .iter()
@@ -195,55 +172,31 @@ pub async fn paragraphs_for_index_by_id(
 ) -> Result<Vec<ParagraphForIndex>> {
     let query = format!(
         r#"
-            WITH c1 AS (
-                SELECT
-                    paragraphs.id, 
-                    paragraphs.outline_id, 
-                    paragraphs.fractional_index, 
-                    paragraphs.doc,
-                    quotes.quoted_id AS quoted_id,
-                    quotes.version_id AS quote_version_id,
-                    paragraphs.hidden,
-                    paragraphs.created_at,
-                    paragraphs.updated_at
-                FROM paragraphs
-                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-                GROUP BY paragraphs.id
-                WHERE id IN ({}) AND is_deleted = false
-                UNION
-                SELECT
-                    paragraphs.id, 
-                    paragraphs.outline_id, 
-                    paragraphs.fractional_index, 
-                    paragraphs.doc,
-                    quotes.quoted_id AS quoted_id,
-                    quotes.version_id AS quote_version_id,
-                    paragraphs.hidden,
-                    paragraphs.created_at,
-                    paragraphs.updated_at
-                FROM paragraphs
-                JOIN c1 ON paragraphs.id = c1.quoted_id
-                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-                WHERE is_deleted = false
-            )
             SELECT
-                c1.id,
-                y_docs.pot_id,
-                c1.outline_id,
-                c1.fractional_index,
-                c1.doc, c1.quoted_id,
-                c1.quote_version_id,
+                paragraphs.id, 
+                paragraphs.outline_id, 
+                paragraphs.fractional_index, 
+                paragraphs.doc,
+                quotes.quoted_id AS quoted_id,
+                quotes.version_id AS quote_version_id,
+                y_updates.version_id AS latest_quote_version_id,
                 path.path,
                 jsonb_group_array(links.path) AS links,
-                c1.hidden,
-                c1.created_at,
-                c1.updated_at
-            FROM c1
-            INNER JOIN y_docs ON c1.id = y_docs.id
-            LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
-            LEFT JOIN outline_paths AS path ON c1.outline_id = path.outline_id
+                paragraphs.hidden,
+                paragraphs.created_at,
+                paragraphs.updated_at
+            FROM paragraphs
+            LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
+            LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
+            LEFT JOIN outline_paths AS path ON paragraphs.outline_id = path.outline_id
             LEFT JOIN outline_paths AS links ON paragraph_links.id_to = links.outline_id
-            GROUP BY id;
+            LEFT JOIN y_updates ON quotes.quoted_id = y_updates.y_doc_id
+            WHERE id IN ({}) AND is_deleted = false
+            GROUP BY paragraphs.id
+            HAVING 
+                y_updates.created_at = MAX(y_updates.created_at)
+                OR y_updates.y_doc_id IS NULL;
+
         "#,
         paragraph_ids
             .iter()
@@ -276,47 +229,28 @@ pub async fn paragraphs_by_outline_id(
 ) -> Result<Vec<Paragraph>> {
     let query = format!(
         r#"
-            WITH c1 AS (
-                SELECT
-                    paragraphs.id, 
-                    paragraphs.outline_id, 
-                    paragraphs.fractional_index, 
-                    paragraphs.doc,
-                    quotes.quoted_id AS quoted_id,
-                    quotes.version_id AS quote_version_id,
-                    paragraphs.hidden,
-                    paragraphs.created_at,
-                    paragraphs.updated_at
-                FROM paragraphs
-                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-                WHERE paragraphs.outline_id IN ({}) AND is_deleted = false
-                UNION
-                SELECT
-                    paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                    quotes.quoted_id AS quoted_id,
-                    quotes.version_id AS quote_version_id,
-                    paragraphs.hidden,
-                    paragraphs.created_at,
-                    paragraphs.updated_at
-                FROM paragraphs
-                JOIN c1 ON paragraphs.id = c1.quoted_id
-                LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-                WHERE is_deleted = false
-            )
             SELECT
-                c1.id, 
-                c1.outline_id, 
-                c1.fractional_index, 
-                c1.doc, c1.quoted_id, 
-                c1.quote_version_id,
+                paragraphs.id, 
+                paragraphs.outline_id, 
+                paragraphs.fractional_index, 
+                paragraphs.doc,
+                quotes.quoted_id AS quoted_id,
+                quotes.version_id AS quote_version_id,
+                y_updates.version_id AS latest_quote_version_id,
                 jsonb_group_array(outline_paths.path) AS links,
-                c1.hidden,
-                c1.created_at,
-                c1.updated_at
-            FROM c1
-            LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+                paragraphs.hidden,
+                paragraphs.created_at,
+                paragraphs.updated_at
+            FROM paragraphs
+            LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
+            LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-            GROUP BY id;
+            LEFT JOIN y_updates ON quotes.quoted_id = y_updates.y_doc_id
+            WHERE paragraphs.outline_id IN ({}) AND is_deleted = false
+            GROUP BY paragraphs.id
+            HAVING 
+                y_updates.created_at = MAX(y_updates.created_at)
+                OR y_updates.y_doc_id IS NULL;
         "#,
         outline_ids
             .iter()
@@ -347,44 +281,29 @@ pub async fn paragraphs_by_created_at(
     let to = to.timestamp_millis();
 
     let query = r#"
-        WITH c1 AS (
-            SELECT
-                paragraphs.id,
-                paragraphs.outline_id,
-                paragraphs.fractional_index,
-                paragraphs.doc,
-                quotes.quoted_id AS quoted_id,
-                quotes.version_id AS quote_version_id,
-                paragraphs.hidden,
-                paragraphs.created_at,
-                paragraphs.updated_at
-            FROM paragraphs
-            LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-            WHERE ? <= created_at AND created_at < ? AND is_deleted = false
-            UNION
-            SELECT
-                paragraphs.id, paragraphs.outline_id, paragraphs.fractional_index, paragraphs.doc,
-                quotes.quoted_id AS quoted_id,
-                quotes.version_id AS quote_version_id,
-                paragraphs.hidden,
-                paragraphs.created_at,
-                paragraphs.updated_at
-            FROM paragraphs
-            LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
-            INNER JOIN c1 ON paragraphs.id = c1.quoted_id
-            WHERE is_deleted = false
-            ORDER BY created_at DESC
-        )
         SELECT
-            c1.id, c1.outline_id, c1.fractional_index, c1.doc, c1.quoted_id, c1.quote_version_id,
+            paragraphs.id,
+            paragraphs.outline_id,
+            paragraphs.fractional_index,
+            paragraphs.doc,
+            quotes.quoted_id AS quoted_id,
+            quotes.version_id AS quote_version_id,
+            y_updates.version_id AS latest_quote_version_id,
             jsonb_group_array(outline_paths.path) AS links,
-            c1.hidden,
-            c1.created_at,
-            c1.updated_at
-        FROM c1
-        LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+            paragraphs.hidden,
+            paragraphs.created_at,
+            paragraphs.updated_at
+        FROM paragraphs
+        LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
+        LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
         LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-        GROUP BY id;
+        LEFT JOIN y_updates ON quotes.quoted_id = y_updates.y_doc_id
+        WHERE ? <= created_at AND created_at < ? AND is_deleted = false
+        ORDER BY created_at DESC
+        GROUP BY paragraphs.id
+        HAVING 
+            y_updates.created_at = MAX(y_updates.created_at)
+            OR y_updates.y_doc_id IS NULL;
     "#;
 
     let mut query_builder = sqlx::query_as::<_, RawParagraph>(query);
@@ -818,66 +737,53 @@ pub async fn relation_back(
     let paragraphs: Vec<Paragraph> = {
         let query = format!(
             r#"
-                WITH c1 AS (
-                    SELECT
-                        paragraphs.id, 
-                        paragraphs.outline_id, 
-                        paragraphs.fractional_index, 
-                        paragraphs.doc,
-                        quotes.quoted_id AS quoted_id,
-                        quotes.version_id AS quote_version_id,
-                        paragraphs.hidden,
-                        paragraphs.created_at,
-                        paragraphs.updated_at
-                    FROM paragraph_links
-                    INNER JOIN paragraphs ON paragraph_links.id_from = paragraphs.id
-                    LEFT JOIN quotes ON quotes.paragraph_id = paragraphs.id
-                    WHERE paragraph_links.id_to IN ({}) AND paragraphs.is_deleted = false
-                    UNION
-                    SELECT
-                        paragraphs.id, 
-                        paragraphs.outline_id, 
-                        paragraphs.fractional_index, 
-                        paragraphs.doc,
-                        quotes.quoted_id AS quoted_id,
-                        quotes.version_id AS quote_version_id,
-                        paragraphs.hidden,
-                        paragraphs.created_at,
-                        paragraphs.updated_at
-                    FROM quotes
-                    INNER JOIN paragraphs ON quotes.paragraph_id = paragraphs.id
-                    WHERE quotes.quoted_id IN ({}) AND paragraphs.is_deleted = false
-                    UNION
-                    SELECT
-                        paragraphs.id, 
-                        paragraphs.outline_id, 
-                        paragraphs.fractional_index, 
-                        paragraphs.doc,
-                        quotes.quoted_id AS quoted_id,
-                        quotes.version_id AS quote_version_id,
-                        paragraphs.hidden,
-                        paragraphs.created_at,
-                        paragraphs.updated_at
-                    FROM paragraphs
-                    INNER JOIN c1 ON c1.quoted_id = paragraphs.id
-                    INNER JOIN quotes ON quotes.paragraph_id = paragraphs.id
-                    WHERE paragraphs.is_deleted = false
-                )
                 SELECT
-                    c1.id, 
-                    c1.outline_id, 
-                    c1.fractional_index, 
-                    c1.doc, 
-                    c1.quoted_id, 
-                    c1.quote_version_id,
+                    paragraphs.id, 
+                    paragraphs.outline_id, 
+                    paragraphs.fractional_index, 
+                    paragraphs.doc,
+                    quotes.quoted_id AS quoted_id,
+                    quotes.version_id AS quote_version_id,
+                    y_updates.version_id AS latest_quote_version_id,
                     jsonb_group_array(outline_paths.path) AS links,
-                    c1.hidden,
-                    c1.created_at,
-                    c1.updated_at
-                FROM c1
-                LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+                    paragraphs.hidden,
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM paragraph_links
+                INNER JOIN paragraphs ON paragraph_links.id_from = paragraphs.id
+                LEFT JOIN quotes ON quotes.paragraph_id = paragraphs.id
+                LEFT JOIN paragraph_links AS links_to ON paragraphs.id = links_to.id_from
+                LEFT JOIN outline_paths ON links_to.id_to = outline_paths.outline_id
+                LEFT JOIN y_updates ON quotes.quoted_id = y_updates.y_doc_id
+                WHERE paragraph_links.id_to IN ({}) AND paragraphs.is_deleted = false
+                GROUP BY paragraphs.id
+                HAVING 
+                    y_updates.created_at = MAX(y_updates.created_at)
+                    OR y_updates.y_doc_id IS NULL
+                UNION ALL
+                SELECT
+                    paragraphs.id, 
+                    paragraphs.outline_id, 
+                    paragraphs.fractional_index, 
+                    paragraphs.doc,
+                    quotes_to.quoted_id AS quoted_id,
+                    quotes_to.version_id AS quote_version_id,
+                    y_updates.version_id AS latest_quote_version_id,
+                    jsonb_group_array(outline_paths.path) AS links,
+                    paragraphs.hidden,
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM quotes
+                INNER JOIN paragraphs ON quotes.paragraph_id = paragraphs.id
+                LEFT JOIN quotes AS quotes_to ON quotes_to.paragraph_id = paragraphs.id
+                LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
                 LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-                GROUP BY id;
+                LEFT JOIN y_updates ON quotes_to.quoted_id = y_updates.y_doc_id
+                WHERE quotes.quoted_id IN ({}) AND paragraphs.is_deleted = false
+                GROUP BY paragraphs.id
+                HAVING 
+                    y_updates.created_at = MAX(y_updates.created_at)
+                    OR y_updates.y_doc_id IS NULL;
             "#,
             outline_ids
                 .iter()
@@ -893,11 +799,7 @@ pub async fn relation_back(
 
         let mut query_builder = sqlx::query_as::<_, RawParagraph>(&query);
 
-        for id in outline_ids.iter() {
-            query_builder = query_builder.bind(id);
-        }
-
-        for id in paragraph_ids.iter() {
+        for id in outline_ids.iter().chain(paragraph_ids.iter()) {
             query_builder = query_builder.bind(id);
         }
 
@@ -919,22 +821,44 @@ pub async fn relation_forward(
         let query = format!(
             r#"
                 SELECT
-                    id,
-                    parent_id,
-                    fractional_index,
-                    doc,
-                    text,
+                    outlines.id,
+                    outlines.parent_id,
+                    outlines.fractional_index,
+                    outlines.doc,
+                    outlines.text,
                     jsonb_group_array(path) AS links,
-                    hidden,
-                    created_at,
-                    updated_at
+                    outlines.hidden,
+                    outlines.created_at,
+                    outlines.updated_at
                 FROM outlines
-                LEFT JOIN outline_links ON outlines.id = outline_links.id_from
+                INNER JOIN outline_links ON outlines.id = outline_links.id_to
                 LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
                 WHERE outline_links.id_from IN ({}) AND outlines.is_deleted = false
+                GROUP BY id
+                UNION
+                SELECT
+                    outlines.id,
+                    outlines.parent_id,
+                    outlines.fractional_index,
+                    outlines.doc,
+                    outlines.text,
+                    jsonb_group_array(path) AS links,
+                    outlines.hidden,
+                    outlines.created_at,
+                    outlines.updated_at
+                FROM outlines
+                INNER JOIN paragraph_links ON paragraph_links.id_to = outlines.id
+                LEFT JOIN outline_links ON outlines.id = outline_links.id_from
+                LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
+                WHERE paragraph_links.id_from IN ({}) AND outlines.is_deleted = false
                 GROUP BY id;
             "#,
             outline_ids
+                .iter()
+                .map(|_| "?".to_string())
+                .collect::<Vec<String>>()
+                .join(", "),
+            paragraph_ids
                 .iter()
                 .map(|_| "?".to_string())
                 .collect::<Vec<String>>()
@@ -943,7 +867,7 @@ pub async fn relation_forward(
 
         let mut query_builder = sqlx::query_as::<_, Outline>(&query);
 
-        for id in outline_ids.iter() {
+        for id in outline_ids.iter().chain(paragraph_ids.iter()) {
             query_builder = query_builder.bind(id);
         }
 
@@ -953,52 +877,29 @@ pub async fn relation_forward(
     let paragraphs: Vec<Paragraph> = {
         let query = format!(
             r#"
-                WITH c1 AS (
-                    SELECT
-                        paragraphs.id, 
-                        paragraphs.outline_id, 
-                        paragraphs.fractional_index, 
-                        paragraphs.doc,
-                        q2.quoted_id AS quoted_id,
-                        q2.version_id AS quote_version_id,
-                        paragraphs.hidden,
-                        paragraphs.created_at,
-                        paragraphs.updated_at
-                    FROM paragraphs
-                    INNER JOIN quotes AS q1 ON q1.quoted_id = paragraphs.id
-                    LEFT JOIN quotes AS q2 ON q2.paragraph_id = paragraphs.id
-                    WHERE q1.paragraph_id IN ({}) AND paragraphs.is_deleted = false
-                    UNION
-                    SELECT
-                        paragraphs.id, 
-                        paragraphs.outline_id, 
-                        paragraphs.fractional_index, 
-                        paragraphs.doc,
-                        quotes.quoted_id AS quoted_id,
-                        quotes.version_id AS quote_version_id,
-                        paragraphs.hidden,
-                        paragraphs.created_at,
-                        paragraphs.updated_at
-                    FROM paragraphs
-                    INNER JOIN c1 ON c1.quoted_id = paragraphs.id
-                    LEFT JOIN quotes ON quotes.paragraph_id = paragraphs.id
-                    WHERE paragraphs.is_deleted = false
-                )
                 SELECT
-                    c1.id,
-                    c1.outline_id,
-                    c1.fractional_index,
-                    c1.doc,
-                    c1.quoted_id,
-                    c1.quote_version_id,
+                    paragraphs.id, 
+                    paragraphs.outline_id, 
+                    paragraphs.fractional_index, 
+                    paragraphs.doc,
+                    quotes_to.quoted_id AS quoted_id,
+                    quotes_to.version_id AS quote_version_id,
                     jsonb_group_array(outline_paths.path) AS links,
-                    c1.hidden,
-                    c1.created_at,
-                    c1.updated_at
-                FROM c1
-                LEFT JOIN paragraph_links ON c1.id = paragraph_links.id_from
+                    y_updates.version_id AS latest_quote_version_id,
+                    paragraphs.hidden,
+                    paragraphs.created_at,
+                    paragraphs.updated_at
+                FROM quotes
+                INNER JOIN paragraphs ON quotes.quoted_id = paragraphs.id
+                LEFT JOIN quotes AS quotes_to ON quotes_to.paragraph_id = paragraphs.id
+                LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
                 LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-                GROUP BY id;
+                LEFT JOIN y_updates ON quotes_to.quoted_id = y_updates.y_doc_id
+                WHERE paragraphs.id IN ({}) AND paragraphs.is_deleted = false
+                GROUP BY paragraphs.id
+                HAVING 
+                    y_updates.created_at = MAX(y_updates.created_at)
+                    OR y_updates.y_doc_id IS NULL;
             "#,
             paragraph_ids
                 .iter()

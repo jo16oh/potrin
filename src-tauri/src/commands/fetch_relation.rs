@@ -77,18 +77,18 @@ mod test {
         let r1 = create_tree(app_handle, pot_id, None, 3, 0).await;
         let r2 = create_tree(app_handle, pot_id, None, 3, 0).await;
 
-        let c1 = Paragraph::new(r1.id, None);
-        upsert_paragraph(app_handle, pot_id, &c1, vec![])
+        let p1 = Paragraph::new(r1.id, None);
+        upsert_paragraph(app_handle, pot_id, &p1, vec![])
             .await
             .unwrap();
 
-        let c2 = Paragraph::new(r2.id, None);
-        upsert_paragraph(app_handle, pot_id, &c2, vec![])
+        let p2 = Paragraph::new(r2.id, None);
+        upsert_paragraph(app_handle, pot_id, &p2, vec![])
             .await
             .unwrap();
 
-        let c3 = Paragraph::new(r1.id, None);
-        upsert_paragraph(app_handle, pot_id, &c3, vec![])
+        let p3 = Paragraph::new(r1.id, None);
+        upsert_paragraph(app_handle, pot_id, &p3, vec![])
             .await
             .unwrap();
 
@@ -109,7 +109,7 @@ mod test {
                 INSERT INTO paragraph_links (id_from, id_to)
                 VALUES (?, ?);
             "#,
-            c1.id,
+            p1.id,
             r2.id
         )
         .execute(pool)
@@ -126,12 +126,12 @@ mod test {
                 INSERT INTO quotes (paragraph_id, quoted_id, version_id, doc)
                 VALUES (?, ?, ?, ?), (?, ?, ?, ?);
             "#,
-            c1.id,
-            c2.id,
+            p1.id,
+            p2.id,
             version_id,
             "",
-            c2.id,
-            c3.id,
+            p2.id,
+            p3.id,
             version_id,
             "",
         )
@@ -161,6 +161,23 @@ mod test {
             vec![r1.id],
             vec![],
             RelationOption {
+                direction: Direction::Back,
+                include_children: Some(IncludeChildrenOption {
+                    include_paragraphs: true,
+                }),
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(outlines.len(), 0);
+        assert_eq!(paragraphs.len(), 1);
+
+        let (outlines, paragraphs) = fetch_relation(
+            app_handle.clone(),
+            vec![r1.id],
+            vec![],
+            RelationOption {
                 direction: Direction::Forward,
                 include_children: Some(IncludeChildrenOption {
                     include_paragraphs: true,
@@ -171,6 +188,23 @@ mod test {
         .unwrap();
 
         assert_eq!(outlines.len(), 1);
-        assert_eq!(paragraphs.len(), 2);
+        assert_eq!(paragraphs.len(), 1);
+
+        let (outlines, paragraphs) = fetch_relation(
+            app_handle.clone(),
+            vec![r2.id],
+            vec![],
+            RelationOption {
+                direction: Direction::Forward,
+                include_children: Some(IncludeChildrenOption {
+                    include_paragraphs: true,
+                }),
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(outlines.len(), 0);
+        assert_eq!(paragraphs.len(), 1);
     }
 }

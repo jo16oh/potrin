@@ -142,6 +142,7 @@ mod test {
                 id: c2.id,
                 version_id,
                 doc: String::new(),
+                is_latest: true,
             }),
         );
         upsert_paragraph(app_handle, pot_id, &c1, vec![])
@@ -247,6 +248,7 @@ mod test {
                 id: c1.id,
                 version_id,
                 doc: String::new(),
+                is_latest: true,
             }),
         );
         upsert_paragraph(app_handle, pot_id, &c2, vec![])

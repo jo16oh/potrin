@@ -263,7 +263,7 @@ impl<'r> Decode<'r, Sqlite> for UUIDv7Base64URL {
         if bytes.len() != 16 {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                "Invalid UUID length",
+                format!("Invalid UUID length: {:?}", bytes),
             )));
         }
 
