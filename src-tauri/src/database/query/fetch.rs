@@ -41,16 +41,16 @@ pub async fn ancestors(pool: &SqlitePool, parent_ids: &[UUIDv7Base64URL]) -> Res
         r#"
             WITH RECURSIVE ancestors AS (
                 SELECT
-                    id, parent_id, text
+                    id, parent_id, text, hidden
                 FROM outlines
                 WHERE id IN ({})
-                UNION ALL
+                UNION
                 SELECT
-                    parent.id, parent.parent_id, parent.text
+                    parent.id, parent.parent_id, parent.text, parent.hidden
                 FROM path AS child
                 INNER JOIN outlines AS parent ON parent.id = child.parent_id
             )
-            SELECT DISTINCT id, parent_id, text FROM path;
+            SELECT id, parent_id, text, hidden FROM path;
         "#,
         parent_ids
             .iter()

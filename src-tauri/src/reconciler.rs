@@ -487,6 +487,7 @@ async fn update_path(pool: &SqlitePool, outline_ids: &[UUIDv7Base64URL]) -> eyre
                     path.push_front(Link {
                         id: ancestor.id,
                         text: ancestor.text.clone(),
+                        hidden: ancestor.hidden,
                     });
                 } else {
                     break;

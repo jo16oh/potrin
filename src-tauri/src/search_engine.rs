@@ -68,6 +68,7 @@ pub struct Fields {
     text: Field,
     path: Field,
     links: Field,
+    hidden: Field,
     created_at: Field,
     updated_at: Field,
 }
@@ -102,6 +103,7 @@ pub async fn load_index<R: Runtime>(
     schema_builder.add_i64_field("updated_at", INDEXED | FAST);
     schema_builder.add_facet_field("path", FacetOptions::default().set_stored());
     schema_builder.add_facet_field("links", FacetOptions::default());
+    schema_builder.add_bool_field("hidden", NumericOptions::default());
 
     let schema = schema_builder.build();
 
@@ -111,6 +113,7 @@ pub async fn load_index<R: Runtime>(
         text: schema.get_field("text")?,
         path: schema.get_field("path")?,
         links: schema.get_field("links")?,
+        hidden: schema.get_field("hidden")?,
         created_at: schema.get_field("created_at")?,
         updated_at: schema.get_field("updated_at")?,
     };
@@ -213,9 +216,16 @@ async fn process_targets(
         }
 
         for (_, path) in item.links.iter() {
-            let path: Vec<&str> = path.iter().map(|e| e.text.as_str()).collect();
+            let mut texts: Vec<&str> = Vec::new();
+            let mut hidden: bool = false;
 
-            document.add_facet(index.fields.links, Facet::from_path(path));
+            for link in path.iter() {
+                texts.push(&link.text);
+                hidden = hidden || link.hidden;
+            }
+
+            document.add_facet(index.fields.links, Facet::from_path(texts));
+            document.add_bool(index.fields.hidden, hidden);
         }
 
         writer.add_document(document)?;

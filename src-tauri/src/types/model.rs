@@ -270,6 +270,7 @@ pub struct Ancestor {
     pub id: UUIDv7Base64URL,
     pub parent_id: Option<UUIDv7Base64URL>,
     pub text: String,
+    pub hidden: bool,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
@@ -285,6 +286,7 @@ pub struct LinkCount {
 pub struct Link {
     pub id: UUIDv7Base64URL,
     pub text: String,
+    pub hidden: bool,
 }
 
 #[derive(Serialize, Deserialize, Deref, Clone, Debug, specta::Type)]
