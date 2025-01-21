@@ -46,6 +46,7 @@ export class Paragraph {
       paragraph.#quote = data.quote;
       paragraph.#updatedAt = new Date(data.updatedAt);
       paragraph.links = data.links;
+      paragraph.#hidden = data.hidden;
       paragraph.#outlineId = data.outlineId;
       paragraph.#outlineRef = new WeakRef(outline);
       return paragraph;
@@ -64,6 +65,7 @@ export class Paragraph {
         fractionalIndex: fractionalIndex ?? generateKeyBetween(null, null),
         doc: "",
         links: {},
+        hidden: false,
         quote: null,
         createdAt: new Date().getUTCMilliseconds(),
         updatedAt: new Date().getUTCMilliseconds(),
@@ -106,6 +108,7 @@ export class Paragraph {
             paragraph.#fractionalIndex = currentValue.fractionalIndex;
             paragraph.#doc = currentValue.doc;
             paragraph.#quote = currentValue.quote;
+            paragraph.#hidden = currentValue.hidden;
             paragraph.links = currentValue.links;
 
             if (currentValue.outlineId !== paragraph.#outlineId) {
@@ -147,6 +150,7 @@ export class Paragraph {
   #quote = $state<Quote | null>(null);
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   readonly #links = $state<Readonly<Links>>() as Links; //allow update only through setter
+  #hidden = $state(false);
   #outlineId: string;
   #outlineRef = $state<WeakRef<Outline> | undefined>(undefined);
   #path = $state<Path | undefined>(undefined);
@@ -160,6 +164,7 @@ export class Paragraph {
     this.#quote = data.quote;
     this.#links = data.links;
     this.createdAt = new Date(data.createdAt);
+    this.#hidden = data.hidden;
     this.#updatedAt = new Date(data.updatedAt);
     this.#outlineId = data.outlineId;
     this.#outlineRef = new WeakRef(outline);
@@ -183,6 +188,10 @@ export class Paragraph {
 
   get links() {
     return this.#links;
+  }
+
+  get hidden() {
+    return this.#hidden;
   }
 
   get outlineId() {
@@ -292,6 +301,7 @@ export class Paragraph {
       fractionalIndex: this.#fractionalIndex,
       doc: this.#doc,
       links: this.#links,
+      hidden: this.#hidden,
       quote: this.#quote,
       createdAt: this.createdAt.getUTCMilliseconds(),
       updatedAt: this.#updatedAt.getUTCMilliseconds(),

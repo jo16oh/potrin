@@ -52,6 +52,7 @@ export class Outline {
       outline.#doc = data.doc;
       outline.links = data.links;
       outline.#text = data.text;
+      outline.#hidden = data.hidden;
       outline.#updatedAt = new Date(data.updatedAt);
       outline.#parentId = data.parentId;
       if (parent) outline.parentRef = new WeakRef(parent);
@@ -73,6 +74,7 @@ export class Outline {
       text: "",
       links: {},
       path: null,
+      hidden: false,
       createdAt: new Date().getUTCMilliseconds(),
       updatedAt: new Date().getUTCMilliseconds(),
     });
@@ -195,6 +197,7 @@ export class Outline {
             outline.#doc = currentValue.doc;
             outline.links = currentValue.links;
             outline.path = currentValue.path;
+            outline.#hidden = currentValue.hidden;
 
             if (outline.#text !== currentValue.text) {
               outline.#text = currentValue.text;
@@ -260,6 +263,7 @@ export class Outline {
   readonly #parentRef = $state.raw<WeakRef<Outline> | undefined>(); // allow update only through setter
   readonly #path = $state<Path | null>(null); // allow update only through setter
   readonly #links = $state<Readonly<Links>>() as Links; // allow update only through setter
+  #hidden = $state<boolean>(false);
   #ydoc: Y.Doc | undefined;
   #pendingYUpdates: Uint8Array[] = [];
   readonly #conflictChecker: ConflictChecker;
@@ -273,6 +277,7 @@ export class Outline {
     this.#updatedAt = new Date(data.updatedAt);
     this.path = data.path;
     this.links = data.links;
+    this.#hidden = data.hidden;
     this.#parentId = data.parentId;
     this.parentRef = parent ? new WeakRef(parent) : undefined;
     this.#conflictChecker = ConflictChecker.get(this.id);
@@ -298,6 +303,9 @@ export class Outline {
     return this.#links;
   }
 
+  get hidden() {
+    return this.#hidden;
+  }
   get parentId() {
     return this.#parentId;
   }
@@ -512,6 +520,7 @@ export class Outline {
       text: this.#text,
       path: this.#path ? this.#path : null,
       links: this.links,
+      hidden: this.#hidden,
       createdAt: this.createdAt.getUTCMilliseconds(),
       updatedAt: this.#updatedAt.getUTCMilliseconds(),
     };
