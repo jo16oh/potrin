@@ -15,7 +15,7 @@ import {
 } from "../../generated/tauri-commands";
 import { Outline } from "./Outline.svelte";
 import * as Y from "yjs";
-import { ReversedLinkIndex, WeakRefMap } from "./utils";
+import { ReversedQuoteIndex, WeakRefMap } from "./utils";
 
 export type { RawParagraph };
 
@@ -31,7 +31,7 @@ type Commands = Pick<
 export class Paragraph {
   static #commands: Commands = commands;
   static buffer: WeakRefMap<string, Paragraph> = new WeakRefMap();
-  static reversedLinkIndex = new ReversedLinkIndex(this.buffer);
+  static #reversedQuoteIndex = new ReversedQuoteIndex(this.buffer);
 
   static inject(commands: Commands) {
     this.#commands = commands;
@@ -43,12 +43,12 @@ export class Paragraph {
     if (paragraph) {
       paragraph.#fractionalIndex = data.fractionalIndex;
       paragraph.#doc = data.doc;
-      paragraph.#quote = data.quote;
       paragraph.#updatedAt = new Date(data.updatedAt);
-      paragraph.links = data.links;
       paragraph.#hidden = data.hidden;
       paragraph.#outlineId = data.outlineId;
       paragraph.#outlineRef = new WeakRef(outline);
+      paragraph.quote = data.quote;
+      paragraph.links = data.links;
       return paragraph;
     } else {
       const paragraph = new Paragraph(data, outline);
@@ -88,6 +88,14 @@ export class Paragraph {
     return paragraph;
   }
 
+  static #updateQuote(id_to: string) {
+    for (const p of this.#reversedQuoteIndex.get(id_to)) {
+      if (p.quote) {
+        p.quote.isLatest = false;
+      }
+    }
+  }
+
   static async init() {
     await events.paragraphChange.listen((e) => {
       const payload = e.payload;
@@ -107,8 +115,8 @@ export class Paragraph {
           if (paragraph) {
             paragraph.#fractionalIndex = currentValue.fractionalIndex;
             paragraph.#doc = currentValue.doc;
-            paragraph.#quote = currentValue.quote;
             paragraph.#hidden = currentValue.hidden;
+            paragraph.quote = currentValue.quote;
             paragraph.links = currentValue.links;
 
             if (currentValue.outlineId !== paragraph.#outlineId) {
@@ -130,6 +138,8 @@ export class Paragraph {
             if (outline)
               outline.insertParagraph(Paragraph.from(currentValue, outline));
           }
+
+          this.#updateQuote(currentValue.id);
         }
       } else if ("delete" in operation) {
         const deletedParagraphs = operation.delete.target_ids
@@ -147,27 +157,27 @@ export class Paragraph {
   readonly createdAt: Readonly<Date>;
   #fractionalIndex = $state<string>() as string;
   #doc = $state<string>() as string;
-  #quote = $state<Quote | null>(null);
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
-  readonly #links = $state<Readonly<Links>>() as Links; //allow update only through setter
   #hidden = $state(false);
   #outlineId: string;
   #outlineRef = $state<WeakRef<Outline> | undefined>(undefined);
-  #path = $state<Path | undefined>(undefined);
+  readonly #path = $state<Path | undefined>(undefined); //allow update only through setter
+  readonly #quote = $state<Quote | null>(null); //allow update only through setter
+  readonly #links = $state<Readonly<Links>>() as Links; //allow update only through setter
   #ydoc: Y.Doc | undefined;
   #pendingYUpdates: Uint8Array[] = [];
 
   private constructor(data: RawParagraph, outline: Outline) {
     this.id = data.id;
+    this.createdAt = new Date(data.createdAt);
     this.#fractionalIndex = data.fractionalIndex;
     this.#doc = data.doc;
-    this.#quote = data.quote;
-    this.#links = data.links;
-    this.createdAt = new Date(data.createdAt);
     this.#hidden = data.hidden;
     this.#updatedAt = new Date(data.updatedAt);
     this.#outlineId = data.outlineId;
     this.#outlineRef = new WeakRef(outline);
+    this.quote = data.quote;
+    this.links = data.links;
   }
 
   get fractionalIndex() {
@@ -208,7 +218,7 @@ export class Paragraph {
     } else {
       return Paragraph.#commands.fetchPath(this.#outlineId).then((r) => {
         const path = unwrap(r);
-        this.#path = path;
+        this.path = path;
         return path;
       });
     }
@@ -217,7 +227,7 @@ export class Paragraph {
   private set links(value: Links) {
     // @ts-expect-error allow update only thorugh setter
     this.#links = value;
-    Paragraph.reversedLinkIndex.set(this.id, this.#links);
+    Outline.reversedLinkIndex.set(this.id, this.#links);
   }
 
   private set path(value: Path | null) {
@@ -227,6 +237,12 @@ export class Paragraph {
     if (value) {
       Outline.descendantsIndex.set(this.id, value);
     }
+  }
+
+  private set quote(value: Quote | null) {
+    // @ts-expect-error allow update only through this setter
+    this.#quote = value;
+    Paragraph.#reversedQuoteIndex.set(this.id, value);
   }
 
   updatePath(text: string, depth: number) {

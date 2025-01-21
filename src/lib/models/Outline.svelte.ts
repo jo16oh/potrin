@@ -153,10 +153,7 @@ export class Outline {
   }
 
   static #updateLinks(id_to: string, path: Path) {
-    const backlinks = [
-      ...Outline.reversedLinkIndex.get(id_to),
-      ...Paragraph.reversedLinkIndex.get(id_to),
-    ];
+    const backlinks = Outline.reversedLinkIndex.get(id_to);
 
     for (const o of backlinks) {
       o.links = {
@@ -306,6 +303,7 @@ export class Outline {
   get hidden() {
     return this.#hidden;
   }
+
   get parentId() {
     return this.#parentId;
   }

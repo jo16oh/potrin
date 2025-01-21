@@ -1,4 +1,4 @@
-import type { Links, Path } from "../../generated/tauri-commands";
+import type { Links, Path, Quote } from "../../generated/tauri-commands";
 import type { Outline } from "./Outline.svelte";
 import type { Paragraph } from "./Paragraph.svelte";
 
@@ -181,6 +181,57 @@ export class DescendantsIndex {
         .map(
           (id) => this.#outlineBuffer.get(id) ?? this.#paragraphBuffer.get(id),
         )
+        .filter((o) => o !== undefined)
+        .toArray() ?? []
+    );
+  }
+}
+
+export class ReversedQuoteIndex {
+  readonly #reversedQuoteIndex = new Map<string, Set<string>>();
+  readonly #prevQuoteMap = new Map<string, Quote>();
+  readonly #buffer: WeakRefMap<string, Paragraph>;
+
+  constructor(buffer: WeakRefMap<string, Paragraph>) {
+    this.#buffer = buffer;
+    this.#buffer.addHook((deletedId) => {
+      if (!this.#buffer.get(deletedId)) return;
+
+      const quote = this.#buffer.get(deletedId)?.quote;
+      if (!quote) return;
+
+      const backlinks = this.#reversedQuoteIndex.get(quote.id);
+      backlinks?.delete(deletedId);
+      if (backlinks?.size === 0) this.#reversedQuoteIndex.delete(quote.id);
+
+      this.#prevQuoteMap.delete(deletedId);
+    });
+  }
+
+  set(id_from: string, quote: Quote | null) {
+    const prevQuote = this.#prevQuoteMap.get(id_from);
+    if (quote) {
+      const backlinks = this.#reversedQuoteIndex.get(quote.id);
+      if (backlinks) {
+        backlinks.add(id_from);
+      } else {
+        this.#reversedQuoteIndex.set(quote.id, new Set([id_from]));
+      }
+      this.#prevQuoteMap.set(id_from, quote);
+    } else if (prevQuote) {
+      const backlinks = this.#reversedQuoteIndex.get(prevQuote.id);
+      backlinks?.delete(id_from);
+      if (backlinks?.size === 0) this.#reversedQuoteIndex.delete(prevQuote.id);
+      this.#prevQuoteMap.delete(id_from);
+    }
+  }
+
+  get(id_to: string): Paragraph[] {
+    return (
+      this.#reversedQuoteIndex
+        .get(id_to)
+        ?.keys()
+        .map((id_from) => this.#buffer.get(id_from))
         .filter((o) => o !== undefined)
         .toArray() ?? []
     );
