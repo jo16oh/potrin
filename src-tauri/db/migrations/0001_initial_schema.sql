@@ -163,6 +163,9 @@ CREATE TABLE y_updates (
   from_remote INTEGER NOT NULL
 ) STRICT;
 
+CREATE INDEX y_updates$author ON y_updates(author);
+CREATE INDEX y_updates$ydoc_id_created_at ON y_updates(y_doc_id, created_at DESC);
+
 CREATE TRIGGER before_insert_y_updates
 BEFORE INSERT ON y_updates
 FOR EACH ROW
@@ -386,8 +389,8 @@ CREATE TABLE outlines (
 
 CREATE INDEX outlines$parent_id ON outlines(parent_id);
 CREATE INDEX outlines$text ON outlines(text);
-CREATE INDEX outlines$created_at ON outlines(created_at);
-CREATE INDEX outlines$updated_at ON outlines(updated_at);
+CREATE INDEX outlines$created_at ON outlines(created_at DESC);
+CREATE INDEX outlines$updated_at ON outlines(updated_at DESC);
 
 CREATE TRIGGER before_insert_outlines
 BEFORE INSERT ON outlines
@@ -483,8 +486,8 @@ CREATE TABLE paragraphs (
 ) STRICT;
 
 CREATE INDEX paragraphs$outline_id ON paragraphs(outline_id);
-CREATE INDEX paragraphs$created_at ON paragraphs(created_at);
-CREATE INDEX paragraphs$updated_at ON paragraphs(updated_at);
+CREATE INDEX paragraphs$created_at ON paragraphs(created_at DESC);
+CREATE INDEX paragraphs$updated_at ON paragraphs(updated_at DESC);
 
 CREATE TRIGGER before_insert_paragraphs
 BEFORE INSERT ON paragraphs
