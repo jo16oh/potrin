@@ -1,4 +1,4 @@
-use super::util::UUIDv7Base64URL;
+use crate::types::{setting::AppSetting, util::UUIDv7Base64URL};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -89,7 +89,7 @@ pub struct ViewState {
     pub id: UUIDv7Base64URL,
     pub view_type: ViewType,
     pub title: String,
-    pub flex_grow: u32,
+    pub flex_grow: f64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
@@ -98,10 +98,4 @@ pub enum ViewType {
     Outline,
     Relation,
     Search,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, specta::Type, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct AppSetting {
-    pub levenshtein_distance: u8,
 }

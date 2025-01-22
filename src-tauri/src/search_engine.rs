@@ -1,11 +1,12 @@
 mod cjk_bigram_tokenizer;
 
 use crate::types::model::{Links, Path};
+use crate::types::setting::SearchFuzziness;
 use crate::types::util::UUIDv7Base64URL;
 use crate::utils::{extract_text_from_doc, get_state};
 use cjk_bigram_tokenizer::CJKBigramTokenizer;
 use diacritics::remove_diacritics;
-use eyre::{eyre, OptionExt};
+use eyre::OptionExt;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -78,14 +79,20 @@ pub struct SearchIndex {
     reader: IndexReader,
     writer: Mutex<IndexWriter>,
     parser: RwLock<QueryParser>,
-    levenshtein_distance: RwLock<u8>,
+    fuzziness: RwLock<SearchFuzziness>,
 }
 
 pub async fn load_index<R: Runtime>(
     app_handle: &AppHandle<R>,
     pot_id: UUIDv7Base64URL,
-    levenshtein_distance: u8,
+    search_fuzziness: SearchFuzziness,
 ) -> eyre::Result<SearchIndex> {
+    let levenshtein_distance = match search_fuzziness {
+        SearchFuzziness::Exact => 0,
+        SearchFuzziness::Fuzzy => 1,
+        SearchFuzziness::Fuzziest => 2,
+    };
+
     let mut schema_builder = Schema::builder();
     schema_builder.add_text_field("id", STRING | STORED);
     schema_builder.add_text_field("doc_type", STRING | STORED);
@@ -161,7 +168,7 @@ pub async fn load_index<R: Runtime>(
         reader,
         writer: Mutex::new(writer),
         parser: RwLock::new(parser),
-        levenshtein_distance: RwLock::new(levenshtein_distance),
+        fuzziness: RwLock::new(search_fuzziness),
     })
 }
 
@@ -177,7 +184,7 @@ pub async fn add_index<R: Runtime>(
             let index = get_state::<R, SearchIndex>(win)?;
             process_targets(index, targets).await?;
         } else {
-            let index = load_index(app_handle, pot_id, 0).await?;
+            let index = load_index(app_handle, pot_id, SearchFuzziness::default()).await?;
             process_targets(&index, targets).await?;
         };
     }
@@ -248,7 +255,7 @@ pub async fn remove_index<R: Runtime>(
             let index = get_state::<R, SearchIndex>(win)?;
             process_targets(targets, index).await?;
         } else {
-            let index = load_index(app_handle, pot_id, 0).await?;
+            let index = load_index(app_handle, pot_id, SearchFuzziness::default()).await?;
             process_targets(targets, &index).await?;
         };
     }
@@ -274,20 +281,17 @@ pub async fn search(
     query: &str,
     order_by: OrderBy,
     limit: u8,
-    levenshtein_distance: u8,
+    search_fuzziness: SearchFuzziness,
 ) -> eyre::Result<Vec<SearchResult>> {
-    if levenshtein_distance != 0 && levenshtein_distance != 1 && levenshtein_distance != 2 {
-        return Err(eyre!("Levenstein distance must be between 0 and 2"));
-    }
-
-    if levenshtein_distance != *index.levenshtein_distance.read().await {
+    if search_fuzziness != *index.fuzziness.read().await {
         let mut query_parser = index.parser.write().await;
 
+        let levenshtein_distance = search_fuzziness.levenshtein_distance();
         query_parser.set_field_fuzzy(index.fields.text, true, levenshtein_distance, true);
         query_parser.set_conjunction_by_default();
 
-        let mut l = index.levenshtein_distance.write().await;
-        *l = levenshtein_distance;
+        let mut f = index.fuzziness.write().await;
+        *f = search_fuzziness;
     }
 
     let query_parser = index.parser.read().await;
@@ -424,14 +428,16 @@ mod tests {
                 },
             ];
 
-            let index = load_index(app_handle, pot_id, 0).await.unwrap();
+            let index = load_index(app_handle, pot_id, SearchFuzziness::Exact)
+                .await
+                .unwrap();
 
             process_targets(&index, input).await.unwrap();
             index.reader.reload().unwrap();
 
             // prefix search
             assert_eq!(
-                search(&index, "c", OrderBy::Relevance, 100, 0)
+                search(&index, "c", OrderBy::Relevance, 100, SearchFuzziness::Exact)
                     .await
                     .unwrap(),
                 vec![SearchResult {
@@ -442,9 +448,15 @@ mod tests {
 
             // remove diacritics
             assert_eq!(
-                search(&index, "brulee", OrderBy::Relevance, 100, 0)
-                    .await
-                    .unwrap(),
+                search(
+                    &index,
+                    "brulee",
+                    OrderBy::Relevance,
+                    100,
+                    SearchFuzziness::Exact
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: one,
                     doc_type: String::from("paragraph")
@@ -458,7 +470,7 @@ mod tests {
                     "brûlée".nfd().collect::<String>().as_str(),
                     OrderBy::Relevance,
                     100,
-                    0
+                    SearchFuzziness::Exact
                 )
                 .await
                 .unwrap(),
@@ -470,9 +482,15 @@ mod tests {
 
             // english stemming
             assert_eq!(
-                search(&index, "connected", OrderBy::Relevance, 100, 0)
-                    .await
-                    .unwrap(),
+                search(
+                    &index,
+                    "connected",
+                    OrderBy::Relevance,
+                    100,
+                    SearchFuzziness::Exact
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: one,
                     doc_type: String::from("paragraph")
@@ -481,9 +499,15 @@ mod tests {
 
             // fuzzy search
             assert_eq!(
-                search(&index, "cantnt", OrderBy::Relevance, 100, 2)
-                    .await
-                    .unwrap(),
+                search(
+                    &index,
+                    "cantnt",
+                    OrderBy::Relevance,
+                    100,
+                    SearchFuzziness::Fuzziest
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: one,
                     doc_type: String::from("paragraph")
@@ -492,9 +516,15 @@ mod tests {
 
             // japanese bigram
             assert_eq!(
-                search(&index, "はねだ", OrderBy::Relevance, 100, 0)
-                    .await
-                    .unwrap(),
+                search(
+                    &index,
+                    "はねだ",
+                    OrderBy::Relevance,
+                    100,
+                    SearchFuzziness::Exact
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: two,
                     doc_type: String::from("outline")
@@ -503,9 +533,15 @@ mod tests {
 
             // english and japanese compound
             assert_eq!(
-                search(&index, "羽田Airport", OrderBy::Relevance, 100, 0)
-                    .await
-                    .unwrap(),
+                search(
+                    &index,
+                    "羽田Airport",
+                    OrderBy::Relevance,
+                    100,
+                    SearchFuzziness::Exact
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: two,
                     doc_type: String::from("outline")
@@ -514,9 +550,15 @@ mod tests {
 
             // lowercase
             assert_eq!(
-                search(&index, "hnd", OrderBy::Relevance, 100, 0)
-                    .await
-                    .unwrap(),
+                search(
+                    &index,
+                    "hnd",
+                    OrderBy::Relevance,
+                    100,
+                    SearchFuzziness::Exact
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: two,
                     doc_type: String::from("outline")
@@ -525,9 +567,15 @@ mod tests {
 
             // chinese bigram
             assert_eq!(
-                search(&index, "份有", OrderBy::Relevance, 100, 0)
-                    .await
-                    .unwrap(),
+                search(
+                    &index,
+                    "份有",
+                    OrderBy::Relevance,
+                    100,
+                    SearchFuzziness::Exact
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: three,
                     doc_type: String::from("outline")
@@ -536,9 +584,15 @@ mod tests {
 
             // search one character word on the end of the sentence
             assert_eq!(
-                search(&index, "草", OrderBy::Relevance, 100, 0)
-                    .await
-                    .unwrap(),
+                search(
+                    &index,
+                    "草",
+                    OrderBy::Relevance,
+                    100,
+                    SearchFuzziness::Exact
+                )
+                .await
+                .unwrap(),
                 vec![SearchResult {
                     id: four,
                     doc_type: String::from("paragraph")

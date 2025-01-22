@@ -32,7 +32,7 @@ pub async fn search<R: Runtime>(
         query,
         order_by,
         limit,
-        app_state.setting.levenshtein_distance,
+        app_state.setting.search.fuzziness,
     )
     .await?;
 

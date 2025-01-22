@@ -5,14 +5,6 @@
 
 
 export const commands = {
-async createUser(user: User) : Promise<Result<null, PotrinError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("create_user", { user }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async createPot(pot: Pot) : Promise<Result<null, PotrinError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("create_pot", { pot }) };
@@ -231,7 +223,7 @@ workspaceStateChange: "workspace-state-change"
 
 /** user-defined types **/
 
-export type AppSetting = { levenshteinDistance: number }
+export type AppSetting = { search: SearchSetting }
 export type AppState = { clientId: UUIDv7Base64URL; user: UserState | null; pots: Partial<{ [key in string]: string }>; setting: AppSetting }
 export type AppStateChange = { patch: string }
 export type BytesBase64URL = string
@@ -257,12 +249,13 @@ export type PotState = { id: UUIDv7Base64URL; name: string }
 export type PotrinError = { anyError: { rootCause: string; msg: string } }
 export type Quote = { id: UUIDv7Base64URL; versionId: UUIDv7Base64URL; doc: string; latestDoc: string | null }
 export type RelationOption = { direction: Direction; includeChildren: IncludeChildrenOption | null }
+export type SearchFuzziness = "Exact" | "Fuzzy" | "Fuzziest"
 export type SearchResult = { id: UUIDv7Base64URL; doc_type: string }
+export type SearchSetting = { fuzziness: SearchFuzziness }
 export type SidebarState = { isFloat: boolean; width: number }
 export type TabState = { views: ViewState[]; focusedViewIdx: number }
 export type Target<T> = { currentValue: T; relatedYUpdates: BytesBase64URL[] }
 export type UUIDv7Base64URL = string
-export type User = { id: UUIDv7Base64URL; name: string }
 export type UserState = { id: UUIDv7Base64URL; name: string }
 export type ViewState = { id: UUIDv7Base64URL; viewType: ViewType; title: string; flexGrow: number }
 export type ViewType = "outline" | "relation" | "search"

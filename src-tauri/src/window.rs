@@ -1,7 +1,7 @@
 use crate::{
     search_engine::load_index,
     state::init_workspace_state,
-    types::{state::AppState, util::UUIDv7Base64URL},
+    types::{setting::SearchFuzziness, state::AppState, util::UUIDv7Base64URL},
     utils::get_rw_state,
 };
 use tauri::{AppHandle, Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
@@ -63,7 +63,7 @@ pub async fn open_pot(
         .await
         .unwrap();
 
-    let search_index = load_index(app_handle, pot_id, 0).await?;
+    let search_index = load_index(app_handle, pot_id, SearchFuzziness::Exact).await?;
     window.manage(search_index);
 
     Ok(())
