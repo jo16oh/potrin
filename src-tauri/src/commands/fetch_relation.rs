@@ -58,7 +58,7 @@ mod test {
     use super::*;
     use crate::commands::create_version::test::create_version;
     use crate::commands::upsert_paragraph::test::upsert_paragraph;
-    use crate::database::test::create_mock_user_and_pot;
+    use crate::database::test::create_mock_pot;
     use crate::database::test::create_tree;
     use crate::test::run_in_mock_app;
     use tauri::test::MockRuntime;
@@ -66,7 +66,7 @@ mod test {
     #[test]
     fn test_fetch_relation() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
+            let pot = create_mock_pot(app_handle.clone()).await;
             test(app_handle, pot.id).await;
         });
     }

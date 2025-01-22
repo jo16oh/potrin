@@ -26,12 +26,6 @@ pub struct PotState {
     pub name: String,
 }
 
-// #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
-// #[serde(rename_all = "camelCase")]
-// pub struct ClientState {
-//     pub id: UUIDv7Base64,
-// }
-
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceState {

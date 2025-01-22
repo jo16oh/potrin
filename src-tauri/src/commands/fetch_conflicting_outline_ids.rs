@@ -25,7 +25,7 @@ pub mod test {
     use super::*;
     use crate::{
         commands::upsert_outline::test::upsert_outline,
-        database::test::create_mock_user_and_pot,
+        database::test::create_mock_pot,
         run_in_mock_app,
         types::{
             model::{Links, Outline},
@@ -37,7 +37,7 @@ pub mod test {
     #[test]
     fn test() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
+            let pot = create_mock_pot(app_handle.clone()).await;
 
             let outline = |text: &str| -> Outline {
                 let now = chrono::Utc::now().timestamp_millis();

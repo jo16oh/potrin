@@ -1,8 +1,8 @@
 use crate::types::{
-    model::{Pot, User, YUpdate},
+    model::{Pot, YUpdate},
     util::UUIDv7Base64URL,
 };
-use eyre::{OptionExt, Result};
+use eyre::OptionExt;
 use sqlx::SqliteExecutor;
 
 pub mod from_local {
@@ -10,7 +10,6 @@ pub mod from_local {
     use crate::types::util::UUIDv7Base64URL;
 
     pub use super::pot;
-    pub use super::user;
     use super::*;
 
     pub async fn version<'a, E>(
@@ -74,25 +73,25 @@ pub mod from_local {
 
 pub mod from_remote {}
 
-pub async fn user<'a, E>(conn: E, user: &User, timestamp: i64) -> Result<()>
-where
-    E: SqliteExecutor<'a>,
-{
-    sqlx::query!(
-        r#"
-            INSERT OR IGNORE INTO users (id, name, created_at, updated_at)
-            VALUES (?, ?, ?, ?);
-        "#,
-        user.id,
-        user.name,
-        timestamp,
-        timestamp
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
+// pub async fn user<'a, E>(conn: E, user: &User, timestamp: i64) -> Result<()>
+// where
+//     E: SqliteExecutor<'a>,
+// {
+//     sqlx::query!(
+//         r#"
+//             INSERT OR IGNORE INTO users (id, name, created_at, updated_at)
+//             VALUES (?, ?, ?, ?);
+//         "#,
+//         user.id,
+//         user.name,
+//         timestamp,
+//         timestamp
+//     )
+//     .execute(conn)
+//     .await?;
+//
+//     Ok(())
+// }
 
 pub async fn pot<'a, E>(conn: E, pot: &Pot, timestamp: i64) -> eyre::Result<i64>
 where

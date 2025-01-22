@@ -29,7 +29,7 @@ mod test {
     use crate::commands::create_version::test::create_version;
     use crate::commands::upsert_outline::test::upsert_outline;
     use crate::commands::upsert_paragraph::test::upsert_paragraph;
-    use crate::database::test::create_mock_user_and_pot;
+    use crate::database::test::create_mock_pot;
     use crate::test::run_in_mock_app;
     use crate::types::model::{Outline, Paragraph, Quote};
     use tauri::test::MockRuntime;
@@ -37,7 +37,7 @@ mod test {
     #[test]
     fn test_fetch_relation_count() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
+            let pot = create_mock_pot(app_handle.clone()).await;
             test_count(app_handle, pot.id).await;
         });
     }
@@ -45,7 +45,7 @@ mod test {
     #[test]
     fn test_fetch_relation_count_recursively() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
+            let pot = create_mock_pot(app_handle.clone()).await;
             test_count_recursively(app_handle, pot.id).await;
         });
     }

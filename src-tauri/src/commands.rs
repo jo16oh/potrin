@@ -26,7 +26,7 @@ pub mod upsert_paragraph;
 
 pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
     tauri_specta::collect_commands![
-        create_user::create_user::<tauri::Wry>,
+        // create_user::create_user::<tauri::Wry>,
         create_pot::create_pot::<tauri::Wry>,
         upsert_outline::upsert_outline::<tauri::Wry>,
         upsert_paragraph::upsert_paragraph::<tauri::Wry>,

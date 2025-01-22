@@ -43,10 +43,8 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
 pub mod test {
     use crate::commands::upsert_outline::test::upsert_outline;
     use crate::commands::upsert_paragraph::test::upsert_paragraph;
-    use crate::types::model::{Outline, Paragraph, Pot, User};
-    use crate::types::state::{AppState, UserState};
+    use crate::types::model::{Outline, Paragraph, Pot};
     use crate::types::util::UUIDv7Base64URL;
-    use crate::utils::get_rw_state;
     use chrono::Utc;
     use sqlx::SqlitePool;
     use tauri::Manager;
@@ -85,33 +83,19 @@ pub mod test {
         outline
     }
 
-    pub async fn create_mock_user_and_pot(app_handle: AppHandle<MockRuntime>) -> (User, Pot) {
+    pub async fn create_mock_pot(app_handle: AppHandle<MockRuntime>) -> Pot {
         let pool = app_handle.state::<SqlitePool>().inner();
 
         let now = Utc::now().timestamp_millis();
 
-        let user = User {
-            id: UUIDv7Base64URL::new(),
-            name: "mock_user".to_string(),
-        };
-        insert::from_local::user(pool, &user, now).await.unwrap();
-
         let pot = Pot {
             id: UUIDv7Base64URL::new(),
             name: "mock".to_string(),
-            owner: Some(user.id),
+            owner: None,
             created_at: Utc::now().timestamp_millis(),
         };
         insert::from_local::pot(pool, &pot, now).await.unwrap();
 
-        let lock = get_rw_state::<MockRuntime, AppState>(&app_handle).unwrap();
-
-        let mut app_state = lock.write().await;
-        app_state.user = Some(UserState {
-            id: user.id,
-            name: user.name.clone(),
-        });
-
-        (user, pot)
+        pot
     }
 }

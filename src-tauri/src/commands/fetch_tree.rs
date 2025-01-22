@@ -30,14 +30,14 @@ pub async fn fetch_tree<R: Runtime>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::database::test::{create_mock_user_and_pot, create_tree};
+    use crate::database::test::{create_mock_pot, create_tree};
     use crate::test::run_in_mock_app;
     use tauri::test::MockRuntime;
 
     #[test]
     fn test_fetch_tree() {
         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
+            let pot = create_mock_pot(app_handle.clone()).await;
             test(app_handle, pot.id).await;
         });
     }
