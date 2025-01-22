@@ -2,7 +2,7 @@ use crate::types::{setting::AppSetting, util::UUIDv7Base64URL};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Clone, specta::Type, Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, specta::Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AppState {
     pub client_id: UUIDv7Base64URL,

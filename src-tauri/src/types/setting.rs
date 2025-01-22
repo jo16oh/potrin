@@ -1,4 +1,3 @@
-use garde::Validate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type, Default)]
@@ -13,9 +12,7 @@ pub struct SearchSetting {
     pub fuzziness: SearchFuzziness,
 }
 
-#[derive(
-    Serialize, Deserialize, Validate, Debug, Clone, Copy, PartialEq, Eq, specta::Type, Default,
-)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, specta::Type, Default)]
 pub enum SearchFuzziness {
     Exact,
     #[default]
