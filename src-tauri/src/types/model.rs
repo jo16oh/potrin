@@ -1,5 +1,6 @@
 use super::util::{BytesBase64URL, UUIDv7Base64URL};
 use derive_more::derive::Deref;
+use garde::Validate;
 use serde::{Deserialize, Serialize};
 use sqlx::{sqlite::SqliteValueRef, Database, Decode, FromRow, Sqlite};
 use std::collections::HashMap;
@@ -11,12 +12,16 @@ pub struct User {
     pub name: String,
 }
 
-#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[derive(FromRow, Serialize, Deserialize, Validate, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Pot {
+    #[garde(skip)]
     pub id: UUIDv7Base64URL,
+    #[garde(length(min = 1, max = 50))]
     pub name: String,
+    #[garde(skip)]
     pub owner: Option<UUIDv7Base64URL>,
+    #[garde(skip)]
     pub created_at: i64,
 }
 
