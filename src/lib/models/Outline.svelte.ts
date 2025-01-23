@@ -210,14 +210,6 @@ export class Outline {
             outline.links = currentValue.links;
             outline.path = currentValue.path;
             outline.#hidden = currentValue.hidden;
-            if (outline.#text !== currentValue.text) {
-              outline.#text = currentValue.text;
-              Outline.#updatePath(
-                currentValue.id,
-                currentValue.text,
-                currentValue.path.length - 1,
-              );
-            }
             outline.#collapsed = currentValue.collapsed;
             outline.#deleted = currentValue.deleted;
 
@@ -249,6 +241,12 @@ export class Outline {
             const parent = this.buffer.get(currentValue.parentId);
             parent?.insertChild(Outline.from(currentValue, parent));
           }
+
+          Outline.#updatePath(
+            currentValue.id,
+            currentValue.text,
+            currentValue.path.length - 1,
+          );
 
           this.#updateLinks(currentValue.id, currentValue.path);
         }
