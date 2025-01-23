@@ -379,7 +379,7 @@ CREATE TABLE outlines (
   text TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  collapse INTEGER NOT NULL DEFAULT 0,
+  collapsed INTEGER NOT NULL DEFAULT 0,
   hidden INTEGER NOT NULL DEFAULT 0,
   deleted INTEGER NOT NULL DEFAULT 0
 ) STRICT;
