@@ -17,8 +17,6 @@ pub mod insert_pending_y_update;
 pub mod open_pot;
 pub mod open_pot_selector;
 pub mod search;
-pub mod soft_delete_outline;
-pub mod soft_delete_paragraph;
 pub mod update_app_state;
 pub mod update_workspace_state;
 pub mod upsert_outline;
@@ -32,8 +30,6 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         upsert_paragraph::upsert_paragraph::<tauri::Wry>,
         create_version::create_version::<tauri::Wry>,
         insert_pending_y_update::insert_pending_y_update::<tauri::Wry>,
-        soft_delete_paragraph::soft_delete_paragraph::<tauri::Wry>,
-        soft_delete_outline::soft_delete_outline::<tauri::Wry>,
         hard_delete_y_doc::hard_delete_outline::<tauri::Wry>,
         hard_delete_y_doc::hard_delete_paragraph::<tauri::Wry>,
         fetch_pots::fetch_pots::<tauri::Wry>,
