@@ -45,6 +45,7 @@ export class Paragraph {
       paragraph.#doc = data.doc;
       paragraph.#updatedAt = new Date(data.updatedAt);
       paragraph.#hidden = data.hidden;
+      paragraph.#deleted = data.deleted;
       paragraph.#outlineId = data.outlineId;
       paragraph.#outlineRef = new WeakRef(outline);
       paragraph.quote = data.quote;
@@ -66,6 +67,7 @@ export class Paragraph {
         doc: "",
         links: {},
         hidden: false,
+        deleted: false,
         quote: null,
         createdAt: new Date().getUTCMilliseconds(),
         updatedAt: new Date().getUTCMilliseconds(),
@@ -116,6 +118,7 @@ export class Paragraph {
             paragraph.#fractionalIndex = currentValue.fractionalIndex;
             paragraph.#doc = currentValue.doc;
             paragraph.#hidden = currentValue.hidden;
+            paragraph.#deleted = currentValue.deleted;
             paragraph.quote = currentValue.quote;
             paragraph.links = currentValue.links;
 
@@ -158,7 +161,8 @@ export class Paragraph {
   #fractionalIndex = $state<string>() as string;
   #doc = $state<string>() as string;
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
-  #hidden = $state(false);
+  #hidden = $state() as boolean;
+  #deleted = $state() as boolean;
   #outlineId: string;
   #outlineRef = $state<WeakRef<Outline> | undefined>(undefined);
   readonly #path = $state<Path | undefined>(undefined); //allow update only through setter
@@ -173,6 +177,7 @@ export class Paragraph {
     this.#fractionalIndex = data.fractionalIndex;
     this.#doc = data.doc;
     this.#hidden = data.hidden;
+    this.#deleted = data.deleted;
     this.#updatedAt = new Date(data.updatedAt);
     this.#outlineId = data.outlineId;
     this.#outlineRef = new WeakRef(outline);
@@ -202,6 +207,10 @@ export class Paragraph {
 
   get hidden() {
     return this.#hidden;
+  }
+
+  get deleted() {
+    return this.#deleted;
   }
 
   get outlineId() {
@@ -318,6 +327,7 @@ export class Paragraph {
       doc: this.#doc,
       links: this.#links,
       hidden: this.#hidden,
+      deleted: this.#deleted,
       quote: this.#quote,
       createdAt: this.createdAt.getUTCMilliseconds(),
       updatedAt: this.#updatedAt.getUTCMilliseconds(),

@@ -133,6 +133,7 @@ pub async fn paragraphs_by_id(
                 quoted_paragraphs.doc AS latest_quoted_doc,
                 jsonb_group_array(outline_paths.path) AS links,
                 paragraphs.hidden,
+                paragraphs.deleted,
                 paragraphs.created_at,
                 paragraphs.updated_at
             FROM paragraphs
@@ -181,6 +182,7 @@ pub async fn paragraphs_for_index_by_id(
                 path.path,
                 jsonb_group_array(links.path) AS links,
                 paragraphs.hidden,
+                paragraphs.deleted,
                 paragraphs.created_at,
                 paragraphs.updated_at
             FROM paragraphs
@@ -234,6 +236,7 @@ pub async fn paragraphs_by_outline_id(
                 quoted_paragraphs.doc AS latest_quoted_doc,
                 jsonb_group_array(outline_paths.path) AS links,
                 paragraphs.hidden,
+                paragraphs.deleted,
                 paragraphs.created_at,
                 paragraphs.updated_at
             FROM paragraphs
@@ -284,6 +287,7 @@ pub async fn paragraphs_by_created_at(
             quoted_paragraphs.doc AS latest_quoted_doc,
             jsonb_group_array(outline_paths.path) AS links,
             paragraphs.hidden,
+            paragraphs.deleted,
             paragraphs.created_at,
             paragraphs.updated_at
         FROM paragraphs
@@ -458,6 +462,8 @@ pub async fn outline_trees(
                             text,
                             0 AS depth,
                             hidden,
+                            collapsed,
+                            deleted,
                             created_at,
                             updated_at
                         FROM outlines
@@ -471,6 +477,8 @@ pub async fn outline_trees(
                             child.text,
                             parent.depth + 1 AS depth,
                             child.hidden,
+                            child.collapsed,
+                            child.deleted,
                             child.created_at,
                             child.updated_at
                         FROM outline_tree AS parent
@@ -485,6 +493,8 @@ pub async fn outline_trees(
                         outline_tree.text,
                         jsonb_group_array(outline_paths.path) AS links,
                         outline_tree.hidden,
+                        outline_tree.collapsed,
+                        outline_tree.deleted,
                         outline_tree.created_at,
                         outline_tree.updated_at
                     FROM outline_tree
@@ -520,6 +530,8 @@ pub async fn outline_trees(
                             doc,
                             text,
                             hidden,
+                            collapsed,
+                            deleted,
                             created_at,
                             updated_at
                         FROM outlines
@@ -532,6 +544,8 @@ pub async fn outline_trees(
                             child.doc,
                             child.text,
                             child.hidden,
+                            child.collapsed,
+                            child.deleted,
                             child.created_at,
                             child.updated_at
                         FROM outline_tree AS parent
@@ -545,6 +559,8 @@ pub async fn outline_trees(
                         outline_tree.doc,
                         outline_tree.text,
                         outline_tree.hidden,
+                        outline_tree.collapsed,
+                        outline_tree.deleted,
                         jsonb_group_array(outline_paths.path) AS links,
                         outline_tree.created_at,
                         outline_tree.updated_at
@@ -586,6 +602,8 @@ pub async fn outlines_by_id(
                 text,
                 jsonb_group_array(path) AS links,
                 hidden,
+                collapsed,
+                deleted,
                 created_at,
                 updated_at
             FROM outlines
@@ -629,6 +647,8 @@ pub async fn outlines_for_index_by_id(
                 outline_paths.path,
                 jsonb_group_array(links.path) AS links,
                 hidden,
+                collapsed,
+                deleted,
                 created_at,
                 updated_at
             FROM outlines
@@ -700,6 +720,8 @@ pub async fn relation_back(
                     text,
                     jsonb_group_array(path) AS links,
                     hidden,
+                    collapsed,
+                    deleted,
                     created_at,
                     updated_at
                 FROM outlines
@@ -738,6 +760,7 @@ pub async fn relation_back(
                     quoted_paragraphs.doc AS latest_quoted_doc,
                     jsonb_group_array(outline_paths.path) AS links,
                     paragraphs.hidden,
+                    paragraphs.deleted,
                     paragraphs.created_at,
                     paragraphs.updated_at
                 FROM paragraph_links
@@ -760,6 +783,7 @@ pub async fn relation_back(
                     quoted_paragraphs.doc AS latest_quoted_doc,
                     jsonb_group_array(outline_paths.path) AS links,
                     paragraphs.hidden,
+                    paragraphs.deleted,
                     paragraphs.created_at,
                     paragraphs.updated_at
                 FROM quotes
@@ -814,6 +838,8 @@ pub async fn relation_forward(
                     outlines.text,
                     jsonb_group_array(path) AS links,
                     outlines.hidden,
+                    outlines.collapsed,
+                    outlines.deleted,
                     outlines.created_at,
                     outlines.updated_at
                 FROM outlines
@@ -830,6 +856,8 @@ pub async fn relation_forward(
                     outlines.text,
                     jsonb_group_array(path) AS links,
                     outlines.hidden,
+                    outlines.collapsed,
+                    outlines.deleted,
                     outlines.created_at,
                     outlines.updated_at
                 FROM outlines
@@ -874,6 +902,7 @@ pub async fn relation_forward(
                     quoted_paragraphs.doc AS latest_quoted_doc,
                     jsonb_group_array(outline_paths.path) AS links,
                     paragraphs.hidden,
+                    paragraphs.deleted,
                     paragraphs.created_at,
                     paragraphs.updated_at
                 FROM quotes

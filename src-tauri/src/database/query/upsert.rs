@@ -20,19 +20,21 @@ where
                 doc,
                 text,
                 hidden,
+                collapsed,
+                deleted,
                 created_at,
-                updated_at,
-                deleted
+                updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT DO UPDATE
             SET
                 parent_id = excluded.parent_id,
                 fractional_index = excluded.fractional_index,
                 doc = excluded.doc,
                 hidden = excluded.hidden,
-                updated_at = excluded.updated_at,
-                deleted = excluded.deleted
+                collapsed = excluded.collapsed,
+                deleted = excluded.deleted,
+                updated_at = excluded.updated_at
             WHERE id = excluded.id
             RETURNING (
               SELECT rowid FROM operation_logs WHERE primary_key = id
@@ -44,9 +46,10 @@ where
         outline.doc,
         text,
         outline.hidden,
+        outline.collapsed,
+        outline.deleted,
         outline.created_at,
         outline.updated_at,
-        0
     )
     .fetch_one(conn)
     .await?
@@ -65,9 +68,9 @@ where
                 fractional_index,
                 doc,
                 hidden,
+                deleted,
                 created_at,
-                updated_at,
-                deleted
+                updated_at
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT DO UPDATE
@@ -76,8 +79,8 @@ where
                 fractional_index = excluded.fractional_index,
                 doc = excluded.doc,
                 hidden = excluded.hidden,
-                updated_at = excluded.updated_at,
-                deleted = excluded.deleted
+                deleted = excluded.deleted,
+                updated_at = excluded.updated_at
             WHERE id = excluded.id
             RETURNING (
               SELECT rowid FROM operation_logs WHERE primary_key = id
@@ -88,9 +91,9 @@ where
         paragraph.fractional_index,
         paragraph.doc,
         paragraph.hidden,
+        paragraph.deleted,
         paragraph.created_at,
         paragraph.updated_at,
-        0
     )
     .fetch_one(conn)
     .await?

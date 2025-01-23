@@ -50,6 +50,8 @@ pub mod test {
                     links: Links::new(),
                     path: None,
                     hidden: false,
+                    collapsed: false,
+                    deleted: false,
                     created_at: now,
                     updated_at: now,
                 }

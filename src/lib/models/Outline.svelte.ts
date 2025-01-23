@@ -1,6 +1,6 @@
 import {
   base64URLToUint8Array,
-  insertToFractionalIndexArray,
+  insertToFractionalIndexedArray,
   uint8ArrayToBase64URL,
   byFractionalIndex,
   uuidv7,
@@ -50,9 +50,11 @@ export class Outline {
     if (outline) {
       outline.#fractionalIndex = data.fractionalIndex;
       outline.#doc = data.doc;
-      outline.links = data.links;
       outline.#text = data.text;
+      outline.links = data.links;
       outline.#hidden = data.hidden;
+      outline.#collapsed = data.collapsed;
+      outline.#deleted = data.deleted;
       outline.#updatedAt = new Date(data.updatedAt);
       outline.#parentId = data.parentId;
       if (parent) outline.parentRef = new WeakRef(parent);
@@ -75,11 +77,23 @@ export class Outline {
       links: {},
       path: null,
       hidden: false,
+      collapsed: false,
+      deleted: false,
       createdAt: new Date().getUTCMilliseconds(),
       updatedAt: new Date().getUTCMilliseconds(),
     });
 
     outline.#ydoc = new Y.Doc();
+
+    const yMap = outline.#ydoc.getMap("potrin");
+    yMap.set("parentId", outline.#parentId);
+    yMap.set("fractionalIndex", outline.#fractionalIndex);
+    yMap.set("doc", new Y.XmlFragment());
+    yMap.set("links", new Y.Map());
+    yMap.set("hidden", outline.#hidden);
+    yMap.set("collapsed", outline.#collapsed);
+    yMap.set("deleted", false);
+
     outline.#ydoc.on("updateV2", (u) => {
       outline.#pendingYUpdates.push(u);
       void Outline.#commands.insertPendingYUpdate(
@@ -192,10 +206,10 @@ export class Outline {
           if (outline) {
             outline.#fractionalIndex = currentValue.fractionalIndex;
             outline.#doc = currentValue.doc;
+            outline.#text = currentValue.text;
             outline.links = currentValue.links;
             outline.path = currentValue.path;
             outline.#hidden = currentValue.hidden;
-
             if (outline.#text !== currentValue.text) {
               outline.#text = currentValue.text;
               Outline.#updatePath(
@@ -204,6 +218,8 @@ export class Outline {
                 currentValue.path.length - 1,
               );
             }
+            outline.#collapsed = currentValue.collapsed;
+            outline.#deleted = currentValue.deleted;
 
             if (currentValue.parentId !== outline.#parentId) {
               const parent = currentValue.parentId
@@ -260,7 +276,9 @@ export class Outline {
   readonly #parentRef = $state.raw<WeakRef<Outline> | undefined>(); // allow update only through setter
   readonly #path = $state<Path | null>(null); // allow update only through setter
   readonly #links = $state<Readonly<Links>>() as Links; // allow update only through setter
-  #hidden = $state<boolean>(false);
+  #hidden = $state() as boolean;
+  #collapsed = $state() as boolean;
+  #deleted = $state() as boolean;
   #ydoc: Y.Doc | undefined;
   #pendingYUpdates: Uint8Array[] = [];
   readonly #conflictChecker: ConflictChecker;
@@ -275,6 +293,8 @@ export class Outline {
     this.path = data.path;
     this.links = data.links;
     this.#hidden = data.hidden;
+    this.#collapsed = data.collapsed;
+    this.#deleted = data.deleted;
     this.#parentId = data.parentId;
     this.parentRef = parent ? new WeakRef(parent) : undefined;
     this.#conflictChecker = ConflictChecker.get(this.id);
@@ -302,6 +322,14 @@ export class Outline {
 
   get hidden() {
     return this.#hidden;
+  }
+
+  get collapsed() {
+    return this.#collapsed;
+  }
+
+  get deleted() {
+    return this.#deleted;
   }
 
   get parentId() {
@@ -484,13 +512,13 @@ export class Outline {
   }
 
   insertChild(child: Outline) {
-    this.#children = [...insertToFractionalIndexArray(this.#children, child)];
+    this.#children = [...insertToFractionalIndexedArray(this.#children, child)];
     this.#conflictChecker.reconcile(this.#children.map((c) => c.id));
   }
 
   insertParagraph(paragraph: Paragraph) {
     this.#paragraphs = [
-      ...insertToFractionalIndexArray(this.#paragraphs, paragraph),
+      ...insertToFractionalIndexedArray(this.#paragraphs, paragraph),
     ];
   }
 
@@ -519,6 +547,8 @@ export class Outline {
       path: this.#path ? this.#path : null,
       links: this.links,
       hidden: this.#hidden,
+      collapsed: this.#collapsed,
+      deleted: this.#deleted,
       createdAt: this.createdAt.getUTCMilliseconds(),
       updatedAt: this.#updatedAt.getUTCMilliseconds(),
     };

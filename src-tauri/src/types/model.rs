@@ -38,6 +38,8 @@ pub struct Outline {
     pub path: Option<Path>,
     pub links: Links,
     pub hidden: bool,
+    pub collapsed: bool,
+    pub deleted: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -55,6 +57,8 @@ impl Outline {
             path: None,
             links: Links(HashMap::new()),
             hidden: false,
+            collapsed: false,
+            deleted: false,
             created_at: now,
             updated_at: now,
         }
@@ -74,6 +78,8 @@ pub struct OutlineForIndex {
     pub path: Path,
     pub links: Links,
     pub hidden: bool,
+    pub collapsed: bool,
+    pub deleted: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -89,6 +95,8 @@ impl From<OutlineForIndex> for Outline {
             path: Some(value.path),
             links: value.links,
             hidden: value.hidden,
+            collapsed: false,
+            deleted: false,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
@@ -105,6 +113,7 @@ pub struct Paragraph {
     pub quote: Option<Quote>,
     pub links: Links,
     pub hidden: bool,
+    pub deleted: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -121,6 +130,7 @@ pub struct RawParagraph {
     pub latest_quoted_doc: Option<String>,
     pub links: Links,
     pub hidden: bool,
+    pub deleted: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -144,6 +154,7 @@ impl From<RawParagraph> for Paragraph {
                 }),
             links: value.links,
             hidden: value.hidden,
+            deleted: value.deleted,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
@@ -162,6 +173,7 @@ pub struct ParagraphForIndex {
     pub path: Path,
     pub links: Links,
     pub hidden: bool,
+    pub deleted: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -176,6 +188,7 @@ impl From<ParagraphForIndex> for Paragraph {
             quote: value.quote,
             links: value.links,
             hidden: value.hidden,
+            deleted: false,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
@@ -196,6 +209,7 @@ pub struct RawParagraphForIndex {
     pub path: Path,
     pub links: Links,
     pub hidden: bool,
+    pub deleted: bool,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -221,6 +235,7 @@ impl From<RawParagraphForIndex> for ParagraphForIndex {
             path: value.path,
             links: value.links,
             hidden: value.hidden,
+            deleted: value.deleted,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
@@ -248,6 +263,7 @@ impl Paragraph {
             quote,
             links: Links(HashMap::new()),
             hidden: false,
+            deleted: false,
             created_at: now,
             updated_at: now,
         }

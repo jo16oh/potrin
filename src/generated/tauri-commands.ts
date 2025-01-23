@@ -45,22 +45,6 @@ async insertPendingYUpdate(yDocId: UUIDv7Base64URL, yUpdate: BytesBase64URL) : P
     else return { status: "error", error: e  as any };
 }
 },
-async softDeleteParagraph(paragraph: Paragraph) : Promise<Result<null, PotrinError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("soft_delete_paragraph", { paragraph }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-async softDeleteOutline(outline: Outline) : Promise<Result<null, PotrinError>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("soft_delete_outline", { outline }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async hardDeleteOutline(outline: Outline) : Promise<Result<null, PotrinError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("hard_delete_outline", { outline }) };
@@ -237,12 +221,12 @@ export type Operation<T> = { insert: { targets: Target<T>[] } } | { update: { ta
 export type Order = "desc" | "asc"
 export type OrderBy = { createdAt: Order } | { updatedAt: Order } | "relevance"
 export type Origin = "init" | "remote" | { local: { window_label: string } }
-export type Outline = { id: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path | null; links: Links; hidden: boolean; createdAt: number; updatedAt: number }
+export type Outline = { id: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path | null; links: Links; hidden: boolean; collapsed: boolean; deleted: boolean; createdAt: number; updatedAt: number }
 export type OutlineChange = { operation: Operation<OutlineForIndex>; origin: Origin }
-export type OutlineForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path; links: Links; hidden: boolean; createdAt: number; updatedAt: number }
-export type Paragraph = { id: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; links: Links; hidden: boolean; createdAt: number; updatedAt: number }
+export type OutlineForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path; links: Links; hidden: boolean; collapsed: boolean; deleted: boolean; createdAt: number; updatedAt: number }
+export type Paragraph = { id: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; links: Links; hidden: boolean; deleted: boolean; createdAt: number; updatedAt: number }
 export type ParagraphChange = { operation: Operation<ParagraphForIndex>; origin: Origin }
-export type ParagraphForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; path: Path; links: Links; hidden: boolean; createdAt: number; updatedAt: number }
+export type ParagraphForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; path: Path; links: Links; hidden: boolean; deleted: boolean; createdAt: number; updatedAt: number }
 export type Path = Link[]
 export type Pot = { id: UUIDv7Base64URL; name: string; owner: UUIDv7Base64URL | null; createdAt: number }
 export type PotState = { id: UUIDv7Base64URL; name: string }

@@ -23,7 +23,7 @@ export function uuidv7() {
   return uint8ArrayToBase64URL(uuidv7obj().bytes);
 }
 
-export function insertToFractionalIndexArray<
+export function insertToFractionalIndexedArray<
   T extends { fractionalIndex: string },
 >(arr: T[], item: T): T[] {
   if (arr.length === 0) {
@@ -65,22 +65,6 @@ export type ExcludeMethods<T> = {
       ? ExcludeMethods<T[K]>
       : T[K];
 };
-
-export function deepCloneOwnProperties<T extends Record<string, unknown>>(
-  obj: T,
-) {
-  const clone: Record<string, unknown> = {};
-
-  for (const key of Object.keys(obj)) {
-    if (typeof obj[key] === "object" && obj[key] !== null) {
-      clone[key] = deepCloneOwnProperties(obj[key] as Record<string, unknown>);
-    } else if (typeof obj[key] !== "function") {
-      clone[key] = obj[key];
-    }
-  }
-
-  return clone as ExcludeMethods<T>;
-}
 
 export function unwrap<T, E>(result: Result<T, E>) {
   if (result.status === "ok") {
