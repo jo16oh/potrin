@@ -563,7 +563,7 @@ CREATE TABLE quotes (
     paragraph_id BLOB REFERENCES paragraphs(id) ON DELETE CASCADE PRIMARY KEY,
     quoted_paragraph_id BLOB NOT NULL, -- implicitly referes to paragraphs(id)
     version_id BLOB NOT NULL, -- implicitly referes to versions(id)
-    doc TEXT NOT NULL -- copy of the quoted paragraph's doc in the version
+    doc TEXT NOT NULL -- copy of the quoted paragraph's doc af of the version
 ) STRICT;
 
 CREATE INDEX quotes$quoted_paragraph_id ON quotes(quoted_paragraph_id);
