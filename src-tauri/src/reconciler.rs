@@ -22,7 +22,7 @@ use tauri_specta::Event;
 
 #[derive(Deserialize)]
 struct Status {
-    is_deleted: bool,
+    deleted: bool,
 }
 
 #[derive(Deserialize)]
@@ -143,11 +143,11 @@ async fn process_outline_changes<R: Runtime>(
                     .map(|log| {
                         let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: Status = serde_sqlite_jsonb::from_slice(status)?;
-                        Ok((log, decoded_status.is_deleted))
+                        Ok((log, decoded_status.deleted))
                     })
                     .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
-                    .filter(|(_, is_deleted)| *is_deleted)
+                    .filter(|(_, deleted)| *deleted)
                     .map(|(log, _)| log.primary_key)
                     .collect();
 
@@ -200,12 +200,12 @@ async fn process_outline_changes<R: Runtime>(
                     .map(|log| {
                         let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: Status = serde_sqlite_jsonb::from_slice(status)?;
-                        Ok((log, decoded_status.is_deleted))
+                        Ok((log, decoded_status.deleted))
                     })
                     .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
-                    .partition_map(|(log, is_deleted)| {
-                        if is_deleted {
+                    .partition_map(|(log, deleted)| {
+                        if deleted {
                             Either::Left(&log.primary_key)
                         } else {
                             Either::Right(&log.primary_key)
@@ -315,11 +315,11 @@ async fn process_paragraph_changes<R: Runtime>(
                     .map(|log| {
                         let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: Status = serde_sqlite_jsonb::from_slice(status)?;
-                        Ok((log, decoded_status.is_deleted))
+                        Ok((log, decoded_status.deleted))
                     })
                     .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
-                    .filter(|(_, is_deleted)| *is_deleted)
+                    .filter(|(_, deleted)| *deleted)
                     .map(|(log, _)| log.primary_key)
                     .collect();
 
@@ -370,12 +370,12 @@ async fn process_paragraph_changes<R: Runtime>(
                     .map(|log| {
                         let status = log.status.as_ref().ok_or_eyre("status is not set")?;
                         let decoded_status: Status = serde_sqlite_jsonb::from_slice(status)?;
-                        Ok((log, decoded_status.is_deleted))
+                        Ok((log, decoded_status.deleted))
                     })
                     .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
-                    .partition_map(|(log, is_deleted)| {
-                        if is_deleted {
+                    .partition_map(|(log, deleted)| {
+                        if deleted {
                             Either::Left(&log.primary_key)
                         } else {
                             Either::Right(&log.primary_key)

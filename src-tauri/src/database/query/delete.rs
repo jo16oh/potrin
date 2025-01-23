@@ -81,14 +81,17 @@ where
 pub mod soft {
     use super::*;
 
-    pub async fn paragraphs<'a, E>(conn: E, paragraph_ids: &[UUIDv7Base64URL]) -> eyre::Result<Vec<i64>>
+    pub async fn paragraphs<'a, E>(
+        conn: E,
+        paragraph_ids: &[UUIDv7Base64URL],
+    ) -> eyre::Result<Vec<i64>>
     where
         E: SqliteExecutor<'a>,
     {
         let query = format!(
             r#"
                 UPDATE paragraphs
-                SET is_deleted = true
+                SET deleted = true
                 WHERE id IN ({})
                 RETURNING (
                   SELECT rowid FROM operation_logs WHERE primary_key = id
@@ -128,7 +131,7 @@ pub mod soft {
                     JOIN outlines AS child ON parent.id = child.parent_id
                 )
                 UPDATE outlines
-                SET is_deleted = true
+                SET deleted = true
                 WHERE id IN ((SELECT id FROM outline_tree))
                 RETURNING (
                   SELECT rowid FROM operation_logs WHERE primary_key = id

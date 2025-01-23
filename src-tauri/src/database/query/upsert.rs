@@ -14,15 +14,15 @@ where
     sqlx::query_scalar!(
         r#"
             INSERT INTO outlines (
-                id, 
-                parent_id, 
-                fractional_index, 
-                doc, 
-                text, 
-                hidden, 
-                created_at, 
-                updated_at, 
-                is_deleted
+                id,
+                parent_id,
+                fractional_index,
+                doc,
+                text,
+                hidden,
+                created_at,
+                updated_at,
+                deleted
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT DO UPDATE
@@ -32,7 +32,7 @@ where
                 doc = excluded.doc,
                 hidden = excluded.hidden,
                 updated_at = excluded.updated_at,
-                is_deleted = excluded.is_deleted
+                deleted = excluded.deleted
             WHERE id = excluded.id
             RETURNING (
               SELECT rowid FROM operation_logs WHERE primary_key = id
@@ -60,14 +60,14 @@ where
     sqlx::query_scalar!(
         r#"
             INSERT INTO paragraphs (
-                id, 
-                outline_id, 
-                fractional_index, 
-                doc, 
+                id,
+                outline_id,
+                fractional_index,
+                doc,
                 hidden,
-                created_at, 
-                updated_at, 
-                is_deleted
+                created_at,
+                updated_at,
+                deleted
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT DO UPDATE
@@ -77,7 +77,7 @@ where
                 doc = excluded.doc,
                 hidden = excluded.hidden,
                 updated_at = excluded.updated_at,
-                is_deleted = excluded.is_deleted
+                deleted = excluded.deleted
             WHERE id = excluded.id
             RETURNING (
               SELECT rowid FROM operation_logs WHERE primary_key = id

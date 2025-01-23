@@ -123,9 +123,9 @@ pub async fn paragraphs_by_id(
     let query = format!(
         r#"
             SELECT
-                paragraphs.id, 
-                paragraphs.outline_id, 
-                paragraphs.fractional_index, 
+                paragraphs.id,
+                paragraphs.outline_id,
+                paragraphs.fractional_index,
                 paragraphs.doc,
                 quotes.quoted_paragraph_id AS quoted_paragraph_id,
                 quotes.version_id AS quoted_version_id,
@@ -140,7 +140,7 @@ pub async fn paragraphs_by_id(
             LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
             LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-            WHERE id IN ({}) AND paragraphs.is_deleted = false
+            WHERE id IN ({}) AND paragraphs.deleted = false
             GROUP BY paragraphs.id;
         "#,
         paragraph_ids
@@ -170,9 +170,9 @@ pub async fn paragraphs_for_index_by_id(
     let query = format!(
         r#"
             SELECT
-                paragraphs.id, 
-                paragraphs.outline_id, 
-                paragraphs.fractional_index, 
+                paragraphs.id,
+                paragraphs.outline_id,
+                paragraphs.fractional_index,
                 paragraphs.doc,
                 quotes.quoted_paragraph_id AS quoted_paragraph_id,
                 quotes.version_id AS quoted_version_id,
@@ -189,7 +189,7 @@ pub async fn paragraphs_for_index_by_id(
             LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths AS path ON paragraphs.outline_id = path.outline_id
             LEFT JOIN outline_paths AS links ON paragraph_links.id_to = links.outline_id
-            WHERE id IN ({}) AND paragraphs.is_deleted = false
+            WHERE id IN ({}) AND paragraphs.deleted = false
             GROUP BY paragraphs.id;
         "#,
         paragraph_ids
@@ -224,9 +224,9 @@ pub async fn paragraphs_by_outline_id(
     let query = format!(
         r#"
             SELECT
-                paragraphs.id, 
-                paragraphs.outline_id, 
-                paragraphs.fractional_index, 
+                paragraphs.id,
+                paragraphs.outline_id,
+                paragraphs.fractional_index,
                 paragraphs.doc,
                 quotes.quoted_paragraph_id AS quoted_paragraph_id,
                 quotes.version_id AS quoted_version_id,
@@ -241,7 +241,7 @@ pub async fn paragraphs_by_outline_id(
             LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
             LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-            WHERE paragraphs.outline_id IN ({}) AND paragraphs.is_deleted = false
+            WHERE paragraphs.outline_id IN ({}) AND paragraphs.deleted = false
             GROUP BY paragraphs.id;
         "#,
         outline_ids
@@ -291,7 +291,7 @@ pub async fn paragraphs_by_created_at(
         LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
         LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
         LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-        WHERE ? <= created_at AND created_at < ? AND paragraphs.is_deleted = false
+        WHERE ? <= created_at AND created_at < ? AND paragraphs.deleted = false
         ORDER BY created_at DESC
         GROUP BY paragraphs.id;
     "#;
@@ -389,12 +389,12 @@ pub async fn descendant_ids(
                 WITH RECURSIVE outline_tree AS (
                     SELECT id
                     FROM outlines
-                    WHERE id IN ({}) AND is_deleted = false
+                    WHERE id IN ({}) AND deleted = false
                     UNION ALL
                     SELECT child.id
                     FROM outline_tree AS parent
                     JOIN outlines AS child ON parent.id = child.parent_id
-                    WHERE child.is_deleted = false
+                    WHERE child.deleted = false
                 )
                 SELECT id FROM outline_tree;
             "#,
@@ -417,7 +417,7 @@ pub async fn descendant_ids(
     let paragraph_ids = if include_paragraphs {
         let query = format!(
             r#"
-                SELECT id FROM paragraphs WHERE outline_id IN ({}) AND is_deleted = false;
+                SELECT id FROM paragraphs WHERE outline_id IN ({}) AND deleted = false;
             "#,
             outline_ids
                 .iter()
@@ -461,7 +461,7 @@ pub async fn outline_trees(
                             created_at,
                             updated_at
                         FROM outlines
-                        WHERE id IN ({}) AND is_deleted = false
+                        WHERE id IN ({}) AND deleted = false
                         UNION ALL
                         SELECT
                             child.id,
@@ -469,13 +469,13 @@ pub async fn outline_trees(
                             child.fractional_index,
                             child.doc,
                             child.text,
-                            parent.depth + 1 AS depth, 
+                            parent.depth + 1 AS depth,
                             child.hidden,
-                            child.created_at, 
+                            child.created_at,
                             child.updated_at
                         FROM outline_tree AS parent
                         JOIN outlines AS child ON parent.id = child.parent_id
-                        WHERE child.is_deleted = false AND depth <= ?
+                        WHERE child.deleted = false AND depth <= ?
                     )
                     SELECT
                         outline_tree.id,
@@ -514,29 +514,29 @@ pub async fn outline_trees(
                 r#"
                     WITH RECURSIVE outline_tree AS (
                         SELECT
-                            id, 
-                            parent_id, 
-                            fractional_index, 
-                            doc, 
-                            text, 
+                            id,
+                            parent_id,
+                            fractional_index,
+                            doc,
+                            text,
                             hidden,
-                            created_at, 
+                            created_at,
                             updated_at
                         FROM outlines
-                        WHERE id IN ({}) AND is_deleted = false
+                        WHERE id IN ({}) AND deleted = false
                         UNION ALL
                         SELECT
-                            child.id, 
-                            child.parent_id, 
-                            child.fractional_index, 
-                            child.doc, 
+                            child.id,
+                            child.parent_id,
+                            child.fractional_index,
+                            child.doc,
                             child.text,
                             child.hidden,
-                            child.created_at, 
+                            child.created_at,
                             child.updated_at
                         FROM outline_tree AS parent
                         JOIN outlines AS child ON parent.id = child.parent_id
-                        WHERE child.is_deleted = false
+                        WHERE child.deleted = false
                     )
                     SELECT
                         outline_tree.id,
@@ -591,7 +591,7 @@ pub async fn outlines_by_id(
             FROM outlines
             LEFT JOIN outline_links ON outlines.id = outline_links.id_from
             LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
-            WHERE id IN ({}) AND is_deleted = false
+            WHERE id IN ({}) AND deleted = false
             GROUP BY id;
         "#,
         outline_ids
@@ -636,7 +636,7 @@ pub async fn outlines_for_index_by_id(
             LEFT JOIN outline_links ON outlines.id = outline_links.id_from
             LEFT JOIN outline_paths AS path ON path.outline_id = outlines.id
             LEFT JOIN outline_paths AS links ON links.outline_id = outline_links.id_to
-            WHERE id IN ({}) AND is_deleted = false
+            WHERE id IN ({}) AND deleted = false
             GROUP BY outlines.id;
         "#,
         outline_ids
@@ -705,7 +705,7 @@ pub async fn relation_back(
                 FROM outlines
                 LEFT JOIN outline_links ON outlines.id = outline_links.id_from
                 LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
-                WHERE outlines.is_deleted = false AND id_to IN ({})
+                WHERE outlines.deleted = false AND id_to IN ({})
                 GROUP BY id;
             "#,
             outline_ids
@@ -728,9 +728,9 @@ pub async fn relation_back(
         let query = format!(
             r#"
                 SELECT
-                    paragraphs.id, 
-                    paragraphs.outline_id, 
-                    paragraphs.fractional_index, 
+                    paragraphs.id,
+                    paragraphs.outline_id,
+                    paragraphs.fractional_index,
                     paragraphs.doc,
                     quotes.quoted_paragraph_id AS quoted_paragraph_id,
                     quotes.version_id AS quoted_version_id,
@@ -746,13 +746,13 @@ pub async fn relation_back(
                 LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
                 LEFT JOIN paragraph_links AS links_to ON paragraphs.id = links_to.id_from
                 LEFT JOIN outline_paths ON links_to.id_to = outline_paths.outline_id
-                WHERE paragraph_links.id_to IN ({}) AND paragraphs.is_deleted = false
+                WHERE paragraph_links.id_to IN ({}) AND paragraphs.deleted = false
                 GROUP BY paragraphs.id
                 UNION ALL
                 SELECT
-                    paragraphs.id, 
-                    paragraphs.outline_id, 
-                    paragraphs.fractional_index, 
+                    paragraphs.id,
+                    paragraphs.outline_id,
+                    paragraphs.fractional_index,
                     paragraphs.doc,
                     quotes_to.quoted_paragraph_id AS quoted_paragraph_id,
                     quotes_to.version_id AS quoted_version_id,
@@ -768,7 +768,7 @@ pub async fn relation_back(
                 LEFT JOIN paragraphs AS quoted_paragraphs ON quotes_to.quoted_paragraph_id = paragraphs.id
                 LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
                 LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-                WHERE quotes.quoted_paragraph_id IN ({}) AND paragraphs.is_deleted = false
+                WHERE quotes.quoted_paragraph_id IN ({}) AND paragraphs.deleted = false
                 GROUP BY paragraphs.id;
             "#,
             outline_ids
@@ -819,7 +819,7 @@ pub async fn relation_forward(
                 FROM outlines
                 INNER JOIN outline_links ON outlines.id = outline_links.id_to
                 LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
-                WHERE outline_links.id_from IN ({}) AND outlines.is_deleted = false
+                WHERE outline_links.id_from IN ({}) AND outlines.deleted = false
                 GROUP BY id
                 UNION
                 SELECT
@@ -836,7 +836,7 @@ pub async fn relation_forward(
                 INNER JOIN paragraph_links ON paragraph_links.id_to = outlines.id
                 LEFT JOIN outline_links ON outlines.id = outline_links.id_from
                 LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
-                WHERE paragraph_links.id_from IN ({}) AND outlines.is_deleted = false
+                WHERE paragraph_links.id_from IN ({}) AND outlines.deleted = false
                 GROUP BY id;
             "#,
             outline_ids
@@ -864,9 +864,9 @@ pub async fn relation_forward(
         let query = format!(
             r#"
                 SELECT
-                    paragraphs.id, 
-                    paragraphs.outline_id, 
-                    paragraphs.fractional_index, 
+                    paragraphs.id,
+                    paragraphs.outline_id,
+                    paragraphs.fractional_index,
                     paragraphs.doc,
                     quotes_to.quoted_paragraph_id AS quoted_paragraph_id,
                     quotes_to.version_id AS quoted_version_id,
@@ -882,7 +882,7 @@ pub async fn relation_forward(
                 LEFT JOIN paragraphs AS quoted_paragraphs ON quotes_to.quoted_paragraph_id = paragraphs.id
                 LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
                 LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-                WHERE paragraphs.id IN ({}) AND paragraphs.is_deleted = false
+                WHERE paragraphs.id IN ({}) AND paragraphs.deleted = false
                 GROUP BY paragraphs.id;
             "#,
             paragraph_ids
@@ -998,12 +998,12 @@ pub async fn recursive_relation_count(
             WITH RECURSIVE tree AS (
                 SELECT id, id AS root_id
                 FROM outlines
-                WHERE id IN ({}) AND is_deleted = false
+                WHERE id IN ({}) AND deleted = false
                 UNION ALL
                 SELECT child.id, parent.root_id AS root_id
                 FROM tree AS parent
                 JOIN outlines AS child ON parent.id = child.parent_id
-                WHERE child.is_deleted = false
+                WHERE child.deleted = false
             ),
             tree_paragraphs AS (
                 SELECT paragraphs.id, tree.root_id

@@ -381,7 +381,7 @@ CREATE TABLE outlines (
   updated_at INTEGER NOT NULL,
   collapse INTEGER NOT NULL DEFAULT 0,
   hidden INTEGER NOT NULL DEFAULT 0,
-  is_deleted INTEGER NOT NULL DEFAULT 0
+  deleted INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
 CREATE INDEX outlines$parent_id ON outlines(parent_id);
@@ -400,8 +400,8 @@ BEGIN
       "insert",
       NEW.updated_at,
       jsonb_object(
-        'is_deleted',
-        CASE NEW.is_deleted
+        'deleted',
+        CASE NEW.deleted
           WHEN 0 THEN jsonb('false')
           ELSE jsonb('true')
         END
@@ -420,8 +420,8 @@ BEGIN
     "update",
     NEW.updated_at,
     jsonb_object(
-      'is_deleted',
-      CASE NEW.is_deleted
+      'deleted',
+      CASE NEW.deleted
         WHEN 0 THEN jsonb('false')
         ELSE jsonb('true')
       END
@@ -479,7 +479,7 @@ CREATE TABLE paragraphs (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   hidden INTEGER NOT NULL DEFAULT 0,
-  is_deleted INTEGER NOT NULL DEFAULT 0
+  deleted INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
 CREATE INDEX paragraphs$outline_id ON paragraphs(outline_id);
@@ -497,8 +497,8 @@ BEGIN
     "insert",
     NEW.updated_at,
     jsonb_object(
-      'is_deleted',
-      CASE NEW.is_deleted
+      'deleted',
+      CASE NEW.deleted
         WHEN 0 THEN jsonb('false')
         ELSE jsonb('true')
       END
@@ -517,8 +517,8 @@ BEGIN
     "paragraphs",
     NEW.updated_at,
     jsonb_object(
-      'is_deleted',
-      CASE NEW.is_deleted
+      'deleted',
+      CASE NEW.deleted
         WHEN 0 THEN jsonb('false')
         ELSE jsonb('true')
       END
