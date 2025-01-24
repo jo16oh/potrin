@@ -7,6 +7,7 @@ use crate::types::util::{BytesBase64URL, UUIDv7Base64URL};
 use crate::utils::{get_rw_state, get_state};
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime, Window};
+use yrs::merge_updates_v2;
 
 #[tauri::command]
 #[specta::specta]
@@ -39,10 +40,8 @@ async fn upsert_paragraph_impl<R: Runtime>(
     paragraph: &Paragraph,
     y_updates: Vec<BytesBase64URL>,
 ) -> eyre::Result<Vec<i64>> {
-    let y_updates = y_updates
-        .into_iter()
-        .map(|data| YUpdate::new(paragraph.id, data))
-        .collect::<Vec<YUpdate>>();
+    let y_update = merge_updates_v2(y_updates)
+        .map(|data| YUpdate::new(paragraph.id, data.into(), None, paragraph.updated_at))?;
 
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
@@ -51,9 +50,7 @@ async fn upsert_paragraph_impl<R: Runtime>(
     let mut rowids: Vec<i64> = vec![];
 
     insert::from_local::y_doc(&mut *tx, "outline", paragraph.id, pot_id, user_id).await?;
-    rowids.extend(
-        insert::from_local::y_updates(&mut *tx, &y_updates, None, paragraph.updated_at).await?,
-    );
+    rowids.extend(insert::from_local::y_updates(&mut *tx, &[y_update]).await?);
     rowids.push(upsert::paragraph(&mut *tx, paragraph).await?);
     upsert_or_delete::paragraph_links(&mut tx, paragraph.id, &paragraph.links).await?;
     upsert_or_delete::quote(&mut tx, paragraph.id, &paragraph.quote).await?;

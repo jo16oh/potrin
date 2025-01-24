@@ -502,3 +502,95 @@ async fn update_path(pool: &SqlitePool, outline_ids: &[UUIDv7Base64URL]) -> eyre
 
     Ok(())
 }
+
+// use yrs::{
+//     merge_updates_v2, updates::decoder::Decode, Doc, Map, MapRef, Transact, Update, XmlFragment,
+//     XmlFragmentRef,
+// };
+// use crate::types::util::BytesBase64URL;
+
+// async fn save_pending_y_updates(pool: &SqlitePool) -> eyre::Result<()> {
+//     let type_updates_map = fetch::pending_y_updates(pool)
+//         .await?
+//         .into_iter()
+//         .map(|u| (u.doc_type, (u.y_doc_id, u.data, u.timestamp)))
+//         .into_group_map()
+//         .into_iter()
+//         .map(|(doc_type, updates)| {
+//             let merged_updates = updates
+//                 .into_iter()
+//                 .map(|(y_doc_id, data, timestamp)| (y_doc_id, (data, timestamp)))
+//                 .into_group_map()
+//                 .into_iter()
+//                 .map(|(y_doc_id, updates)| {
+//                     let (y_updates, timestamps): (Vec<BytesBase64URL>, Vec<i64>) =
+//                         updates.into_iter().unzip();
+//
+//                     let merged_y_update: BytesBase64URL = merge_updates_v2(y_updates)?.into();
+//                     let timestamp = timestamps
+//                         .into_iter()
+//                         .max()
+//                         .ok_or_eyre("failed to find created_at")?;
+//
+//                     eyre::Ok(YUpdate::new(y_doc_id, merged_y_update, None, timestamp))
+//                 })
+//                 .collect::<eyre::Result<Vec<YUpdate>>>()?;
+//
+//             Ok((doc_type, merged_updates))
+//         })
+//         .collect::<eyre::Result<Vec<(String, Vec<YUpdate>)>>>()?;
+//
+//     for (doc_type, updates) in type_updates_map.into_iter() {
+//         match &doc_type {
+//             "outline" => {
+//                 for update in updates {
+//                     let mut updates: Vec<Vec<u8>> =
+//                         fetch::y_updates_by_doc_id(pool, update.y_doc_id)
+//                             .await?
+//                             .into_iter()
+//                             .map(|u| u.into())
+//                             .collect();
+//
+//                     updates.push(update.data);
+//
+//                     let outline = materialize_outline(&updates);
+//                 }
+//             }
+//             "paragraph" => {}
+//             _ => {}
+//         }
+//     }
+//
+//     Ok(())
+// }
+//
+// async fn materialize_outline(updates: &[Vec<u8>]) -> eyre::Result<Outline> {
+//     let mut ydoc = Doc::new();
+//     let mut txn = ydoc.transact_mut();
+//
+//     for update in updates {
+//         txn.apply_update(Update::decode_v2(update)?);
+//     }
+//
+//     txn.commit();
+//
+//     let map = ydoc.get_or_insert_map("potrin");
+//
+//     let parent_id = map.get(&txn, "parentId").ok_or_eyre("")?.cast::<String>()?;
+//     let fractional_index = map
+//         .get(&txn, "fractional_index")
+//         .ok_or_eyre("")?
+//         .cast::<String>()?;
+//     let doc = map
+//         .get(&txn, "doc")
+//         .ok_or_eyre("")?
+//         .cast::<XmlFragmentRef>()?;
+//     let links = map.get(&txn, "links").ok_or_eyre("")?.cast::<MapRef>()?;
+//     let hidden = map.get(&txn, "hidden").ok_or_eyre("")?.cast::<bool>()?;
+//     let collapsed = map.get(&txn, "collapsed").ok_or_eyre("")?.cast::<bool>()?;
+//     let deleted = map.get(&txn, "deleted").ok_or_eyre("")?.cast::<bool>()?;
+//
+//     Ok()
+// }
+//
+// async fn materialize_paragraph(updates: &[Vec<u8>]) -> Paragraph {}

@@ -62,6 +62,12 @@ impl From<Vec<u8>> for BytesBase64URL {
     }
 }
 
+impl From<BytesBase64URL> for Vec<u8> {
+    fn from(value: BytesBase64URL) -> Self {
+        value.0
+    }
+}
+
 impl Serialize for BytesBase64URL {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -123,6 +129,12 @@ impl<'r> Encode<'r, Sqlite> for BytesBase64URL {
     ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
         let bytes = self.0.to_vec();
         <&Vec<u8> as Encode<Sqlite>>::encode(&bytes, buf)
+    }
+}
+
+impl AsRef<[u8]> for BytesBase64URL {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 

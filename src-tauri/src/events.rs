@@ -38,6 +38,7 @@ pub struct WorkspaceStateChange {
     pub patch: String,
 }
 
+#[allow(dead_code)]
 impl WorkspaceStateChange {
     pub fn new(patch: String) -> Self {
         WorkspaceStateChange { patch }

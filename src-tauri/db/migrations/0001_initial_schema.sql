@@ -159,7 +159,7 @@ CREATE TABLE y_updates (
   author BLOB, -- implicitly referes to users(id)
   data BLOB NOT NULL,
   version_id BLOB REFERENCES versions(id) ON DELETE RESTRICT,
-  created_at INTEGER NOT NULL,
+  timestamp INTEGER NOT NULL,
   from_remote INTEGER NOT NULL
 ) STRICT;
 
@@ -209,6 +209,7 @@ END;
 */
 CREATE TABLE pending_y_updates (
   y_doc_id BLOB NOT NULL,
+  timestamp INTEGER NOT NULL,
   data BLOB NOT NULL
 ) STRICT;
 
@@ -220,8 +221,7 @@ FOR EACH ROW
 BEGIN
   DELETE FROM pending_y_updates
   WHERE
-    y_doc_id = NEW.y_doc_id
-    AND from_remote = 0;
+    y_doc_id = NEW.y_doc_id;
 END;
 
 

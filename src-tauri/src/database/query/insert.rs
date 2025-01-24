@@ -6,6 +6,8 @@ use eyre::OptionExt;
 use sqlx::SqliteExecutor;
 
 pub mod from_local {
+    use chrono::Utc;
+
     use crate::types::util::BytesBase64URL;
     use crate::types::util::UUIDv7Base64URL;
 
@@ -23,16 +25,11 @@ pub mod from_local {
         super::version(conn, pot_id, version_id, false).await
     }
 
-    pub async fn y_updates<'a, E>(
-        conn: E,
-        y_updates: &[YUpdate],
-        version_id: Option<UUIDv7Base64URL>,
-        timestamp: i64,
-    ) -> eyre::Result<Vec<i64>>
+    pub async fn y_updates<'a, E>(conn: E, y_updates: &[YUpdate]) -> eyre::Result<Vec<i64>>
     where
         E: SqliteExecutor<'a>,
     {
-        super::y_updates(conn, y_updates, version_id, timestamp, false).await
+        super::y_updates(conn, y_updates, false).await
     }
 
     pub async fn pending_y_update<'a, E>(
@@ -43,13 +40,16 @@ pub mod from_local {
     where
         E: SqliteExecutor<'a>,
     {
+        let now = Utc::now().timestamp_millis();
+
         sqlx::query!(
             r#"
-                INSERT INTO pending_y_updates (y_doc_id, data)
-                VALUES (?, ?);
+                INSERT INTO pending_y_updates (y_doc_id, data, timestamp)
+                VALUES (?, ?, ?);
             "#,
             y_doc_id,
-            y_update
+            y_update,
+            now
         )
         .execute(conn)
         .await?;
@@ -149,8 +149,6 @@ where
 async fn y_updates<'a, E>(
     conn: E,
     y_updates: &[YUpdate],
-    version_id: Option<UUIDv7Base64URL>,
-    timestamp: i64,
     from_remote: bool,
 ) -> eyre::Result<Vec<i64>>
 where
@@ -164,7 +162,7 @@ where
 
     let query = format!(
         r#"
-            INSERT INTO y_updates (id, y_doc_id, data, version_id, created_at, from_remote)
+            INSERT OR IGNORE INTO y_updates (id, y_doc_id, data, version_id, timestamp, from_remote)
             VALUES {}
             RETURNING (
               SELECT rowid FROM operation_logs WHERE primary_key = id
@@ -183,8 +181,8 @@ where
         query_builder = query_builder.bind(update.id);
         query_builder = query_builder.bind(update.y_doc_id);
         query_builder = query_builder.bind(&update.data);
-        query_builder = query_builder.bind(version_id);
-        query_builder = query_builder.bind(timestamp);
+        query_builder = query_builder.bind(update.version_id);
+        query_builder = query_builder.bind(update.timestamp);
         query_builder = query_builder.bind(from_remote);
     }
 

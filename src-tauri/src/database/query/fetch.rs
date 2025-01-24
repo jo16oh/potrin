@@ -3,7 +3,7 @@ use crate::{
     types::{
         model::{
             Ancestor, LinkCount, Oplog, Outline, OutlineForIndex, Paragraph, ParagraphForIndex,
-            Path, Pot, RawParagraph, RawParagraphForIndex, YUpdate,
+            Path, PendingYUpdate, Pot, RawParagraph, RawParagraphForIndex, YUpdate,
         },
         util::{BytesBase64URL, UUIDv7Base64URL},
     },
@@ -93,7 +93,7 @@ pub async fn y_updates_by_id(
 ) -> Result<Vec<YUpdate>> {
     let query = format!(
         r#"
-            SELECT id, y_doc_id, data
+            SELECT id, y_doc_id, data, timestamp, version_id
             FROM y_updates
             WHERE id IN ({});
         "#,
@@ -1162,7 +1162,7 @@ pub async fn recursive_relation_count(
 pub async fn unversioned_y_updates(pool: &SqlitePool) -> Result<Vec<YUpdate>> {
     sqlx::query_as::<_, YUpdate>(
         r#"
-            SELECT id, y_doc_id, data
+            SELECT id, y_doc_id, data, timestamp, version_id
             FROM y_updates
             WHERE version_id IS NULL;
         "#,
@@ -1194,4 +1194,18 @@ pub async fn oplogs_by_rowid(pool: &SqlitePool, rowids: &[i64]) -> Result<Vec<Op
     }
 
     query_builder.fetch_all(pool).await.map_err(|e| e.into())
+}
+
+#[allow(dead_code)]
+pub async fn pending_y_updates(pool: &SqlitePool) -> Result<Vec<PendingYUpdate>> {
+    sqlx::query_as::<_, PendingYUpdate>(
+        r#"
+            SELECT id, type AS doc_type, data, timestamp
+            FROM pending_y_updates
+            JOIN y_docs ON y_docs.id = pending_y_updates.y_doc_id;
+        "#,
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.into())
 }

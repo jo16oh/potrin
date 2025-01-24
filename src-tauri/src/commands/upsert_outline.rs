@@ -7,6 +7,7 @@ use crate::types::util::{BytesBase64URL, UUIDv7Base64URL};
 use crate::utils::{get_rw_state, get_state};
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime, Window};
+use yrs::merge_updates_v2;
 
 #[tauri::command]
 #[specta::specta]
@@ -39,10 +40,8 @@ async fn upsert_outline_impl<R: Runtime>(
     let app_state = lock.read().await;
     let user_id = app_state.user.as_ref().map(|u| u.id);
 
-    let y_updates = y_updates
-        .into_iter()
-        .map(|data| YUpdate::new(outline.id, data))
-        .collect::<Vec<YUpdate>>();
+    let y_update = merge_updates_v2(y_updates)
+        .map(|data| YUpdate::new(outline.id, data.into(), None, outline.updated_at))?;
 
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
@@ -51,9 +50,7 @@ async fn upsert_outline_impl<R: Runtime>(
     let mut rowids: Vec<i64> = vec![];
 
     insert::from_local::y_doc(&mut *tx, "outline", outline.id, pot_id, user_id).await?;
-    rowids.extend(
-        insert::from_local::y_updates(&mut *tx, &y_updates, None, outline.updated_at).await?,
-    );
+    rowids.extend(insert::from_local::y_updates(&mut *tx, &[y_update]).await?);
     rowids.push(upsert::outline(&mut *tx, outline).await?);
     upsert_or_delete::outline_links(&mut tx, outline.id, &outline.links).await?;
 

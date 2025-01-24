@@ -276,14 +276,23 @@ pub struct YUpdate {
     pub id: UUIDv7Base64URL,
     pub y_doc_id: UUIDv7Base64URL,
     pub data: BytesBase64URL,
+    pub version_id: Option<UUIDv7Base64URL>,
+    pub timestamp: i64,
 }
 
 impl YUpdate {
-    pub fn new(y_doc_id: UUIDv7Base64URL, data: BytesBase64URL) -> Self {
+    pub fn new(
+        y_doc_id: UUIDv7Base64URL,
+        data: BytesBase64URL,
+        version_id: Option<UUIDv7Base64URL>,
+        timestamp: i64,
+    ) -> Self {
         YUpdate {
             id: UUIDv7Base64URL::new(),
             y_doc_id,
             data,
+            version_id,
+            timestamp,
         }
     }
 }
@@ -385,6 +394,7 @@ impl<'r> Decode<'r, Sqlite> for Links {
     }
 }
 
+#[allow(dead_code)]
 #[derive(FromRow)]
 pub struct Oplog {
     pub rowid: i64,
@@ -393,4 +403,13 @@ pub struct Oplog {
     pub operation: String,
     pub updated_at: i64,
     pub status: Option<Vec<u8>>,
+}
+
+#[allow(dead_code)]
+#[derive(FromRow)]
+pub struct PendingYUpdate {
+    pub y_doc_id: UUIDv7Base64URL,
+    pub doc_type: String,
+    pub data: BytesBase64URL,
+    pub timestamp: i64,
 }
