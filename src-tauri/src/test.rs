@@ -5,6 +5,21 @@ use tauri::test::MockRuntime;
 use tauri::test::{mock_builder, mock_context, noop_assets};
 use tauri::App;
 
+#[test]
+fn generate_specta() {
+    let specta_builder = tauri_specta::Builder::<tauri::Wry>::new()
+        .commands(commands::commands())
+        .events(events::events())
+        .error_handling(tauri_specta::ErrorHandlingMode::Result);
+
+    let result = specta_builder.export(
+        Typescript::default().bigint(specta_typescript::BigIntExportBehavior::Number),
+        "../src/generated/tauri-commands.ts",
+    );
+
+    assert!(result.is_ok());
+}
+
 pub fn mock_app() -> App<MockRuntime> {
     let specta_builder = tauri_specta::Builder::<MockRuntime>::new().events(events::events());
     mock_builder()
