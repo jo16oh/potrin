@@ -862,7 +862,7 @@ pub async fn relation_forward(
                     outlines.updated_at
                 FROM outlines
                 INNER JOIN paragraph_links ON paragraph_links.id_to = outlines.id
-                LEFT JOIN outline_links ON outlines.id = outline_links.id_from
+                LEFT JOIN outline_links ON outlines.id = outline_links.id_to
                 LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
                 WHERE paragraph_links.id_from IN ({}) AND outlines.deleted = false
                 GROUP BY id;
