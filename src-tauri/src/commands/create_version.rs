@@ -59,9 +59,15 @@ async fn create_version_impl<R: tauri::Runtime>(
         })
         .collect::<eyre::Result<Vec<YUpdate>>>()?;
 
+    let updated_doc_ids = merged_updates
+        .iter()
+        .map(|u| u.y_doc_id)
+        .collect::<Vec<UUIDv7Base64URL>>();
+
     delete::y_updates(&mut *tx, &unversioned_update_ids).await?;
     insert::from_local::version(&mut *tx, pot_id, version_id).await?;
     insert::from_local::y_updates(&mut *tx, &merged_updates).await?;
+    insert::y_doc_trees_of_version(&mut *tx, &updated_doc_ids, version_id).await?;
 
     tx.commit().await?;
 

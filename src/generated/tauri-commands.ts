@@ -101,9 +101,9 @@ async fetchRelationCount(outlineIds: UUIDv7Base64URL[], paragraphIds: UUIDv7Base
     else return { status: "error", error: e  as any };
 }
 },
-async fetchPath(parentId: UUIDv7Base64URL) : Promise<Result<Path, PotrinError>> {
+async fetchPath(outlineId: UUIDv7Base64URL) : Promise<Result<Path | null, PotrinError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("fetch_path", { parentId }) };
+    return { status: "ok", data: await TAURI_INVOKE("fetch_path", { outlineId }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

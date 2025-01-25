@@ -216,3 +216,91 @@ where
     .await?
     .ok_or_eyre("failed to insert into oplog")
 }
+
+pub async fn y_doc_trees_of_version<'a, E>(
+    conn: E,
+    y_doc_ids: &[UUIDv7Base64URL],
+    version_id: UUIDv7Base64URL,
+) -> eyre::Result<()>
+where
+    E: SqliteExecutor<'a>,
+{
+    let query = format!(
+        r#"
+            WITH RECURSIVE docs AS (
+                SELECT id, type
+                FROM y_docs
+                WHERE id IN ({})
+            ),
+            updated AS (
+                SELECT outlines.id, outlines.parent_id
+                FROM outlines
+                INNER JOIN docs ON outlines.id = docs.id AND type = 'outline'
+                UNION
+                SELECT outlines.id, outlines.parent_id
+                FROM paragraphs
+                INNER JOIN docs ON paragraphs.id = docs.id AND type = 'paragraph'
+                INNER JOIN outlines ON outlines.id = paragraphs.outline_id
+            ),
+            ancestors AS (
+                SELECT id, parent_id
+                FROM outlines
+                WHERE id IN ((
+                    SELECT parent_id 
+                    FROM updated
+                ))
+                UNION
+                SELECT parent.id, parent.parent_id
+                FROM outlines AS parent
+                INNER JOIN ancestors AS child ON child.parent_id = parent.id
+            ),
+            descendants AS (
+                SELECT id, parent_id
+                FROM outlines
+                WHERE parent_id IN ((
+                    SELECT id 
+                    FROM updated
+                ))
+                UNION ALL
+                SELECT child.id, child.parent_id
+                FROM outlines AS child
+                INNER JOIN descendants AS parent ON child.parent_id = parent.id
+            )
+            INSERT OR IGNORE INTO y_doc_trees_as_of_version
+            SELECT ? AS version_id, id, parent_id
+            FROM updated
+            UNION ALL
+            SELECT ? AS version_id, id, parent_id
+            FROM ancestors
+            UNION  ALL
+            SELECT ? AS version_id, id, parent_id
+            FROM descendants
+            UNION ALL
+            SELECT ? AS version_id, paragraphs.id, outline_id AS parent_id
+            FROM paragraphs
+            INNER JOIN updated ON updated.id = paragraphs.outline_id
+            INNER JOIN ancestors ON ancestors.id = paragraphs.outline_id
+            INNER JOIN descendants ON descendants.id = paragraphs.outline_id;
+        "#,
+        y_doc_ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<&str>>()
+            .join(", ")
+    );
+
+    let mut query_builder = sqlx::query::<_>(&query);
+
+    for id in y_doc_ids.iter() {
+        query_builder = query_builder.bind(id);
+    }
+
+    query_builder = query_builder.bind(version_id);
+    query_builder = query_builder.bind(version_id);
+    query_builder = query_builder.bind(version_id);
+    query_builder = query_builder.bind(version_id);
+
+    query_builder.execute(conn).await?;
+
+    Ok(())
+}

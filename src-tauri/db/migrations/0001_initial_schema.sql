@@ -299,6 +299,19 @@ CREATE TABLE version_heads (
 
 
 /*
+  This table holds the entire tree containing the documents that have changed
+  between the previous version and the current version. This table will be 
+  referenced when restoring the document tree as of the selected version.
+*/
+CREATE TABLE y_doc_trees_as_of_version (
+  version_id BLOB REFERENCES versions(id) ON DELETE CASCADE,
+  y_doc_id BLOB REFERENCES y_docs(id) ON DELETE CASCADE,
+  parent_id BLOB REFERENCES y_docs(id) ON DELETE CASCADE,
+  PRIMARY KEY (version_id, y_doc_id)
+) STRICT;
+
+
+/*
   Mark previous head as `prev_version` of the newly inserted update.
 */
 CREATE TRIGGER insert_prev_versions$before_insert_versions
