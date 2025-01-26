@@ -23,12 +23,16 @@ pub async fn upsert_paragraph<R: Runtime>(
     let app_state = lock.read().await;
     let pot_id: UUIDv7Base64URL = window.label().try_into()?;
     let user_id = app_state.user.as_ref().map(|u| u.id);
-    let rowids = upsert_paragraph_impl(&app_handle, pot_id, user_id, &paragraph, y_updates).await?;
 
-    let reconciler = get_state::<R, Reconciler>(&app_handle)?;
-    reconciler
-        .send(DatabaseChange::new(rowids, Origin::local(window.label())))
-        .await?;
+    upsert_paragraph_impl(
+        &app_handle,
+        pot_id,
+        user_id,
+        &paragraph,
+        y_updates,
+        window.label(),
+    )
+    .await?;
 
     eyre::Ok(())
 }
@@ -39,7 +43,8 @@ async fn upsert_paragraph_impl<R: Runtime>(
     user_id: Option<UUIDv7Base64URL>,
     paragraph: &Paragraph,
     y_updates: Vec<BytesBase64URL>,
-) -> eyre::Result<Vec<i64>> {
+    label: &str,
+) -> eyre::Result<()> {
     let y_update = merge_updates_v2(y_updates)
         .map(|data| YUpdate::new(paragraph.id, data.into(), None, paragraph.updated_at))?;
 
@@ -49,7 +54,7 @@ async fn upsert_paragraph_impl<R: Runtime>(
 
     let mut rowids: Vec<i64> = vec![];
 
-    insert::from_local::y_doc(&mut *tx, "outline", paragraph.id, pot_id, user_id).await?;
+    insert::from_local::y_doc(&mut *tx, "paragraph", paragraph.id, pot_id, user_id).await?;
     rowids.extend(insert::from_local::y_updates(&mut *tx, &[y_update]).await?);
     rowids.push(upsert::paragraph(&mut *tx, paragraph).await?);
     upsert_or_delete::paragraph_links(&mut tx, paragraph.id, &paragraph.links).await?;
@@ -57,7 +62,12 @@ async fn upsert_paragraph_impl<R: Runtime>(
 
     tx.commit().await?;
 
-    Ok(rowids)
+    let reconciler = get_state::<R, Reconciler>(app_handle)?;
+    reconciler
+        .send(DatabaseChange::new(rowids, Origin::local(label)))
+        .await?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -69,7 +79,7 @@ pub mod test {
         pot_id: UUIDv7Base64URL,
         paragraph: &Paragraph,
         y_updates: Vec<BytesBase64URL>,
-    ) -> eyre::Result<Vec<i64>> {
-        upsert_paragraph_impl(app_handle, pot_id, None, paragraph, y_updates).await
+    ) -> eyre::Result<()> {
+        upsert_paragraph_impl(app_handle, pot_id, None, paragraph, y_updates, "test").await
     }
 }

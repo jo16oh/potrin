@@ -3,7 +3,7 @@ use derive_more::derive::Deref;
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use sqlx::{sqlite::SqliteValueRef, Database, Decode, FromRow, Sqlite};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -331,6 +331,29 @@ impl Path {
     pub fn new() -> Self {
         Self(Vec::new())
     }
+
+    pub fn inner(&self) -> &[Link] {
+        &self.0
+    }
+}
+
+impl Path {
+    pub fn replace_ancestors_with(&mut self, path: &Path) {
+        let len = path.0.len();
+        self.0.splice(0..len, path.0.clone());
+    }
+}
+
+impl From<Vec<Link>> for Path {
+    fn from(value: Vec<Link>) -> Self {
+        Self(value)
+    }
+}
+
+impl From<VecDeque<Link>> for Path {
+    fn from(value: VecDeque<Link>) -> Self {
+        Self(value.into())
+    }
 }
 
 impl sqlx::Type<Sqlite> for Path {
@@ -412,4 +435,11 @@ pub struct PendingYUpdate {
     pub doc_type: String,
     pub data: BytesBase64URL,
     pub timestamp: i64,
+}
+
+#[derive(FromRow)]
+pub struct Descendant {
+    pub id: UUIDv7Base64URL,
+    pub parent_id: UUIDv7Base64URL,
+    pub path: Option<Path>,
 }

@@ -2,8 +2,9 @@ use crate::{
     search_engine::DeleteTarget,
     types::{
         model::{
-            Ancestor, LinkCount, Oplog, Outline, OutlineForIndex, Paragraph, ParagraphForIndex,
-            Path, PendingYUpdate, Pot, RawParagraph, RawParagraphForIndex, YUpdate,
+            Ancestor, Descendant, LinkCount, Oplog, Outline, OutlineForIndex, Paragraph,
+            ParagraphForIndex, Path, PendingYUpdate, Pot, RawParagraph, RawParagraphForIndex,
+            YUpdate,
         },
         util::{BytesBase64URL, UUIDv7Base64URL},
     },
@@ -19,11 +20,11 @@ pub async fn pots(pool: &SqlitePool) -> Result<Vec<Pot>> {
         .map_err(eyre::Error::from)
 }
 
-pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Path> {
+pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Option<Path>> {
     let query = r#"
         SELECT path
         FROM outline_paths
-        WHERE id = ?;
+        WHERE outline_id = ?;
     "#;
 
     let mut query_builder = sqlx::query_scalar::<_, Path>(query);
@@ -31,12 +32,15 @@ pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Path
     query_builder = query_builder.bind(outline_id);
 
     query_builder
-        .fetch_one(pool)
+        .fetch_optional(pool)
         .await
-        .map_err(eyre::Error::from)
+        .map_err(|e| e.into())
 }
 
-pub async fn ancestors(pool: &SqlitePool, parent_ids: &[UUIDv7Base64URL]) -> Result<Vec<Ancestor>> {
+pub async fn self_and_its_ancestors(
+    pool: &SqlitePool,
+    parent_ids: &[UUIDv7Base64URL],
+) -> Result<Vec<Ancestor>> {
     let query = format!(
         r#"
             WITH RECURSIVE ancestors AS (
@@ -47,10 +51,10 @@ pub async fn ancestors(pool: &SqlitePool, parent_ids: &[UUIDv7Base64URL]) -> Res
                 UNION
                 SELECT
                     parent.id, parent.parent_id, parent.text, parent.hidden
-                FROM path AS child
+                FROM outlines AS child
                 INNER JOIN outlines AS parent ON parent.id = child.parent_id
             )
-            SELECT id, parent_id, text, hidden FROM path;
+            SELECT id, parent_id, text, hidden FROM ancestors;
         "#,
         parent_ids
             .iter()
@@ -179,7 +183,10 @@ pub async fn paragraphs_for_index_by_id(
                 quotes.version_id AS quoted_version_id,
                 quotes.doc AS quoted_doc,
                 quoted_paragraphs.doc AS latest_quoted_doc,
-                path.path,
+                COALESCE(
+                    path.path,
+                    jsonb_array()
+                ) AS path,
                 jsonb_group_array(links.path) AS links,
                 paragraphs.hidden,
                 paragraphs.deleted,
@@ -191,7 +198,7 @@ pub async fn paragraphs_for_index_by_id(
             LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths AS path ON paragraphs.outline_id = path.outline_id
             LEFT JOIN outline_paths AS links ON paragraph_links.id_to = links.outline_id
-            WHERE id IN ({}) AND paragraphs.deleted = false
+            WHERE paragraphs.id IN ({}) AND paragraphs.deleted = false
             GROUP BY paragraphs.id;
         "#,
         paragraph_ids
@@ -444,6 +451,48 @@ pub async fn descendant_ids(
     Ok((outline_ids, paragraph_ids))
 }
 
+pub async fn descendants(
+    pool: &SqlitePool,
+    outline_ids: &[UUIDv7Base64URL],
+) -> Result<Vec<Descendant>> {
+    let query = format!(
+        r#"
+            WITH RECURSIVE descendants AS (
+                SELECT
+                    id,
+                    parent_id
+                FROM outlines
+                WHERE parent_id IN ({})
+                UNION ALL
+                SELECT
+                    child.id,
+                    child.parent_id
+                FROM outlines AS child
+                INNER JOIN descendants AS parent ON parent.id = child.parent_id
+            )
+            SELECT 
+                id,
+                parent_id,
+                path
+            FROM descendants
+            INNER JOIN outline_paths ON outline_paths.outline_id = descendants.id;
+        "#,
+        outline_ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<&str>>()
+            .join(", ")
+    );
+
+    let mut query_builder = sqlx::query_as::<_, Descendant>(&query);
+
+    for id in outline_ids.iter() {
+        query_builder = query_builder.bind(id);
+    }
+
+    query_builder.fetch_all(pool).await.map_err(|e| e.into())
+}
+
 pub async fn outline_trees(
     pool: &SqlitePool,
     root_ids: &[UUIDv7Base64URL],
@@ -638,25 +687,28 @@ pub async fn outlines_for_index_by_id(
     let query = format!(
         r#"
             SELECT
-                id,
+                outlines.id,
                 y_docs.pot_id,
-                parent_id,
-                fractional_index,
-                doc,
-                text,
-                outline_paths.path,
+                outlines.parent_id,
+                outlines.fractional_index,
+                outlines.doc,
+                outlines.text,
+                COALESCE(
+                    path.path,
+                    jsonb_array()
+                ) AS path,
                 jsonb_group_array(links.path) AS links,
-                hidden,
-                collapsed,
-                deleted,
-                created_at,
-                updated_at
+                outlines.hidden,
+                outlines.collapsed,
+                outlines.deleted,
+                outlines.created_at,
+                outlines.updated_at
             FROM outlines
             INNER JOIN y_docs ON outlines.id = y_docs.id
             LEFT JOIN outline_links ON outlines.id = outline_links.id_from
             LEFT JOIN outline_paths AS path ON path.outline_id = outlines.id
             LEFT JOIN outline_paths AS links ON links.outline_id = outline_links.id_to
-            WHERE id IN ({}) AND deleted = false
+            WHERE outlines.id IN ({}) AND deleted = false
             GROUP BY outlines.id;
         "#,
         outline_ids

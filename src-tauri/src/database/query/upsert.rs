@@ -124,7 +124,13 @@ where
             .join(", ")
     );
 
-    let query_builder = sqlx::query::<_>(&query);
+    let mut query_builder = sqlx::query::<_>(&query);
+
+    for (outline_id, path) in values {
+        query_builder = query_builder.bind(outline_id);
+        query_builder = query_builder.bind(path);
+    }
+
     query_builder.execute(conn).await?;
 
     Ok(())

@@ -20,12 +20,7 @@ pub async fn upsert_outline<R: Runtime>(
     y_updates: Vec<BytesBase64URL>,
 ) -> eyre::Result<()> {
     let pot_id = window.label().try_into()?;
-    let rowids = upsert_outline_impl(&app_handle, pot_id, &outline, y_updates).await?;
-
-    let reconciler = get_state::<R, Reconciler>(&app_handle)?;
-    reconciler
-        .send(DatabaseChange::new(rowids, Origin::local(window.label())))
-        .await?;
+    upsert_outline_impl(&app_handle, pot_id, &outline, y_updates, window.label()).await?;
 
     eyre::Ok(())
 }
@@ -35,7 +30,8 @@ async fn upsert_outline_impl<R: Runtime>(
     pot_id: UUIDv7Base64URL,
     outline: &Outline,
     y_updates: Vec<BytesBase64URL>,
-) -> eyre::Result<Vec<i64>> {
+    window_label: &str,
+) -> eyre::Result<()> {
     let lock = get_rw_state::<R, AppState>(app_handle)?;
     let app_state = lock.read().await;
     let user_id = app_state.user.as_ref().map(|u| u.id);
@@ -45,9 +41,9 @@ async fn upsert_outline_impl<R: Runtime>(
 
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
-    let mut tx = pool.begin().await?;
-
     let mut rowids: Vec<i64> = vec![];
+
+    let mut tx = pool.begin().await?;
 
     insert::from_local::y_doc(&mut *tx, "outline", outline.id, pot_id, user_id).await?;
     rowids.extend(insert::from_local::y_updates(&mut *tx, &[y_update]).await?);
@@ -56,7 +52,12 @@ async fn upsert_outline_impl<R: Runtime>(
 
     tx.commit().await?;
 
-    Ok(rowids)
+    let reconciler = get_state::<R, Reconciler>(app_handle)?;
+    reconciler
+        .send(DatabaseChange::new(rowids, Origin::local(window_label)))
+        .await?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -68,7 +69,7 @@ pub mod test {
         pot_id: UUIDv7Base64URL,
         outline: &Outline,
         y_updates: Vec<BytesBase64URL>,
-    ) -> eyre::Result<Vec<i64>> {
-        upsert_outline_impl(app_handle, pot_id, outline, y_updates).await
+    ) -> eyre::Result<()> {
+        upsert_outline_impl(app_handle, pot_id, outline, y_updates, "test").await
     }
 }

@@ -4,7 +4,9 @@ use crate::{
     search_engine::{add_index, remove_index, DeleteTarget, IndexTarget},
     types::{
         error::PotrinError,
-        model::{Ancestor, Link, Oplog, OutlineForIndex, ParagraphForIndex, YUpdate},
+        model::{
+            Ancestor, Descendant, Link, Oplog, OutlineForIndex, ParagraphForIndex, Path, YUpdate,
+        },
         util::UUIDv7Base64URL,
     },
     utils::get_state,
@@ -147,15 +149,15 @@ async fn process_outline_changes<R: Runtime>(
                     })
                     .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
-                    .filter(|(_, deleted)| *deleted)
+                    .filter(|(_, deleted)| !*deleted)
                     .map(|(log, _)| log.primary_key)
                     .collect();
 
                 if !inserted_ids.is_empty() {
-                    update_path(pool, &inserted_ids).await?;
-
                     let inserted_outlines =
                         fetch::outlines_for_index_by_id(pool, &inserted_ids).await?;
+
+                    upsert_path(pool, &inserted_ids).await?;
 
                     add_index(
                         app_handle,
@@ -213,10 +215,10 @@ async fn process_outline_changes<R: Runtime>(
                     });
 
                 if !updated_ids.is_empty() {
-                    update_path(pool, &updated_ids).await?;
-
                     let updated_outlines =
                         fetch::outlines_for_index_by_id(pool, &updated_ids).await?;
+
+                    upsert_path(pool, &updated_ids).await?;
 
                     add_index(
                         app_handle,
@@ -257,16 +259,19 @@ async fn process_outline_changes<R: Runtime>(
                 }
 
                 if !deleted_ids.is_empty() {
-                    update_path(pool, &deleted_ids).await?;
-
                     let delete_targets = fetch::outline_delete_targets(pool, &deleted_ids).await?;
+                    upsert_path(pool, &deleted_ids).await?;
                     remove_index(app_handle, delete_targets).await?;
 
                     OutlineChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
                 }
             }
             "delete" => {
-                let deleted_ids = logs.iter().map(|l| l.primary_key).collect();
+                let deleted_ids = logs
+                    .iter()
+                    .map(|l| l.primary_key)
+                    .collect::<Vec<UUIDv7Base64URL>>();
+
                 let delete_targets = logs
                     .into_iter()
                     .map(|log| {
@@ -283,6 +288,7 @@ async fn process_outline_changes<R: Runtime>(
                     })
                     .collect::<eyre::Result<Vec<DeleteTarget>>>()?;
 
+                upsert_path(pool, &deleted_ids).await?;
                 remove_index(app_handle, delete_targets).await?;
 
                 OutlineChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
@@ -319,7 +325,7 @@ async fn process_paragraph_changes<R: Runtime>(
                     })
                     .collect::<eyre::Result<Vec<_>>>()?
                     .into_iter()
-                    .filter(|(_, deleted)| *deleted)
+                    .filter(|(_, deleted)| !*deleted)
                     .map(|(log, _)| log.primary_key)
                     .collect();
 
@@ -461,46 +467,158 @@ async fn process_paragraph_changes<R: Runtime>(
     Ok(())
 }
 
-async fn update_path(pool: &SqlitePool, outline_ids: &[UUIDv7Base64URL]) -> eyre::Result<()> {
-    let outlines = fetch::outline_trees(pool, outline_ids, None).await?;
-    let ancestors: HashMap<UUIDv7Base64URL, Ancestor> = fetch::ancestors(
-        pool,
-        &outlines
+async fn upsert_path(
+    pool: &SqlitePool,
+    changed_outline_ids: &[UUIDv7Base64URL],
+) -> eyre::Result<()> {
+    let updated_paths_map = {
+        let self_and_its_ancestors: HashMap<UUIDv7Base64URL, Ancestor> =
+            fetch::self_and_its_ancestors(pool, changed_outline_ids)
+                .await?
+                .into_iter()
+                .map(|a| (a.id, a))
+                .collect();
+
+        changed_outline_ids
             .iter()
-            .map(|o| o.id)
-            .collect::<Vec<UUIDv7Base64URL>>(),
-    )
-    .await?
-    .into_iter()
-    .map(|a| (a.id, a))
-    .collect();
+            .map(|id| {
+                let mut path: VecDeque<Link> = VecDeque::new();
+                let mut current_id = Some(id);
 
-    let path = outlines
+                while let Some(id) = current_id.as_ref() {
+                    if let Some(ancestor) = self_and_its_ancestors.get(id) {
+                        current_id = ancestor.parent_id.as_ref();
+                        path.push_front(Link {
+                            id: ancestor.id,
+                            text: ancestor.text.clone(),
+                            hidden: ancestor.hidden,
+                        });
+                    } else {
+                        break;
+                    }
+                }
+
+                (*id, Path::from(path))
+            })
+            .collect::<HashMap<UUIDv7Base64URL, Path>>()
+    };
+
+    let mut parent_children_map = fetch::descendants(pool, changed_outline_ids)
+        .await?
         .into_iter()
-        .map(|outline| {
-            let mut path: VecDeque<Link> = VecDeque::new();
-            let mut current_id = outline.parent_id;
+        .map(|d| (d.parent_id, d))
+        .into_group_map();
 
-            while let Some(id) = current_id.as_ref() {
-                if let Some(ancestor) = ancestors.get(id) {
-                    current_id = ancestor.parent_id;
-                    path.push_front(Link {
-                        id: ancestor.id,
-                        text: ancestor.text.clone(),
-                        hidden: ancestor.hidden,
-                    });
-                } else {
-                    break;
+    let mut results = vec![];
+
+    for (id, path) in updated_paths_map.into_iter() {
+        results.push((id, serde_sqlite_jsonb::to_vec(&path)?));
+        update_descendants_paths_recursively(&mut results, id, &path, &mut parent_children_map)?;
+    }
+
+    fn update_descendants_paths_recursively(
+        results: &mut Vec<(UUIDv7Base64URL, Vec<u8>)>,
+        parent_id: UUIDv7Base64URL,
+        path: &Path,
+        descendants_map: &mut HashMap<UUIDv7Base64URL, Vec<Descendant>>,
+    ) -> eyre::Result<()> {
+        let mut children_ids = vec![];
+
+        if let Some(children) = descendants_map.get_mut(&parent_id) {
+            for c in children {
+                if let Some(ref mut p) = c.path {
+                    p.replace_ancestors_with(path);
+                    results.push((c.id, serde_sqlite_jsonb::to_vec(&p)?));
+                    children_ids.push(c.id);
                 }
             }
+        }
 
-            Ok((outline.id, serde_sqlite_jsonb::to_vec(&path)?))
-        })
-        .collect::<eyre::Result<Vec<(UUIDv7Base64URL, Vec<u8>)>>>()?;
+        for id in children_ids {
+            update_descendants_paths_recursively(results, id, path, descendants_map)?;
+        }
 
-    upsert::path(pool, &path).await?;
+        Ok(())
+    }
+
+    upsert::path(pool, &results).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use std::{thread::sleep, time::Duration};
+
+    use super::*;
+    use crate::{
+        commands::{fetch_path::fetch_path, upsert_outline::test::upsert_outline},
+        database::test::create_mock_pot,
+        run_in_mock_app,
+        types::model::Outline,
+    };
+    use tauri::test::MockRuntime;
+
+    #[test]
+    fn test_josnb_array() {
+        let empty_vec: Vec<Link> = vec![];
+        let encoded = serde_sqlite_jsonb::to_vec(&empty_vec).unwrap();
+        let decoded: Vec<Link> = serde_sqlite_jsonb::from_slice(&encoded).unwrap();
+
+        assert_eq!(decoded.len(), 0);
+    }
+
+    #[test]
+    fn test_upsert_path() {
+        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
+            test_upsert_path_impl(app_handle).await.unwrap();
+        })
+    }
+
+    async fn test_upsert_path_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pot = create_mock_pot(app_handle.clone()).await;
+
+        let o1 = Outline::new(None);
+        let o2 = Outline::new(Some(o1.id));
+        let o3 = Outline::new(Some(o2.id));
+        upsert_outline(app_handle, pot.id, &o1, vec![])
+            .await
+            .unwrap();
+        upsert_outline(app_handle, pot.id, &o2, vec![])
+            .await
+            .unwrap();
+        upsert_outline(app_handle, pot.id, &o3, vec![])
+            .await
+            .unwrap();
+
+        sleep(Duration::from_millis(100));
+
+        let path = fetch_path(app_handle.clone(), o1.id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(path.len(), 1);
+        assert_eq!(path.inner()[0].id, o1.id);
+
+        let path = fetch_path(app_handle.clone(), o2.id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(path.len(), 2);
+        assert_eq!(path.inner()[0].id, o1.id);
+        assert_eq!(path.inner()[1].id, o2.id);
+
+        let path = fetch_path(app_handle.clone(), o3.id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(path.len(), 3);
+        assert_eq!(path.inner()[0].id, o1.id);
+        assert_eq!(path.inner()[1].id, o2.id);
+        assert_eq!(path.inner()[2].id, o3.id);
+
+        eyre::Ok(())
+    }
 }
 
 // use yrs::{
