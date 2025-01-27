@@ -128,6 +128,7 @@ pub struct RawParagraph {
     pub quoted_version_id: Option<UUIDv7Base64URL>,
     pub quoted_doc: Option<String>,
     pub latest_quoted_doc: Option<String>,
+    pub quoted_path: Option<Path>,
     pub links: Links,
     pub hidden: bool,
     pub deleted: bool,
@@ -146,11 +147,13 @@ impl From<RawParagraph> for Paragraph {
                 .quoted_paragraph_id
                 .zip(value.quoted_version_id)
                 .zip(value.quoted_doc)
-                .map(|((quoted_id, version_id), doc)| Quote {
-                    id: quoted_id,
+                .zip(value.quoted_path)
+                .map(|(((id, version_id), doc), path)| Quote {
+                    id,
                     version_id,
                     doc,
                     latest_doc: value.latest_quoted_doc,
+                    path,
                 }),
             links: value.links,
             hidden: value.hidden,
@@ -206,6 +209,7 @@ pub struct RawParagraphForIndex {
     pub quoted_version_id: Option<UUIDv7Base64URL>,
     pub quoted_doc: Option<String>,
     pub latest_quoted_doc: Option<String>,
+    pub quoted_path: Option<Path>,
     pub path: Path,
     pub links: Links,
     pub hidden: bool,
@@ -226,11 +230,13 @@ impl From<RawParagraphForIndex> for ParagraphForIndex {
                 .quoted_paragraph_id
                 .zip(value.quoted_version_id)
                 .zip(value.quoted_doc)
-                .map(|((quoted_id, version_id), doc)| Quote {
-                    id: quoted_id,
+                .zip(value.quoted_path)
+                .map(|(((id, version_id), doc), path)| Quote {
+                    id,
                     version_id,
                     doc,
                     latest_doc: value.latest_quoted_doc,
+                    path,
                 }),
             path: value.path,
             links: value.links,
@@ -247,6 +253,7 @@ impl From<RawParagraphForIndex> for ParagraphForIndex {
 pub struct Quote {
     pub id: UUIDv7Base64URL,
     pub version_id: UUIDv7Base64URL,
+    pub path: Path,
     pub doc: String,
     pub latest_doc: Option<String>,
 }

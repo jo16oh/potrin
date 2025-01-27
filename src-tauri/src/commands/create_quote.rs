@@ -33,13 +33,14 @@ async fn create_quote_impl<R: Runtime>(
     let pool = get_state::<_, SqlitePool>(app_handle)?;
 
     create_version_impl(app_handle, pot_id, version_id).await?;
-    let doc = fetch::paragraphs_doc_by_id(pool, paragraph_id).await?;
+    let (doc, path) = fetch::paragraphs_doc_and_path_by_id(pool, paragraph_id).await?;
 
     eyre::Ok(Quote {
         id: paragraph_id,
         latest_doc: Some(doc.clone()),
         doc,
         version_id,
+        path,
     })
 }
 

@@ -31,7 +31,7 @@ mod test {
     use crate::commands::upsert_paragraph::test::upsert_paragraph;
     use crate::database::test::create_mock_pot;
     use crate::test::run_in_mock_app;
-    use crate::types::model::{Outline, Paragraph, Quote};
+    use crate::types::model::{Outline, Paragraph, Path, Quote};
     use tauri::test::MockRuntime;
 
     #[test]
@@ -143,6 +143,7 @@ mod test {
                 version_id,
                 doc: String::new(),
                 latest_doc: Some(String::new()),
+                path: Path::new(),
             }),
         );
         upsert_paragraph(app_handle, pot_id, &c1, vec![])
@@ -249,6 +250,7 @@ mod test {
                 version_id,
                 doc: String::new(),
                 latest_doc: Some(String::new()),
+                path: Path::new(),
             }),
         );
         upsert_paragraph(app_handle, pot_id, &c2, vec![])

@@ -135,6 +135,7 @@ pub async fn paragraphs_by_id(
                 quotes.version_id AS quoted_version_id,
                 quotes.doc AS quoted_doc,
                 quoted_paragraphs.doc AS latest_quoted_doc,
+                quoted_paths.path AS quoted_path,
                 jsonb_group_array(outline_paths.path) AS links,
                 paragraphs.hidden,
                 paragraphs.deleted,
@@ -143,6 +144,7 @@ pub async fn paragraphs_by_id(
             FROM paragraphs
             LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
             LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
+            LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
             LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
             WHERE id IN ({}) AND paragraphs.deleted = false
@@ -183,6 +185,7 @@ pub async fn paragraphs_for_index_by_id(
                 quotes.version_id AS quoted_version_id,
                 quotes.doc AS quoted_doc,
                 quoted_paragraphs.doc AS latest_quoted_doc,
+                quoted_paths.path AS quoted_path,
                 COALESCE(
                     path.path,
                     jsonb_array()
@@ -195,6 +198,7 @@ pub async fn paragraphs_for_index_by_id(
             FROM paragraphs
             LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
             LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
+            LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
             LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths AS path ON paragraphs.outline_id = path.outline_id
             LEFT JOIN outline_paths AS links ON paragraph_links.id_to = links.outline_id
@@ -241,6 +245,7 @@ pub async fn paragraphs_by_outline_id(
                 quotes.version_id AS quoted_version_id,
                 quotes.doc AS quoted_doc,
                 quoted_paragraphs.doc AS latest_quoted_doc,
+                quoted_paths.path AS quoted_path,
                 jsonb_group_array(outline_paths.path) AS links,
                 paragraphs.hidden,
                 paragraphs.deleted,
@@ -249,6 +254,7 @@ pub async fn paragraphs_by_outline_id(
             FROM paragraphs
             LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
             LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
+            LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
             LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
             WHERE paragraphs.outline_id IN ({}) AND paragraphs.deleted = false
@@ -292,6 +298,7 @@ pub async fn paragraphs_by_created_at(
             quotes.version_id AS quoted_version_id,
             quotes.doc AS quoted_doc,
             quoted_paragraphs.doc AS latest_quoted_doc,
+            quoted_paths.path AS quoted_path,
             jsonb_group_array(outline_paths.path) AS links,
             paragraphs.hidden,
             paragraphs.deleted,
@@ -300,6 +307,7 @@ pub async fn paragraphs_by_created_at(
         FROM paragraphs
         LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
         LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
+        LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
         LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
         LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
         WHERE ? <= created_at AND created_at < ? AND paragraphs.deleted = false
@@ -810,6 +818,7 @@ pub async fn relation_back(
                     quotes.version_id AS quoted_version_id,
                     quotes.doc AS quoted_doc,
                     quoted_paragraphs.doc AS latest_quoted_doc,
+                    quoted_paths.path AS quoted_path,
                     jsonb_group_array(outline_paths.path) AS links,
                     paragraphs.hidden,
                     paragraphs.deleted,
@@ -819,6 +828,7 @@ pub async fn relation_back(
                 INNER JOIN paragraphs ON paragraph_links.id_from = paragraphs.id
                 LEFT JOIN quotes ON quotes.paragraph_id = paragraphs.id
                 LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
+                LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
                 LEFT JOIN paragraph_links AS links_to ON paragraphs.id = links_to.id_from
                 LEFT JOIN outline_paths ON links_to.id_to = outline_paths.outline_id
                 WHERE paragraph_links.id_to IN ({}) AND paragraphs.deleted = false
@@ -833,6 +843,7 @@ pub async fn relation_back(
                     quotes_to.version_id AS quoted_version_id,
                     quotes_to.doc AS quoted_doc,
                     quoted_paragraphs.doc AS latest_quoted_doc,
+                    quoted_paths.path AS quoted_path,
                     jsonb_group_array(outline_paths.path) AS links,
                     paragraphs.hidden,
                     paragraphs.deleted,
@@ -842,6 +853,7 @@ pub async fn relation_back(
                 INNER JOIN paragraphs ON quotes.paragraph_id = paragraphs.id
                 LEFT JOIN quotes AS quotes_to ON quotes_to.paragraph_id = paragraphs.id
                 LEFT JOIN paragraphs AS quoted_paragraphs ON quotes_to.quoted_paragraph_id = paragraphs.id
+                LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
                 LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
                 LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
                 WHERE quotes.quoted_paragraph_id IN ({}) AND paragraphs.deleted = false
@@ -952,6 +964,7 @@ pub async fn relation_forward(
                     quotes_to.version_id AS quoted_version_id,
                     quotes_to.doc AS quoted_doc,
                     quoted_paragraphs.doc AS latest_quoted_doc,
+                    quoted_paths.path AS quoted_path,
                     jsonb_group_array(outline_paths.path) AS links,
                     paragraphs.hidden,
                     paragraphs.deleted,
@@ -961,6 +974,7 @@ pub async fn relation_forward(
                 INNER JOIN paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
                 LEFT JOIN quotes AS quotes_to ON quotes_to.paragraph_id = paragraphs.id
                 LEFT JOIN paragraphs AS quoted_paragraphs ON quotes_to.quoted_paragraph_id = paragraphs.id
+                LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
                 LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
                 LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
                 WHERE paragraphs.id IN ({}) AND paragraphs.deleted = false
@@ -1262,19 +1276,29 @@ pub async fn pending_y_updates(pool: &SqlitePool) -> Result<Vec<PendingYUpdate>>
     .map_err(|e| e.into())
 }
 
-pub async fn paragraphs_doc_by_id(
+pub async fn paragraphs_doc_and_path_by_id(
     pool: &SqlitePool,
     paragraph_id: UUIDv7Base64URL,
-) -> Result<String> {
-    sqlx::query_scalar!(
-        r#"
-            SELECT doc
-            FROM paragraphs
-            WHERE id = ?;
-        "#,
-        paragraph_id
-    )
-    .fetch_one(pool)
-    .await
-    .map_err(|e| e.into())
+) -> Result<(String, Path)> {
+    #[derive(FromRow)]
+    struct QueryResult {
+        doc: String,
+        path: Path,
+    }
+
+    let query = r#"
+        SELECT 
+            doc, 
+            path
+        FROM paragraphs
+        INNER JOIN outline_paths ON paragraphs.outline_id = outline_paths.outline_id
+        WHERE id = ?;
+    "#;
+
+    sqlx::query_as::<_, QueryResult>(query)
+        .bind(paragraph_id)
+        .fetch_one(pool)
+        .await
+        .map(|r| (r.doc, r.path))
+        .map_err(|e| e.into())
 }
