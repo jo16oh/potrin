@@ -1,5 +1,6 @@
 pub mod app_version;
 pub mod create_pot;
+pub mod create_quote;
 pub mod create_user;
 pub mod create_version;
 pub mod fetch_conflicting_outline_ids;
@@ -25,6 +26,7 @@ pub mod upsert_paragraph;
 pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
     tauri_specta::collect_commands![
         // create_user::create_user::<tauri::Wry>,
+        create_quote::create_quote::<tauri::Wry>,
         create_pot::create_pot::<tauri::Wry>,
         upsert_outline::upsert_outline::<tauri::Wry>,
         upsert_paragraph::upsert_paragraph::<tauri::Wry>,

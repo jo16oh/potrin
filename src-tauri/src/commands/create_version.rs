@@ -17,15 +17,15 @@ pub async fn create_version<R: tauri::Runtime>(
 ) -> eyre::Result<()> {
     let pot_id: UUIDv7Base64URL = window.label().try_into()?;
 
-    create_version_impl(app_handle, pot_id, version_id).await
+    create_version_impl(&app_handle, pot_id, version_id).await
 }
 
-async fn create_version_impl<R: tauri::Runtime>(
-    app_handle: AppHandle<R>,
+pub async fn create_version_impl<R: tauri::Runtime>(
+    app_handle: &AppHandle<R>,
     pot_id: UUIDv7Base64URL,
     version_id: UUIDv7Base64URL,
 ) -> eyre::Result<()> {
-    let pool = get_state::<R, SqlitePool>(&app_handle)?;
+    let pool = get_state::<R, SqlitePool>(app_handle)?;
     let mut tx = pool.begin().await?;
 
     let mut updates_map: HashMap<UUIDv7Base64URL, Vec<(BytesBase64URL, i64)>> = HashMap::new();
@@ -79,7 +79,7 @@ pub mod test {
     use super::*;
 
     pub async fn create_version<R: tauri::Runtime>(
-        app_handle: AppHandle<R>,
+        app_handle: &AppHandle<R>,
         pot_id: UUIDv7Base64URL,
         version_id: UUIDv7Base64URL,
     ) -> eyre::Result<()> {

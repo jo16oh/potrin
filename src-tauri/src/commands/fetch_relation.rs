@@ -117,7 +117,7 @@ mod test {
         .unwrap();
 
         let version_id = UUIDv7Base64URL::new();
-        create_version(app_handle.clone(), pot_id, version_id)
+        create_version(app_handle, pot_id, version_id)
             .await
             .unwrap();
 

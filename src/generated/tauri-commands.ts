@@ -5,6 +5,14 @@
 
 
 export const commands = {
+async createQuote(paragraphId: UUIDv7Base64URL) : Promise<Result<Quote, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("create_quote", { paragraphId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async createPot(pot: Pot) : Promise<Result<null, PotrinError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("create_pot", { pot }) };

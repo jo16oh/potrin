@@ -1261,3 +1261,20 @@ pub async fn pending_y_updates(pool: &SqlitePool) -> Result<Vec<PendingYUpdate>>
     .await
     .map_err(|e| e.into())
 }
+
+pub async fn paragraphs_doc_by_id(
+    pool: &SqlitePool,
+    paragraph_id: UUIDv7Base64URL,
+) -> Result<String> {
+    sqlx::query_scalar!(
+        r#"
+            SELECT doc
+            FROM paragraphs
+            WHERE id = ?;
+        "#,
+        paragraph_id
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(|e| e.into())
+}
