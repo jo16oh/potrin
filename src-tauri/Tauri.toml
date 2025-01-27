@@ -3,9 +3,21 @@ version = "0.0.0"
 identifier = "com.potrin.dev"
 
 [build]
-beforeDevCommand = "export DATABASE_URL='sqlite:db/dev.db' && cd src-tauri && cargo make setup-db && cd .. && pnpm dev"
+beforeDevCommand = """
+  export DATABASE_URL='sqlite:db/dev.db' && 
+  cd src-tauri &&  
+  bash ./generate-db.sh && 
+  cd .. && 
+  pnpm dev
+"""
+beforeBuildCommand = """
+  export DATABASE_URL='sqlite:db/dev.db' &&
+  cd src-tauri && 
+  bash ./generate-db.sh && 
+  cd .. && 
+  pnpm build
+"""
 devUrl = "http://localhost:1420"
-beforeBuildCommand = "export DATABASE_URL='sqlite:db/dev.db' cd src-tauri && cargo make setup-db && cd .. && pnpm build"
 frontendDist = "../build"
 
 [app]
