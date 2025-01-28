@@ -121,6 +121,9 @@ export default defineConfig({
         lg: {
           value: "1rem",
         },
+        circle: {
+          value: "50%",
+        },
       },
       shadows: {
         sm: {
