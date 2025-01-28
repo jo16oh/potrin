@@ -77,6 +77,8 @@ pub async fn create_version_impl<R: tauri::Runtime>(
 #[cfg(test)]
 pub mod test {
     use super::*;
+    use crate::{database::test::create_mock_pot, run_in_mock_app};
+    use tauri::test::MockRuntime;
 
     pub async fn create_version<R: tauri::Runtime>(
         app_handle: &AppHandle<R>,
@@ -84,5 +86,90 @@ pub mod test {
         version_id: UUIDv7Base64URL,
     ) -> eyre::Result<()> {
         create_version_impl(app_handle, pot_id, version_id).await
+    }
+
+    #[test]
+    fn test_version_triggers() {
+        run_in_mock_app!(test_version_triggers_impl);
+    }
+
+    async fn test_version_triggers_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle)?;
+        let pot = create_mock_pot(app_handle).await;
+        let v1 = UUIDv7Base64URL::new();
+        let v2 = UUIDv7Base64URL::new();
+        let v3 = UUIDv7Base64URL::new();
+        create_version(app_handle, pot.id, v1).await?;
+        create_version(app_handle, pot.id, v2).await?;
+        create_version(app_handle, pot.id, v3).await?;
+
+        let r = sqlx::query_scalar::<_, i64>(
+            r#"
+                SELECT branch_id
+                FROM versions_branch_id;
+            "#,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        assert_eq!(r.len(), 3);
+        for id in r {
+            assert_eq!(id, 0);
+        }
+
+        let r = sqlx::query_scalar::<_, UUIDv7Base64URL>(
+            r#"
+                SELECT id
+                FROM version_heads;
+            "#,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        assert_eq!(r.len(), 1);
+        assert_eq!(v3, r[0]);
+
+        let r = sqlx::query_scalar::<_, UUIDv7Base64URL>(
+            r#"
+                SELECT prev_id 
+                FROM prev_versions
+                WHERE id = ?;
+            "#,
+        )
+        .bind(v3)
+        .fetch_all(pool)
+        .await?;
+
+        assert_eq!(r.len(), 1);
+        assert_eq!(v2, r[0]);
+
+        let r = sqlx::query_scalar::<_, UUIDv7Base64URL>(
+            r#"
+                SELECT prev_id 
+                FROM prev_versions
+                WHERE id = ?;
+            "#,
+        )
+        .bind(v2)
+        .fetch_all(pool)
+        .await?;
+
+        assert_eq!(r.len(), 1);
+        assert_eq!(v1, r[0]);
+
+        let r = sqlx::query_scalar::<_, UUIDv7Base64URL>(
+            r#"
+                SELECT prev_id 
+                FROM prev_versions
+                WHERE id = ?;
+            "#,
+        )
+        .bind(v1)
+        .fetch_all(pool)
+        .await?;
+
+        assert_eq!(r.len(), 0);
+
+        Ok(())
     }
 }
