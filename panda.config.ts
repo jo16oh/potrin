@@ -24,6 +24,8 @@ export default defineConfig({
     tokens: {
       ...preset.theme.tokens,
       colors: {},
+      radii: {},
+      shadows: {},
     },
     semanticTokens: {
       colors: {
