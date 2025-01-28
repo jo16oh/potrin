@@ -22,11 +22,11 @@ tauri = { version = "2.0", features = [
   "config-toml",
   "test",
 ] }
+tokio = { version = "1", features = ["full"] }
 specta = { version = "2.0.0-rc.22", features = ["chrono"] }
 specta-typescript = "0.0.9"
 tauri-specta = { version = "2.0.0-rc.21", features = ["derive", "typescript"] }
 tauri-plugin-window-state = "2.0.0"
-garde = { version = "0.22.0", features = ["derive"] }
 [target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = "2.2.0"
 
@@ -34,6 +34,7 @@ tantivy = "0.22"
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-native-tls"] }
 yrs = "0.21.2"
 json-patch = "3.0.1"
+garde = { version = "0.22.0", features = ["derive"] }
 
 eyre = "0.6"
 thiserror = "2.0.11"

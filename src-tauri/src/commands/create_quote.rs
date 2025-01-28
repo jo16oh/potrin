@@ -52,10 +52,10 @@ mod test {
             upsert_outline::test::upsert_outline, upsert_paragraph::test::upsert_paragraph,
         },
         database::test::create_mock_pot,
+        reconciler::Reconciler,
         run_in_mock_app,
         types::model::{Outline, Paragraph},
     };
-    use std::{thread::sleep, time::Duration};
     use tauri::{test::MockRuntime, AppHandle};
 
     #[test]
@@ -72,8 +72,8 @@ mod test {
         upsert_outline(app_handle, pot.id, &o, vec![]).await?;
         upsert_paragraph(app_handle, pot.id, &p, vec![]).await?;
 
-        // wait until the path is constructed
-        sleep(Duration::from_millis(100));
+        let reconciler = get_state::<MockRuntime, Reconciler>(app_handle)?;
+        reconciler.wait().await?;
 
         let version_id = UUIDv7Base64URL::new();
 

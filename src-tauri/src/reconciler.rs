@@ -11,7 +11,7 @@ use crate::{
     },
     utils::get_state,
 };
-use eyre::OptionExt;
+use eyre::{eyre, OptionExt};
 use itertools::{Either, Itertools};
 use serde::Deserialize;
 use sqlx::SqlitePool;
@@ -21,6 +21,7 @@ use tauri::{
     AppHandle, Manager, Runtime,
 };
 use tauri_specta::Event;
+use tokio::sync::oneshot;
 
 #[derive(Deserialize)]
 struct Status {
@@ -33,12 +34,23 @@ struct DeleteLogStatus {
 }
 
 pub struct Reconciler {
-    sender: Sender<DatabaseChange>,
+    sender: Sender<Message>,
 }
 
 impl Reconciler {
-    pub async fn send(&self, target: DatabaseChange) -> eyre::Result<()> {
-        self.sender.send(target).await.map_err(|e| e.into())
+    pub async fn send(&self, change: DatabaseChange) -> eyre::Result<()> {
+        self.sender
+            .send(Message::DatabaseChange(change))
+            .await
+            .map_err(|e| e.into())
+    }
+
+    /// Returns a Future that resolves when all tasks that were pending at the time this function was called have finished.
+    #[allow(unused)]
+    pub async fn wait(&self) -> eyre::Result<()> {
+        let (tx, rx) = oneshot::channel::<()>();
+        self.sender.send(Message::Wait(tx)).await?;
+        rx.await.map_err(|e| e.into())
     }
 }
 
@@ -56,6 +68,12 @@ impl DatabaseChange {
     }
 }
 
+enum Message {
+    #[allow(unused)]
+    Wait(oneshot::Sender<()>),
+    DatabaseChange(DatabaseChange),
+}
+
 pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
 
@@ -64,18 +82,29 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
         .map(|ids| DatabaseChange::new(ids, Origin::Init))?;
     reconcile::<R>(app_handle, change).await?;
 
-    let (sender, mut receiver) = channel::<DatabaseChange>(100);
+    let (sender, mut receiver) = channel::<Message>(100);
 
     app_handle.manage::<Reconciler>(Reconciler { sender });
 
     async_runtime::spawn({
         let app_handle = app_handle.clone();
         async move {
-            while let Some(change) = receiver.recv().await {
-                let _ = reconcile(&app_handle, change)
-                    .await
-                    .map_err(PotrinError::from)
-                    .inspect_err(|e| eprintln!("{}", e));
+            while let Some(msg) = receiver.recv().await {
+                match msg {
+                    Message::Wait(sender) => {
+                        let _ = sender
+                            .send(())
+                            .map_err(|_| eyre!("failed to send message"))
+                            .map_err(PotrinError::from)
+                            .inspect_err(|e| eprintln!("{:?}", e));
+                    }
+                    Message::DatabaseChange(change) => {
+                        let _ = reconcile(&app_handle, change)
+                            .await
+                            .map_err(PotrinError::from)
+                            .inspect_err(|e| eprintln!("{:?}", e));
+                    }
+                }
             }
         }
     });
@@ -548,8 +577,6 @@ async fn upsert_path(
 
 #[cfg(test)]
 mod test {
-    use std::{thread::sleep, time::Duration};
-
     use super::*;
     use crate::{
         commands::{fetch_path::fetch_path, upsert_outline::test::upsert_outline},
@@ -589,7 +616,8 @@ mod test {
             .await
             .unwrap();
 
-        sleep(Duration::from_millis(100));
+        let reconciler = get_state::<MockRuntime, Reconciler>(app_handle)?;
+        reconciler.wait().await?;
 
         let path = fetch_path(app_handle.clone(), o1.id)
             .await
