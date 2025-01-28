@@ -601,7 +601,7 @@ mod test {
     }
 
     async fn test_upsert_path_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
-        let pot = create_mock_pot(app_handle.clone()).await;
+        let pot = create_mock_pot(app_handle).await;
 
         let o1 = Outline::new(None);
         let o2 = Outline::new(Some(o1.id));

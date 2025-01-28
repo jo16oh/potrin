@@ -45,7 +45,7 @@ mod test {
     }
 
     async fn test_count_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
-        let pot = create_mock_pot(app_handle.clone()).await;
+        let pot = create_mock_pot(app_handle).await;
 
         let pool = get_state::<MockRuntime, SqlitePool>(app_handle)?;
 
@@ -70,7 +70,7 @@ mod test {
     }
 
     async fn test_count_recursively_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
-        let pot = create_mock_pot(app_handle.clone()).await;
+        let pot = create_mock_pot(app_handle).await;
         let pool = get_state::<MockRuntime, SqlitePool>(app_handle)?;
 
         // o3 → o1 → o6         back: 4, forward: 3

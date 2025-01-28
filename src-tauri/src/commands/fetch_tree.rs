@@ -40,7 +40,7 @@ mod test {
     }
 
     async fn test(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
-        let pot = create_mock_pot(app_handle.clone()).await;
+        let pot = create_mock_pot(app_handle).await;
         let outline = create_tree(app_handle, pot.id, None, 2, 0).await;
 
         let (outlines, paragraphs) = fetch_tree(app_handle.clone(), outline.id, None)

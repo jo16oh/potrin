@@ -83,7 +83,7 @@ pub mod test {
         outline
     }
 
-    pub async fn create_mock_pot(app_handle: AppHandle<MockRuntime>) -> Pot {
+    pub async fn create_mock_pot(app_handle: &AppHandle<MockRuntime>) -> Pot {
         let pool = app_handle.state::<SqlitePool>().inner();
 
         let now = Utc::now().timestamp_millis();

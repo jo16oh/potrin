@@ -69,7 +69,7 @@ mod test {
     }
 
     async fn test_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
-        let pot = create_mock_pot(app_handle.clone()).await;
+        let pot = create_mock_pot(app_handle).await;
         let pool = get_state::<MockRuntime, SqlitePool>(app_handle)?;
 
         let r1 = create_tree(app_handle, pot.id, None, 3, 0).await;

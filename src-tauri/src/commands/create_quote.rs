@@ -64,7 +64,7 @@ mod test {
     }
 
     async fn test_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
-        let pot = create_mock_pot(app_handle.clone()).await;
+        let pot = create_mock_pot(app_handle).await;
 
         let o = Outline::new(None);
         let p = Paragraph::new(o.id, None);
