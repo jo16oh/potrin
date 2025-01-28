@@ -106,7 +106,7 @@ pub mod test {
         let r = sqlx::query_scalar::<_, i64>(
             r#"
                 SELECT branch_id
-                FROM versions_branch_id;
+                FROM version_branch_ids;
             "#,
         )
         .fetch_all(pool)

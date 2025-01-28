@@ -282,9 +282,11 @@ CREATE INDEX prev_versions$prev_id ON prev_versions(prev_id);
 
 
 /*
-  This table stores the branch_id of versions.
+  This table stores the branch_id of versions. It is separated from the 
+  `versions` table to utilize the prev_versions table when looking up the 
+  minimum branch_id of previous versions.
 */
-CREATE TABLE versions_branch_id (
+CREATE TABLE version_branch_ids (
   id BLOB REFERENCES versions(id) ON DELETE CASCADE PRIMARY KEY,
   branch_id INTEGER NOT NULL
 ) STRICT;
@@ -333,13 +335,13 @@ CREATE TRIGGER set_branch_id$after_insert_versions
 AFTER INSERT ON versions
 FOR EACH ROW
 BEGIN
-  INSERT INTO versions_branch_id (id, branch_id)
+  INSERT INTO version_branch_ids (id, branch_id)
   VALUES (
     NEW.id,
     COALESCE((
       SELECT MIN(branch_id)
       FROM prev_versions
-      INNER JOIN versions_branch_id ON prev_versions.prev_id = versions_branch_id.id
+      INNER JOIN version_branch_ids ON prev_versions.prev_id = version_branch_ids.id
       WHERE prev_versions.id = NEW.id
     ), 0));
 END;
