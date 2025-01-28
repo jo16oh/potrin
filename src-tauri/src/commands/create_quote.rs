@@ -55,35 +55,33 @@ mod test {
         run_in_mock_app,
         types::model::{Outline, Paragraph},
     };
+    use std::{thread::sleep, time::Duration};
     use tauri::{test::MockRuntime, AppHandle};
 
     #[test]
     fn test_create_quote() {
-        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            test_create_quote_impl(app_handle).await;
-        })
+        run_in_mock_app!(test_impl)
     }
 
-    async fn test_create_quote_impl(app_handle: &AppHandle<MockRuntime>) {
+    async fn test_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
         let pot = create_mock_pot(app_handle.clone()).await;
 
         let o = Outline::new(None);
         let p = Paragraph::new(o.id, None);
 
-        upsert_outline(app_handle, pot.id, &o, vec![])
-            .await
-            .unwrap();
-        upsert_paragraph(app_handle, pot.id, &p, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot.id, &o, vec![]).await?;
+        upsert_paragraph(app_handle, pot.id, &p, vec![]).await?;
+
+        // wait until the path is constructed
+        sleep(Duration::from_millis(100));
 
         let version_id = UUIDv7Base64URL::new();
 
-        let quote = create_quote_impl(app_handle, pot.id, p.id, version_id)
-            .await
-            .unwrap();
+        let quote = create_quote_impl(app_handle, pot.id, p.id, version_id).await?;
 
         assert_eq!(quote.id, p.id);
         assert_eq!(quote.version_id, version_id);
+
+        Ok(())
     }
 }

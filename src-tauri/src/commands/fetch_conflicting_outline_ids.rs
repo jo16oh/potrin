@@ -36,45 +36,48 @@ pub mod test {
 
     #[test]
     fn test() {
-        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let pot = create_mock_pot(app_handle.clone()).await;
+        run_in_mock_app!(test_impl);
+    }
 
-            let outline = |text: &str| -> Outline {
-                let now = chrono::Utc::now().timestamp_millis();
-                Outline {
-                    id: UUIDv7Base64URL::new(),
-                    parent_id: None,
-                    fractional_index: "".to_string(),
-                    doc: "".to_string(),
-                    text: text.to_string(),
-                    links: Links::new(),
-                    path: None,
-                    hidden: false,
-                    collapsed: false,
-                    deleted: false,
-                    created_at: now,
-                    updated_at: now,
-                }
-            };
+    async fn test_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pot = create_mock_pot(app_handle.clone()).await;
 
-            let outlines = [
-                outline("text"),
-                outline("conflicting"),
-                outline("conflicting"),
-                outline("editing"),
-                outline(""),
-            ];
-
-            for o in outlines.iter() {
-                upsert_outline(app_handle, pot.id, o, vec![]).await.unwrap();
+        let outline = |text: &str| -> Outline {
+            let now = chrono::Utc::now().timestamp_millis();
+            Outline {
+                id: UUIDv7Base64URL::new(),
+                parent_id: None,
+                fractional_index: "".to_string(),
+                doc: "".to_string(),
+                text: text.to_string(),
+                links: Links::new(),
+                path: None,
+                hidden: false,
+                collapsed: false,
+                deleted: false,
+                created_at: now,
+                updated_at: now,
             }
+        };
 
-            let result =
-                fetch_conflicting_outline_ids(app_handle.clone(), outlines[4].id, None, "editing")
-                    .await
-                    .unwrap();
+        let outlines = [
+            outline("text"),
+            outline("conflicting"),
+            outline("conflicting"),
+            outline("editing"),
+            outline(""),
+        ];
 
-            assert_eq!(result.len(), 3);
-        })
+        for o in outlines.iter() {
+            upsert_outline(app_handle, pot.id, o, vec![]).await.unwrap();
+        }
+
+        let result =
+            fetch_conflicting_outline_ids(app_handle.clone(), outlines[4].id, None, "editing")
+                .await
+                .unwrap();
+
+        assert_eq!(result.len(), 3);
+        Ok(())
     }
 }

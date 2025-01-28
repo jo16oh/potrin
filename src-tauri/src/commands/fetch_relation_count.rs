@@ -36,62 +36,52 @@ mod test {
 
     #[test]
     fn test_fetch_relation_count() {
-        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let pot = create_mock_pot(app_handle.clone()).await;
-            test_count(app_handle, pot.id).await;
-        });
+        run_in_mock_app!(test_count_impl);
     }
 
     #[test]
     fn test_fetch_relation_count_recursively() {
-        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let pot = create_mock_pot(app_handle.clone()).await;
-            test_count_recursively(app_handle, pot.id).await;
-        });
+        run_in_mock_app!(test_count_recursively_impl);
     }
 
-    async fn test_count(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
-        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
+    async fn test_count_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pot = create_mock_pot(app_handle.clone()).await;
+
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle)?;
 
         // outline1, paragraph1 → outline2
         // paragraph1 → paragraph2
-        let ((o1, o2), (c1, c2)) = insert_test_data_for_test_count(app_handle, pool, pot_id).await;
+        let ((o1, o2), (c1, c2)) =
+            insert_test_data_for_test_count(app_handle, pool, pot.id).await?;
 
-        let mut result = fetch_relation_count(app_handle.clone(), vec![o1.id], vec![], false)
-            .await
-            .unwrap();
-        assert_eq!(result.pop().unwrap().forward, 1);
+        let result = fetch_relation_count(app_handle.clone(), vec![o1.id], vec![], false).await?;
+        assert_eq!(result[result.len() - 1].forward, 1);
 
-        let mut result = fetch_relation_count(app_handle.clone(), vec![o2.id], vec![], false)
-            .await
-            .unwrap();
-        assert_eq!(result.pop().unwrap().back, 2);
+        let result = fetch_relation_count(app_handle.clone(), vec![o2.id], vec![], false).await?;
+        assert_eq!(result[result.len() - 1].back, 2);
 
-        let mut result = fetch_relation_count(app_handle.clone(), vec![], vec![c1.id], false)
-            .await
-            .unwrap();
-        assert_eq!(result.pop().unwrap().forward, 2);
+        let result = fetch_relation_count(app_handle.clone(), vec![], vec![c1.id], false).await?;
+        assert_eq!(result[result.len() - 1].forward, 2);
 
-        let mut result = fetch_relation_count(app_handle.clone(), vec![], vec![c2.id], false)
-            .await
-            .unwrap();
-        assert_eq!(result.pop().unwrap().back, 1);
+        let result = fetch_relation_count(app_handle.clone(), vec![], vec![c2.id], false).await?;
+        assert_eq!(result[result.len() - 1].back, 1);
+
+        Ok(())
     }
 
-    async fn test_count_recursively(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
-        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
+    async fn test_count_recursively_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pot = create_mock_pot(app_handle.clone()).await;
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle)?;
 
         // o3 → o1 → o6         back: 4, forward: 3
         // o4 → |_o2 → o7       back: 3, forward: 2
         // c2 ↗→ \c1 → o8    back: 2, forward: 1
 
         let ((o1, o2, _, _, _, _, _), (c1, _)) =
-            insert_test_data_for_test_count_recursively(app_handle, pool, pot_id).await;
+            insert_test_data_for_test_count_recursively(app_handle, pool, pot.id).await?;
 
         let result =
-            fetch_relation_count(app_handle.clone(), vec![o1.id, o2.id], vec![c1.id], true)
-                .await
-                .unwrap();
+            fetch_relation_count(app_handle.clone(), vec![o1.id, o2.id], vec![c1.id], true).await?;
 
         assert_eq!(result.len(), 3);
 
@@ -109,32 +99,26 @@ mod test {
                 panic!();
             }
         }
+
+        Ok(())
     }
 
     async fn insert_test_data_for_test_count(
         app_handle: &AppHandle<MockRuntime>,
         pool: &SqlitePool,
         pot_id: UUIDv7Base64URL,
-    ) -> ((Outline, Outline), (Paragraph, Paragraph)) {
+    ) -> eyre::Result<((Outline, Outline), (Paragraph, Paragraph))> {
         let version_id = UUIDv7Base64URL::new();
-        create_version(app_handle, pot_id, version_id)
-            .await
-            .unwrap();
+        create_version(app_handle, pot_id, version_id).await?;
 
         let o1 = Outline::new(None);
-        upsert_outline(app_handle, pot_id, &o1, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o1, vec![]).await?;
 
         let o2 = Outline::new(Some(o1.id));
-        upsert_outline(app_handle, pot_id, &o2, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o2, vec![]).await?;
 
         let c2 = Paragraph::new(o2.id, None);
-        upsert_paragraph(app_handle, pot_id, &c2, vec![])
-            .await
-            .unwrap();
+        upsert_paragraph(app_handle, pot_id, &c2, vec![]).await?;
 
         let c1 = Paragraph::new(
             o1.id,
@@ -146,9 +130,7 @@ mod test {
                 path: Path::new(),
             }),
         );
-        upsert_paragraph(app_handle, pot_id, &c1, vec![])
-            .await
-            .unwrap();
+        upsert_paragraph(app_handle, pot_id, &c1, vec![]).await?;
 
         sqlx::query!(
             r#"
@@ -159,8 +141,7 @@ mod test {
             o2.id
         )
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
         sqlx::query!(
             r#"
@@ -171,17 +152,16 @@ mod test {
             o2.id
         )
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
-        ((o1, o2), (c1, c2))
+        Ok(((o1, o2), (c1, c2)))
     }
 
     async fn insert_test_data_for_test_count_recursively(
         app_handle: &AppHandle<MockRuntime>,
         pool: &SqlitePool,
         pot_id: UUIDv7Base64URL,
-    ) -> (
+    ) -> eyre::Result<(
         (
             Outline,
             Outline,
@@ -192,56 +172,36 @@ mod test {
             Outline,
         ),
         (Paragraph, Paragraph),
-    ) {
+    )> {
         let version_id = UUIDv7Base64URL::new();
-        create_version(app_handle, pot_id, version_id)
-            .await
-            .unwrap();
+        create_version(app_handle, pot_id, version_id).await?;
 
         let o1 = Outline::new(None);
-        upsert_outline(app_handle, pot_id, &o1, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o1, vec![]).await?;
 
         let o2 = Outline::new(Some(o1.id));
-        upsert_outline(app_handle, pot_id, &o2, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o2, vec![]).await?;
 
         let o3 = Outline::new(None);
-        upsert_outline(app_handle, pot_id, &o3, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o3, vec![]).await?;
 
         let o4 = Outline::new(None);
-        upsert_outline(app_handle, pot_id, &o4, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o4, vec![]).await?;
 
         let o5 = Outline::new(None);
-        upsert_outline(app_handle, pot_id, &o5, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o5, vec![]).await?;
 
         let o6 = Outline::new(None);
-        upsert_outline(app_handle, pot_id, &o6, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o6, vec![]).await?;
 
         let o7 = Outline::new(None);
-        upsert_outline(app_handle, pot_id, &o7, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o7, vec![]).await?;
 
         let o8 = Outline::new(None);
-        upsert_outline(app_handle, pot_id, &o8, vec![])
-            .await
-            .unwrap();
+        upsert_outline(app_handle, pot_id, &o8, vec![]).await?;
 
         let c1 = Paragraph::new(o2.id, None);
-        upsert_paragraph(app_handle, pot_id, &c1, vec![])
-            .await
-            .unwrap();
+        upsert_paragraph(app_handle, pot_id, &c1, vec![]).await?;
 
         let c2 = Paragraph::new(
             o3.id,
@@ -253,9 +213,7 @@ mod test {
                 path: Path::new(),
             }),
         );
-        upsert_paragraph(app_handle, pot_id, &c2, vec![])
-            .await
-            .unwrap();
+        upsert_paragraph(app_handle, pot_id, &c2, vec![]).await?;
 
         sqlx::query!(
             r#"
@@ -272,8 +230,7 @@ mod test {
             o7.id
         )
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
         sqlx::query!(
             r#"
@@ -286,9 +243,8 @@ mod test {
             o2.id,
         )
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
-        ((o1, o2, o3, o4, o5, o6, o7), (c1, c2))
+        Ok(((o1, o2, o3, o4, o5, o6, o7), (c1, c2)))
     }
 }

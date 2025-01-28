@@ -65,32 +65,24 @@ mod test {
 
     #[test]
     fn test_fetch_relation() {
-        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let pot = create_mock_pot(app_handle.clone()).await;
-            test(app_handle, pot.id).await;
-        });
+        run_in_mock_app!(test_impl);
     }
 
-    async fn test(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
-        let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
+    async fn test_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pot = create_mock_pot(app_handle.clone()).await;
+        let pool = get_state::<MockRuntime, SqlitePool>(app_handle)?;
 
-        let r1 = create_tree(app_handle, pot_id, None, 3, 0).await;
-        let r2 = create_tree(app_handle, pot_id, None, 3, 0).await;
+        let r1 = create_tree(app_handle, pot.id, None, 3, 0).await;
+        let r2 = create_tree(app_handle, pot.id, None, 3, 0).await;
 
         let p1 = Paragraph::new(r1.id, None);
-        upsert_paragraph(app_handle, pot_id, &p1, vec![])
-            .await
-            .unwrap();
+        upsert_paragraph(app_handle, pot.id, &p1, vec![]).await?;
 
         let p2 = Paragraph::new(r2.id, None);
-        upsert_paragraph(app_handle, pot_id, &p2, vec![])
-            .await
-            .unwrap();
+        upsert_paragraph(app_handle, pot.id, &p2, vec![]).await?;
 
         let p3 = Paragraph::new(r1.id, None);
-        upsert_paragraph(app_handle, pot_id, &p3, vec![])
-            .await
-            .unwrap();
+        upsert_paragraph(app_handle, pot.id, &p3, vec![]).await?;
 
         sqlx::query!(
             r#"
@@ -101,8 +93,7 @@ mod test {
             r2.id
         )
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
         sqlx::query!(
             r#"
@@ -113,13 +104,10 @@ mod test {
             r2.id
         )
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
         let version_id = UUIDv7Base64URL::new();
-        create_version(app_handle, pot_id, version_id)
-            .await
-            .unwrap();
+        create_version(app_handle, pot.id, version_id).await?;
 
         sqlx::query!(
             r#"
@@ -136,8 +124,7 @@ mod test {
             "",
         )
         .execute(pool)
-        .await
-        .unwrap();
+        .await?;
 
         let (outlines, paragraphs) = fetch_relation(
             app_handle.clone(),
@@ -150,8 +137,7 @@ mod test {
                 }),
             },
         )
-        .await
-        .unwrap();
+        .await?;
 
         assert_eq!(outlines.len(), 1);
         assert_eq!(paragraphs.len(), 2);
@@ -167,8 +153,7 @@ mod test {
                 }),
             },
         )
-        .await
-        .unwrap();
+        .await?;
 
         assert_eq!(outlines.len(), 0);
         assert_eq!(paragraphs.len(), 1);
@@ -184,8 +169,7 @@ mod test {
                 }),
             },
         )
-        .await
-        .unwrap();
+        .await?;
 
         assert_eq!(outlines.len(), 1);
         assert_eq!(paragraphs.len(), 1);
@@ -201,10 +185,11 @@ mod test {
                 }),
             },
         )
-        .await
-        .unwrap();
+        .await?;
 
         assert_eq!(outlines.len(), 0);
         assert_eq!(paragraphs.len(), 1);
+
+        Ok(())
     }
 }

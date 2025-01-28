@@ -31,25 +31,26 @@ pub fn mock_app() -> App<MockRuntime> {
 
 #[macro_export]
 macro_rules! run_in_mock_app {
-    (|$arg:ident: $arg_type:ty| async $closure:block) => {{
+    ($func:expr) => {{
         let is_successful = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
         std::panic::set_hook(std::boxed::Box::new(move |panic_info| {
             if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
                 if *s == "SUCCESS" {
-                    return
-                } else if *s == "assertion failed: is_successful.load(SeqCst)" {
-                    return
+                    return;
+                } else if *s == "FAIL" {
+                    return;
                 }
             }
 
             if let Some(location) = panic_info.location() {
-                println!("panic occurred in file '{}' at line {}",
+                eprintln!(
+                    "panic occurred in file '{}' at line {}",
                     location.file(),
                     location.line(),
                 );
             } else {
-                println!("panic occurred but couldn't get location information...");
+                eprintln!("panic occurred but couldn't get location information");
             }
 
             if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
@@ -64,13 +65,19 @@ macro_rules! run_in_mock_app {
             let handle = std::thread::spawn(|| {
                 std::panic::catch_unwind(|| {
                     let mock_app = $crate::test::mock_app();
-                    mock_app.run(move |$arg: $arg_type, _event| {
+                    mock_app.run(move |app_handle, _event| {
                         tauri::async_runtime::block_on(async {
-                            $closure
-                            is_successful.store(true, std::sync::atomic::Ordering::SeqCst);
+                            let result: eyre::Result<()> = $func(&app_handle).await;
+                            match result {
+                                Ok(_) => {
+                                    is_successful.store(true, std::sync::atomic::Ordering::SeqCst);
+                                }
+                                Err(e) => {
+                                    eprintln!("{:?}", e);
+                                    panic!("FAIL");
+                                }
+                            }
                         });
-                        // suppress unused variable warnings
-                        let _ = $arg;
                         panic!("SUCCESS");
                     })
                 })
@@ -78,6 +85,10 @@ macro_rules! run_in_mock_app {
             let _ = handle.join();
         }
 
-        assert!(is_successful.load(std::sync::atomic::Ordering::SeqCst));
+        let result = is_successful.load(std::sync::atomic::Ordering::SeqCst);
+
+        if !result {
+            panic!("FAIL");
+        }
     }};
 }

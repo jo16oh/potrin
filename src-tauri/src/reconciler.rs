@@ -570,9 +570,7 @@ mod test {
 
     #[test]
     fn test_upsert_path() {
-        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            test_upsert_path_impl(app_handle).await.unwrap();
-        })
+        run_in_mock_app!(test_upsert_path_impl)
     }
 
     async fn test_upsert_path_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {

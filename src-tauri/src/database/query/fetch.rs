@@ -1287,9 +1287,7 @@ pub async fn paragraphs_doc_and_path_by_id(
     }
 
     let query = r#"
-        SELECT 
-            doc, 
-            path
+        SELECT doc, path
         FROM paragraphs
         INNER JOIN outline_paths ON paragraphs.outline_id = outline_paths.outline_id
         WHERE id = ?;

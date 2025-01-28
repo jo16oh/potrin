@@ -376,228 +376,232 @@ mod tests {
 
     #[test]
     fn test() {
-        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let pot_id = UUIDv7Base64URL::new();
+        run_in_mock_app!(test_impl);
+    }
 
-            let one = UUIDv7Base64URL::new();
-            let two = UUIDv7Base64URL::new();
-            let three = UUIDv7Base64URL::new();
-            let four = UUIDv7Base64URL::new();
-            let links = Links::new();
-            let path = Path::new();
-            let input = vec![
-                IndexTarget {
-                    id: one,
-                    pot_id,
-                    doc_type: "paragraph",
-                    doc: r#"{ "text": "content brûlée connection" }"#,
-                    path: &path,
-                    links: &links,
-                    created_at: Utc::now().timestamp_millis(),
-                    updated_at: Utc::now().timestamp_millis(),
-                },
-                IndexTarget {
-                    id: two,
-                    pot_id,
-                    doc_type: "outline",
-                    doc: r#"{ "text": "東京国際空港（とうきょうこくさいくうこう、英語: Tokyo International Airport）は、東京都大田区にある日本最大の空港。通称は羽田空港（はねだくうこう、英語: Haneda Airport）であり、単に「羽田」と呼ばれる場合もある。空港コードはHND。" }"#,
-                    path: &path,
-                    links: &links,
-                    created_at: Utc::now().timestamp_millis(),
-                    updated_at: Utc::now().timestamp_millis(),
-                },
-                IndexTarget {
-                    id: three,
-                    pot_id,
-                    doc_type: "outline",
-                    doc: r#"{ "text": "股份有限公司" }"#,
-                    path: &path,
-                    links: &links,
-                    created_at: Utc::now().timestamp_millis(),
-                    updated_at: Utc::now().timestamp_millis(),
-                },
-                IndexTarget {
-                    id: four,
-                    pot_id,
-                    doc_type: "paragraph",
-                    doc: r#"{ "text": "デカすぎで草" }"#,
-                    path: &path,
-                    links: &links,
-                    created_at: Utc::now().timestamp_millis(),
-                    updated_at: Utc::now().timestamp_millis(),
-                },
-            ];
+    async fn test_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pot_id = UUIDv7Base64URL::new();
 
-            let index = load_index(app_handle, pot_id, SearchFuzziness::Exact)
-                .await
-                .unwrap();
+        let one = UUIDv7Base64URL::new();
+        let two = UUIDv7Base64URL::new();
+        let three = UUIDv7Base64URL::new();
+        let four = UUIDv7Base64URL::new();
+        let links = Links::new();
+        let path = Path::new();
+        let input = vec![
+            IndexTarget {
+                id: one,
+                pot_id,
+                doc_type: "paragraph",
+                doc: r#"{ "text": "content brûlée connection" }"#,
+                path: &path,
+                links: &links,
+                created_at: Utc::now().timestamp_millis(),
+                updated_at: Utc::now().timestamp_millis(),
+            },
+            IndexTarget {
+                id: two,
+                pot_id,
+                doc_type: "outline",
+                doc: r#"{ "text": "東京国際空港（とうきょうこくさいくうこう、英語: Tokyo International Airport）は、東京都大田区にある日本最大の空港。通称は羽田空港（はねだくうこう、英語: Haneda Airport）であり、単に「羽田」と呼ばれる場合もある。空港コードはHND。" }"#,
+                path: &path,
+                links: &links,
+                created_at: Utc::now().timestamp_millis(),
+                updated_at: Utc::now().timestamp_millis(),
+            },
+            IndexTarget {
+                id: three,
+                pot_id,
+                doc_type: "outline",
+                doc: r#"{ "text": "股份有限公司" }"#,
+                path: &path,
+                links: &links,
+                created_at: Utc::now().timestamp_millis(),
+                updated_at: Utc::now().timestamp_millis(),
+            },
+            IndexTarget {
+                id: four,
+                pot_id,
+                doc_type: "paragraph",
+                doc: r#"{ "text": "デカすぎで草" }"#,
+                path: &path,
+                links: &links,
+                created_at: Utc::now().timestamp_millis(),
+                updated_at: Utc::now().timestamp_millis(),
+            },
+        ];
 
-            process_targets(&index, input).await.unwrap();
-            index.reader.reload().unwrap();
+        let index = load_index(app_handle, pot_id, SearchFuzziness::Exact)
+            .await
+            .unwrap();
 
-            // prefix search
-            assert_eq!(
-                search(&index, "c", OrderBy::Relevance, 100, SearchFuzziness::Exact)
-                    .await
-                    .unwrap(),
-                vec![SearchResult {
-                    id: one,
-                    doc_type: String::from("paragraph")
-                },]
-            );
+        process_targets(&index, input).await.unwrap();
+        index.reader.reload().unwrap();
 
-            // remove diacritics
-            assert_eq!(
-                search(
-                    &index,
-                    "brulee",
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Exact
-                )
+        // prefix search
+        assert_eq!(
+            search(&index, "c", OrderBy::Relevance, 100, SearchFuzziness::Exact)
                 .await
                 .unwrap(),
-                vec![SearchResult {
-                    id: one,
-                    doc_type: String::from("paragraph")
-                },]
-            );
+            vec![SearchResult {
+                id: one,
+                doc_type: String::from("paragraph")
+            },]
+        );
 
-            // NFC normalization
-            assert_eq!(
-                search(
-                    &index,
-                    "brûlée".nfd().collect::<String>().as_str(),
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Exact
-                )
-                .await
-                .unwrap(),
-                vec![SearchResult {
-                    id: one,
-                    doc_type: String::from("paragraph")
-                },]
-            );
+        // remove diacritics
+        assert_eq!(
+            search(
+                &index,
+                "brulee",
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: one,
+                doc_type: String::from("paragraph")
+            },]
+        );
 
-            // english stemming
-            assert_eq!(
-                search(
-                    &index,
-                    "connected",
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Exact
-                )
-                .await
-                .unwrap(),
-                vec![SearchResult {
-                    id: one,
-                    doc_type: String::from("paragraph")
-                },]
-            );
+        // NFC normalization
+        assert_eq!(
+            search(
+                &index,
+                "brûlée".nfd().collect::<String>().as_str(),
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: one,
+                doc_type: String::from("paragraph")
+            },]
+        );
 
-            // fuzzy search
-            assert_eq!(
-                search(
-                    &index,
-                    "cantnt",
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Fuzziest
-                )
-                .await
-                .unwrap(),
-                vec![SearchResult {
-                    id: one,
-                    doc_type: String::from("paragraph")
-                },]
-            );
+        // english stemming
+        assert_eq!(
+            search(
+                &index,
+                "connected",
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: one,
+                doc_type: String::from("paragraph")
+            },]
+        );
 
-            // japanese bigram
-            assert_eq!(
-                search(
-                    &index,
-                    "はねだ",
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Exact
-                )
-                .await
-                .unwrap(),
-                vec![SearchResult {
-                    id: two,
-                    doc_type: String::from("outline")
-                },]
-            );
+        // fuzzy search
+        assert_eq!(
+            search(
+                &index,
+                "cantnt",
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Fuzziest
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: one,
+                doc_type: String::from("paragraph")
+            },]
+        );
 
-            // english and japanese compound
-            assert_eq!(
-                search(
-                    &index,
-                    "羽田Airport",
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Exact
-                )
-                .await
-                .unwrap(),
-                vec![SearchResult {
-                    id: two,
-                    doc_type: String::from("outline")
-                },]
-            );
+        // japanese bigram
+        assert_eq!(
+            search(
+                &index,
+                "はねだ",
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: two,
+                doc_type: String::from("outline")
+            },]
+        );
 
-            // lowercase
-            assert_eq!(
-                search(
-                    &index,
-                    "hnd",
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Exact
-                )
-                .await
-                .unwrap(),
-                vec![SearchResult {
-                    id: two,
-                    doc_type: String::from("outline")
-                },]
-            );
+        // english and japanese compound
+        assert_eq!(
+            search(
+                &index,
+                "羽田Airport",
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: two,
+                doc_type: String::from("outline")
+            },]
+        );
 
-            // chinese bigram
-            assert_eq!(
-                search(
-                    &index,
-                    "份有",
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Exact
-                )
-                .await
-                .unwrap(),
-                vec![SearchResult {
-                    id: three,
-                    doc_type: String::from("outline")
-                },]
-            );
+        // lowercase
+        assert_eq!(
+            search(
+                &index,
+                "hnd",
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: two,
+                doc_type: String::from("outline")
+            },]
+        );
 
-            // search one character word on the end of the sentence
-            assert_eq!(
-                search(
-                    &index,
-                    "草",
-                    OrderBy::Relevance,
-                    100,
-                    SearchFuzziness::Exact
-                )
-                .await
-                .unwrap(),
-                vec![SearchResult {
-                    id: four,
-                    doc_type: String::from("paragraph")
-                },]
-            );
-        });
+        // chinese bigram
+        assert_eq!(
+            search(
+                &index,
+                "份有",
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: three,
+                doc_type: String::from("outline")
+            },]
+        );
+
+        // search one character word on the end of the sentence
+        assert_eq!(
+            search(
+                &index,
+                "草",
+                OrderBy::Relevance,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: four,
+                doc_type: String::from("paragraph")
+            },]
+        );
+
+        Ok(())
     }
 }

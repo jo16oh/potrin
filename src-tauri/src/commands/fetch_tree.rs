@@ -36,14 +36,12 @@ mod test {
 
     #[test]
     fn test_fetch_tree() {
-        run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-            let pot = create_mock_pot(app_handle.clone()).await;
-            test(app_handle, pot.id).await;
-        });
+        run_in_mock_app!(test)
     }
 
-    async fn test(app_handle: &AppHandle<MockRuntime>, pot_id: UUIDv7Base64URL) {
-        let outline = create_tree(app_handle, pot_id, None, 2, 0).await;
+    async fn test(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pot = create_mock_pot(app_handle.clone()).await;
+        let outline = create_tree(app_handle, pot.id, None, 2, 0).await;
 
         let (outlines, paragraphs) = fetch_tree(app_handle.clone(), outline.id, None)
             .await
@@ -51,5 +49,7 @@ mod test {
 
         assert_eq!(outlines.len(), 3);
         assert_eq!(paragraphs.len(), 3);
+
+        Ok(())
     }
 }
