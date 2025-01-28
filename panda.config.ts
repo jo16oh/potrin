@@ -175,6 +175,10 @@ export default defineConfig({
           },
         },
       },
+      //@ts-expect-error define tokens which doesn't have default values
+      dropShadows: {
+        md: { value: "drop-shadow(0px 4px 4px rgb(0 0 0 / 0.25))" },
+      },
     },
   },
   themes: {
