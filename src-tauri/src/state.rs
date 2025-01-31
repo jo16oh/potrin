@@ -114,12 +114,12 @@ pub async fn update_app_state<R: Runtime>(
     let pool = get_state::<R, SqlitePool>(app_handle)?;
     let lock = get_rw_state::<R, AppState>(app_handle)?;
 
-    let prev_app_state = lock.read().await;
-    let patch_serealized = &serde_json::from_str::<Patch>(&patch)?;
+    let mut app_state = lock.write().await;
+    let patch_deserealized = &serde_json::from_str::<Patch>(&patch)?;
 
     let current_app_state = {
-        let mut value = serde_json::to_value(&*prev_app_state)?;
-        json_patch::patch(&mut value, patch_serealized)?;
+        let mut value = serde_json::to_value(&*app_state)?;
+        json_patch::patch(&mut value, patch_deserealized)?;
         serde_json::from_value::<AppState>(value)?
     };
 
@@ -136,15 +136,13 @@ pub async fn update_app_state<R: Runtime>(
     .execute(pool)
     .await?;
 
-    drop(prev_app_state);
-    set_rw_state(app_handle, current_app_state).await?;
+    *app_state = current_app_state;
 
-    AppStateChange::new(patch).emit_filter(app_handle, |target| {
-        if let EventTarget::Window { label } = target {
-            label != origin_window_label
-        } else {
-            false
-        }
+    AppStateChange::new(patch).emit_filter(app_handle, |target| match target {
+        EventTarget::WebviewWindow { label } => label != origin_window_label,
+        EventTarget::Webview { label } => label != origin_window_label,
+        EventTarget::Window { label } => label != origin_window_label,
+        _ => true,
     })?;
 
     Ok(())
@@ -158,11 +156,11 @@ pub async fn update_workspace_state<R: Runtime>(
     let pool = get_state::<R, SqlitePool>(app_handle)?;
     let lock = get_rw_state::<R, WorkspaceState>(window)?;
 
-    let prev_workspace_state = lock.read().await;
+    let mut workspace_state = lock.write().await;
     let patch_serealized = &serde_json::from_str::<Patch>(&patch)?;
 
     let current_workspace_state = {
-        let mut value = serde_json::to_value(&*prev_workspace_state)?;
+        let mut value = serde_json::to_value(&*workspace_state)?;
         json_patch::patch(&mut value, patch_serealized)?;
         serde_json::from_value::<WorkspaceState>(value)?
     };
@@ -181,8 +179,7 @@ pub async fn update_workspace_state<R: Runtime>(
     .execute(pool)
     .await?;
 
-    drop(prev_workspace_state);
-    set_rw_state(window, current_workspace_state).await?;
+    *workspace_state = current_workspace_state;
 
     Ok(())
 }
