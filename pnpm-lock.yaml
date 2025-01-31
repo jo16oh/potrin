@@ -195,9 +195,6 @@ importers:
       typescript-eslint:
         specifier: ^8.21.0
         version: 8.21.0(eslint@9.19.0(jiti@1.21.7))(typescript@5.7.3)
-      vaul-svelte:
-        specifier: 1.0.0-next.2
-        version: 1.0.0-next.2(svelte@5.19.3)
       vite:
         specifier: ^5.4.14
         version: 5.4.14(@types/node@22.9.1)(lightningcss@1.25.1)
@@ -3312,12 +3309,6 @@ packages:
       typescript:
         optional: true
 
-  svelte-toolbelt@0.4.6:
-    resolution: {integrity: sha512-k8OUvXBUifHZcAlWeY/HLg/4J0v5m2iOfOhn8fDmjt4AP8ZluaDh9eBFus9lFiLX6O5l6vKqI1dKL5wy7090NQ==}
-    engines: {node: '>=18', pnpm: '>=8.7.0'}
-    peerDependencies:
-      svelte: ^5.0.0-next.126
-
   svelte-toolbelt@0.7.0:
     resolution: {integrity: sha512-i/Tv4NwAWWqJnK5H0F8y/ubDnogDYlwwyzKhrspTUFzrFuGnYshqd2g4/R43ds841wmaFiSW/HsdsdWhPOlrAA==}
     engines: {node: '>=18', pnpm: '>=8.7.0'}
@@ -3494,12 +3485,6 @@ packages:
   uuidv7@1.0.2:
     resolution: {integrity: sha512-8JQkH4ooXnm1JCIhqTMbtmdnYEn6oKukBxHn1Ic9878jMkL7daTI7anTExfY18VRCX7tcdn5quzvCb6EWrR8PA==}
     hasBin: true
-
-  vaul-svelte@1.0.0-next.2:
-    resolution: {integrity: sha512-/SjvMvStOMwTnGsQAn+yP0bbQUufb3ZXu8MdnLeQCB33wCZ1ilCPa92DHx1EDhIlVTbiOitwhWp/zaHw/U3OqA==}
-    engines: {node: '>=18', pnpm: '>=8.7.0'}
-    peerDependencies:
-      svelte: ^5.0.0
 
   vite-node@2.1.8:
     resolution: {integrity: sha512-uPAwSr57kYjAUux+8E2j0q0Fxpn8M9VoyfGiRI8Kfktz9NcYMCenwY5RnZxnF1WTu3TGiYipirIzacLL3VVGFg==}
@@ -7042,12 +7027,6 @@ snapshots:
       postcss-load-config: 4.0.2(postcss@8.5.1)
       typescript: 5.7.3
 
-  svelte-toolbelt@0.4.6(svelte@5.19.3):
-    dependencies:
-      clsx: 2.1.1
-      style-to-object: 1.0.8
-      svelte: 5.19.3
-
   svelte-toolbelt@0.7.0(svelte@5.19.3):
     dependencies:
       clsx: 2.1.1
@@ -7227,12 +7206,6 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   uuidv7@1.0.2: {}
-
-  vaul-svelte@1.0.0-next.2(svelte@5.19.3):
-    dependencies:
-      bits-ui: 1.0.0-next.78(svelte@5.19.3)
-      svelte: 5.19.3
-      svelte-toolbelt: 0.4.6(svelte@5.19.3)
 
   vite-node@2.1.8(@types/node@22.9.1)(lightningcss@1.25.1):
     dependencies:
