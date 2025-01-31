@@ -1,5 +1,6 @@
 import { defineConfig } from "@pandacss/dev";
 import { preset } from "@pandacss/preset-panda";
+import pandaAnimate from "pandacss-animate";
 
 export default defineConfig({
   // Whether to use css reset
@@ -29,6 +30,16 @@ export default defineConfig({
     },
     semanticTokens: {
       colors: {
+        transparent: {
+          value: {
+            base: "transparent",
+          },
+        },
+        overlay: {
+          value: {
+            base: "rgb(0 0 0 / 0.80)",
+          },
+        },
         selected: {
           value: {
             base: "rgb(0 0 0 / 0.05)",
@@ -187,6 +198,8 @@ export default defineConfig({
     // define color schemes
     // https://panda-css.com/docs/guides/multiple-themes#multi-themes
   },
+
+  presets: [pandaAnimate],
 
   // The output directory for your css system
   outdir: "styled-system",
