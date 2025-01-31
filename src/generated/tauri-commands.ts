@@ -191,6 +191,22 @@ async openPotSelector() : Promise<Result<null, PotrinError>> {
 },
 async appVersion() : Promise<string> {
     return await TAURI_INVOKE("app_version");
+},
+async updatePotName(pot: Pot) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_pot_name", { pot }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async deletePot(potId: UUIDv7Base64URL) : Promise<Result<null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_pot", { potId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

@@ -2,6 +2,23 @@ use crate::types::util::UUIDv7Base64URL;
 use eyre::OptionExt;
 use sqlx::SqliteExecutor;
 
+pub async fn pot<'a, E>(conn: E, id: UUIDv7Base64URL) -> eyre::Result<()>
+where
+    E: SqliteExecutor<'a>,
+{
+    sqlx::query!(
+        r#"
+            DELETE FROM pots
+            WHERE id = ?;
+        "#,
+        id,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn y_doc<'a, E>(conn: E, id: UUIDv7Base64URL) -> eyre::Result<i64>
 where
     E: SqliteExecutor<'a>,
