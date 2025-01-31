@@ -31,9 +31,6 @@
 
   async function createPot() {
     open = false;
-    setTimeout(() => {
-      name = "";
-    }, 500);
 
     const pot = {
       id: uuidv7(),
@@ -97,7 +94,9 @@
           color: "view.text-muted",
         })}
       >
-        <span class={canSubmit ? css({ color: "[red]" }) : ""}>{name.length}</span> / 50
+        <span class={canSubmit ? css({ color: "[red]" }) : ""}
+          >{name.length}</span
+        > / 50
       </div>
       <div
         class={css({
