@@ -43,6 +43,10 @@ pub async fn open_pot(
     pot_id: UUIDv7Base64URL,
     pot_name: &str,
 ) -> eyre::Result<()> {
+    if let Some(win) = app_handle.webview_windows().get(&pot_id.to_string()) {
+        return win.set_focus().map_err(|e| e.into());
+    }
+
     let win_builder = WebviewWindowBuilder::new(
         app_handle,
         pot_id,
