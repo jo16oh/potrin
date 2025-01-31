@@ -1,4 +1,8 @@
 @layer reset, base, tokens, recipes, utilities;
+html,
+body {
+  overscroll-behavior: none;
+}
 /* @tailwind base; */
 /* @tailwind components; */
 /* @tailwind utilities; */
