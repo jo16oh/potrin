@@ -1,142 +1,157 @@
 <script lang="ts">
-  import { App } from "$lib/models/App.svelte";
   import { commands } from "../generated/tauri-commands";
-  // import * as Dialog from "$lib/components/ui/dialog";
-  // import Button from "$lib/components/ui/button/button.svelte";
-  // import { Input } from "$lib/components/ui/input";
-  import { uuidv7 } from "$lib/utils";
-  // import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
-  import { getCurrent } from "@tauri-apps/api/window";
-
-  const app = App.state();
-  let pots = $state(commands.fetchPots());
-  let newPotDialogOpen = $state(false);
-  let newPotName: string = $state("");
-  let potSelectDialogOpen = $state(false);
+  import Button from "$lib/components/Button.svelte";
+  import UserIcon from "$lib/components/UserIcon.svelte";
+  import { css } from "styled-system/css";
+  import { ChevronDown, Globe } from "lucide-svelte";
+  import CreateNewPotButton from "$lib/components/CreateNewPotButton.svelte";
+  import SelectPotButton from "$lib/components/SelectPotButton.svelte";
 
   const version = commands.appVersion();
-
-  async function createPot() {
-    const pot = {
-      id: uuidv7(),
-      name: newPotName,
-      owner: null,
-      createdAt: new Date().getUTCMilliseconds(),
-    };
-    console.log(pot.id);
-    await commands.createPot(pot);
-    app.openPot(pot);
-    pots = commands.fetchPots();
-    newPotName = "";
-    newPotDialogOpen = false;
-  }
-
-  function onkeypress(e: KeyboardEvent) {
-    if (e.key === "Enter" && !e.isComposing) {
-      void createPot();
-    }
-  }
-
-  function selectPot(pot: { id: string; name: string }) {
-    app.openPot(pot);
-    getCurrent().close();
-  }
 </script>
 
-<div class="mx-auto mt-24 flex max-w-96 flex-col items-center justify-center">
+<div
+  class={css({
+    bg: "view.bg",
+    display: "flex",
+    flexDir: "column",
+    alignItems: "center",
+    w: "screen",
+    h: "screen",
+    userSelect: "none",
+    overscrollBehavior: "none",
+    overflow: "hidden",
+  })}
+>
+  <div
+    class={css({
+      w: "full",
+      h: "14",
+    })}
+  ></div>
+
   <img
     src="icon.svg"
     alt="Potrin logo"
-    class="pointer-events-none h-48 w-48 drop-shadow-xl"
+    class={css({
+      h: "44",
+      w: "44",
+      p: "4",
+      filter: "auto",
+      dropShadow: "md",
+    })}
   />
+
   <img
     src="Potrin.svg"
-    alt="Potrin logo"
-    class="pointer-events-none w-40 py-2"
+    alt="Potrin"
+    class={css({
+      h: "8",
+    })}
   />
-  {#await version then v}
-    <div class="p-2 text-sm text-secondary-foreground">Version {v}</div>
-  {/await}
 
-  <hr class="h-32" />
-
-  <div class="flex w-full justify-between border-b px-2 py-2">
-    <div class="text-md my-auto cursor-default select-none font-semibold">
-      Create new pot
-    </div>
-    <!-- <Dialog.Root bind:open={newPotDialogOpen}> -->
-    <!--   <Button -->
-    <!--     class="mr-1" -->
-    <!--     variant="default" -->
-    <!--     onclick={() => (newPotDialogOpen = true)}>Create</Button -->
-    <!--   > -->
-    <!--   <Dialog.Content> -->
-    <!--     <Dialog.Header> -->
-    <!--       <Dialog.Title>Create new Pot</Dialog.Title> -->
-    <!--       <Dialog.Description> -->
-    <!--         <div class="flex flex-wrap justify-end"> -->
-    <!--           <Input -->
-    <!--             class="my-4" -->
-    <!--             bind:value={newPotName} -->
-    <!--             placeholder="name" -->
-    <!--             {onkeypress} -->
-    <!--           /> -->
-    <!--           <Button class="ml-auto" onclick={createPot}>Create</Button> -->
-    <!--         </div> -->
-    <!--       </Dialog.Description> -->
-    <!--     </Dialog.Header> -->
-    <!--   </Dialog.Content> -->
-    <!-- </Dialog.Root> -->
+  <div
+    class={css({
+      fontSize: "sm",
+      p: "2",
+    })}
+  >
+    {#await version then version}
+      Version {version}
+    {/await}
   </div>
 
-  {#await pots then pots}
-    {#if pots.length !== 0}
-      <div class="flex w-full justify-between border-b px-2 py-2">
-        <div class="text-md my-auto cursor-default select-none font-semibold">
-          Open pot
-        </div>
-        <!-- <Dialog.Root bind:open={potSelectDialogOpen}> -->
-        <!--   <Button -->
-        <!--     class="mr-1" -->
-        <!--     variant="default" -->
-        <!--     onclick={() => (potSelectDialogOpen = true)}>Select</Button -->
-        <!--   > -->
-        <!--   <Dialog.Content> -->
-        <!--     <Dialog.Header> -->
-        <!--       <Dialog.Title>Open pot</Dialog.Title> -->
-        <!--       <Dialog.Description> -->
-        <!--         <ScrollArea class="h-80 w-full"> -->
-        <!--           <ul> -->
-        <!--             {#each pots as pot} -->
-        <!--               {@const createdAt = new Date( -->
-        <!--                 pot.createdAt, -->
-        <!--               ).toLocaleDateString()} -->
-        <!--               <li -->
-        <!--                 class="flex w-full justify-between rounded-sm px-3 py-2 transition-all" -->
-        <!--               > -->
-        <!--                 <Button -->
-        <!--                   class="flex w-full select-none border-none text-foreground" -->
-        <!--                   variant="outline" -->
-        <!--                   onclick={() => selectPot(pot)} -->
-        <!--                 > -->
-        <!--                   <div class="flex-grow"> -->
-        <!--                     <div class="text-lg"> -->
-        <!--                       {pot.name} -->
-        <!--                     </div> -->
-        <!--                     <div class="text-sm text-secondary-foreground"> -->
-        <!--                       {createdAt} -->
-        <!--                     </div> -->
-        <!--                   </div> -->
-        <!--                 </Button> -->
-        <!--               </li> -->
-        <!--             {/each} -->
-        <!--           </ul> -->
-        <!--         </ScrollArea> -->
-        <!--       </Dialog.Description> -->
-        <!--     </Dialog.Header> -->
-        <!--   </Dialog.Content> -->
-        <!-- </Dialog.Root> -->
-      </div>
-    {/if}
-  {/await}
+  <div
+    class={css({
+      w: "full",
+      h: "10",
+    })}
+  ></div>
+  <div
+    class={css({
+      w: "56",
+      py: "4",
+      px: "4",
+      borderBottomWidth: "1",
+    })}
+  >
+    <Button
+      style={css.raw({
+        w: "full",
+        h: "9",
+      })}
+      disabled={true}
+    >
+      <UserIcon />
+      <div class={css({ flex: "1", color: "button.text-muted" })}>Local user</div>
+      <ChevronDown
+        class={css({
+          color: "button.text-muted",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          w: "4",
+          h: "4",
+        })}
+      />
+    </Button>
+  </div>
+  <div
+    class={css({
+      display: "flex",
+      flexDir: "column",
+      justifyContent: "start",
+      alignItems: "center",
+      gap: "4",
+      w: "56",
+      px: "4",
+      py: "4",
+      h: "fit",
+    })}
+  >
+    <CreateNewPotButton />
+    <SelectPotButton />
+
+    <Button
+      style={css.raw({
+        w: "full",
+        h: "9",
+      })}
+      disabled={true}
+    >
+      <div class={css({ color: "button.text-muted" })}>Setting</div>
+    </Button>
+  </div>
+  <Button
+    style={css.raw({
+      position: "fixed",
+      top: "4",
+      right: "4",
+      w: "fit",
+      h: "9",
+    })}
+    disabled={true}
+  >
+    <Globe
+      class={css({
+        color: "button.text-muted",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        w: "4",
+        h: "4",
+      })}
+    ></Globe>
+    <div class={css({ flex: "1", color: "button.text-muted" })}>English</div>
+    <ChevronDown
+      class={css({
+        color: "button.text-muted",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        w: "4",
+        h: "4",
+      })}
+    />
+  </Button>
 </div>
