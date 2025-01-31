@@ -1,10 +1,11 @@
 use crate::events::AppStateChange;
+use crate::search_engine::SearchIndex;
 use crate::types::util::UUIDv7Base64URL;
 use crate::utils::{get_rw_state, get_state};
 use crate::{types::state::*, utils::set_rw_state};
 use json_patch::Patch;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, EventTarget, Runtime, WebviewWindow, Window};
+use tauri::{AppHandle, EventTarget, Manager, Runtime, WebviewWindow, Window};
 use tauri_specta::Event;
 
 struct QueryResult {
@@ -186,6 +187,7 @@ pub async fn update_workspace_state<R: Runtime>(
 
 pub async fn close_pot<R: Runtime>(
     app_handle: &AppHandle<R>,
+    window: &Window<R>,
     pot_id: &UUIDv7Base64URL,
 ) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
@@ -210,6 +212,8 @@ pub async fn close_pot<R: Runtime>(
     )
     .execute(pool)
     .await?;
+
+    window.unmanage::<SearchIndex>();
 
     AppStateChange::new(patch).emit(app_handle)?;
     Ok(())
