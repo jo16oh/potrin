@@ -20,7 +20,7 @@ pub mod open_pot;
 pub mod open_pot_selector;
 pub mod search;
 pub mod update_app_state;
-pub mod update_pot_name;
+pub mod update_pot;
 pub mod update_workspace_state;
 pub mod upsert_outline;
 pub mod upsert_paragraph;
@@ -52,7 +52,7 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         open_pot::open_pot,
         open_pot_selector::open_pot_selector,
         app_version::app_version,
-        update_pot_name::update_pot_name::<tauri::Wry>,
+        update_pot::update_pot::<tauri::Wry>,
         delete_pot::delete_pot::<tauri::Wry>,
     ]
 }

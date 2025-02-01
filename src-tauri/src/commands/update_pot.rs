@@ -9,7 +9,7 @@ use tauri::{AppHandle, Runtime};
 #[specta::specta]
 #[macros::eyre_to_any]
 #[macros::log_err]
-pub async fn update_pot_name<R: Runtime>(app_handle: AppHandle<R>, pot: Pot) -> eyre::Result<()> {
+pub async fn update_pot<R: Runtime>(app_handle: AppHandle<R>, pot: Pot) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let unvalidated = Unvalidated::new(pot);
