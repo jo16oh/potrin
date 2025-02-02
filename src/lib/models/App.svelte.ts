@@ -63,9 +63,7 @@ export const App = {
     // Change values inside the update function to avoid
     // `ownership_invalid_mutation` warning.
     const updateState = (update: (state: AppState) => void) => {
-      const newState = { ...state };
-      update(newState);
-      state = newState;
+      update(state);
     };
 
     // Pass reference to this window to filter out events from this window.
