@@ -1,11 +1,11 @@
 <script lang="ts">
   import { css } from "styled-system/css";
-  import { X } from "lucide-svelte";
-  import Dialog from "./Dialog.svelte";
-  import Button from "./Button.svelte";
-  import { commands } from "../../generated/tauri-commands";
+  import Dialog from "$lib/components/common/Dialog.svelte";
+  import Button, { buttonStyle } from "$lib/components/common/Button.svelte";
+  import { commands } from "../../../generated/tauri-commands";
   import { uuidv7, unwrap } from "$lib/utils";
   import { App } from "$lib/models/App.svelte";
+  import CloseButton from "./CloseButton.svelte";
   // import { getCurrent } from "@tauri-apps/api/window";
 
   const [_, updateAppState] = App.state();
@@ -51,38 +51,28 @@
   }
 </script>
 
-<Dialog bind:open>
+<Dialog
+  bind:open
+  triggerStyle={createNewPotButtonStyle}
+  contentProps={{
+    onOpenAutoFocus: (e) => {
+      e.preventDefault();
+      input.focus();
+    },
+    onCloseAutoFocus: (e) => {
+      e.preventDefault();
+    },
+  }}
+>
   {#snippet trigger()}
-    <Button
-      style={css.raw({
-        w: "full",
-        h: "9",
-      })}
-      onclick={() => {
-        setTimeout(() => {
-          input.focus();
-        }, 150);
-      }}
-    >
-      <div class={css({ color: "button.text" })}>Create new Pot</div>
-    </Button>
+    Create new Pot
   {/snippet}
-  {#snippet title()}
-    <div class={titleContainerStyle}>
+  {#snippet content()}
+    <div class={titleStyle}>
       <div>Create new Pot</div>
-      <button onclick={() => (open = false)} class={closeButtonStyle}>
-        <X
-          class={css({
-            color: "view.text-muted",
-            w: "4",
-            h: "4",
-          })}
-        />
-      </button>
+      <CloseButton onclick={() => (open = false)} />
     </div>
-  {/snippet}
-  {#snippet description()}
-    <div class={descriptionContainerStyle}>
+    <div class={contentStyle}>
       <input
         bind:this={input}
         bind:value={name}
@@ -110,7 +100,12 @@
 </Dialog>
 
 <script module>
-  const titleContainerStyle = css({
+  const createNewPotButtonStyle = css.raw({
+    ...buttonStyle,
+    w: "full",
+    h: "9",
+  });
+  const titleStyle = css({
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -118,20 +113,7 @@
     userSelect: "none",
   });
 
-  const closeButtonStyle = css({
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    w: "6",
-    h: "6",
-    rounded: "lg",
-    transition: "background",
-    _hover: {
-      bg: "selected",
-    },
-  });
-
-  const descriptionContainerStyle = css({
+  const contentStyle = css({
     w: "full",
     h: "fit",
     p: "2",

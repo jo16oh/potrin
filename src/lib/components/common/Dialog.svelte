@@ -5,47 +5,41 @@
 
   type Props = Dialog.RootProps & {
     trigger: Snippet;
-    title: Snippet;
-    description: Snippet;
+    content: Snippet;
+    triggerProps?: WithoutChild<Dialog.TriggerProps>;
+    triggerStyle?: Styles;
     contentProps?: WithoutChild<Dialog.ContentProps>;
-    contentContainerStyle?: Styles;
+    contentStyle?: Styles;
   };
 
   let {
     open = $bindable(false),
-    children,
-    contentProps,
     trigger,
-    title,
-    description,
-    contentContainerStyle,
+    content,
+    triggerStyle,
+    triggerProps,
+    contentStyle,
+    contentProps,
     ...restProps
   }: Props = $props();
 </script>
 
 <Dialog.Root bind:open {...restProps}>
-  <Dialog.Trigger class={triggerContainerStyle}>
+  <Dialog.Trigger class={css(triggerStyle)} {...triggerProps}>
     {@render trigger()}
   </Dialog.Trigger>
   <Dialog.Portal>
     <Dialog.Overlay class={overlayStyle} />
-    <Dialog.Content class={css(defaultContainerStyle, contentContainerStyle)} {...contentProps}>
-      <Dialog.Title>
-        {@render title()}
-      </Dialog.Title>
-      <Dialog.Description>
-        {@render description()}
-      </Dialog.Description>
-      {@render children?.()}
+    <Dialog.Content
+      class={css(defaultContentStyle, contentStyle)}
+      {...contentProps}
+    >
+      {@render content()}
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
 
 <script module>
-  const triggerContainerStyle = css({
-    w: "full",
-  });
-
   const overlayStyle = css({
     position: "fixed",
     inset: "0",
@@ -62,7 +56,7 @@
     },
   });
 
-  const defaultContainerStyle = css.raw({
+  const defaultContentStyle = css.raw({
     display: "flex",
     flexDir: "column",
     gap: "2",
@@ -71,7 +65,6 @@
     margin: "auto",
     w: "80",
     h: "fit",
-    minH: "44",
     p: "1",
     zIndex: "[50]",
     rounded: "md",

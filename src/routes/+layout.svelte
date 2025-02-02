@@ -1,6 +1,6 @@
 <script lang="ts">
   import "../app.css";
-  import TitleBarHandler from "$lib/components/TitleBarHandler.svelte";
+  import TitleBarHandler from "$lib/components/common/TitleBarHandler.svelte";
   import type { LayoutData } from "./$types";
   import { App } from "$lib/models/App.svelte";
   import { onMount, type Snippet } from "svelte";

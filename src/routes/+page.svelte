@@ -1,11 +1,11 @@
 <script lang="ts">
   import { commands } from "../generated/tauri-commands";
-  import Button from "$lib/components/Button.svelte";
-  import UserIcon from "$lib/components/UserIcon.svelte";
+  import Button from "$lib/components/common/Button.svelte";
+  import UserIcon from "$lib/components/icon/UserIcon.svelte";
   import { css } from "styled-system/css";
   import { ChevronDown, Globe } from "lucide-svelte";
-  import CreateNewPotButton from "$lib/components/CreateNewPotButton.svelte";
-  import SelectPotButton from "$lib/components/SelectPotButton.svelte";
+  import CreateNewPotButton from "$lib/components/entry/CreateNewPotButton.svelte";
+  import SelectPotButton from "$lib/components/entry/SelectPotButton.svelte";
 
   const version = commands.appVersion();
 </script>
@@ -83,7 +83,9 @@
       disabled={true}
     >
       <UserIcon />
-      <div class={css({ flex: "1", color: "button.text-muted" })}>Local user</div>
+      <div class={css({ flex: "1", color: "button.text-muted" })}>
+        Local user
+      </div>
       <ChevronDown
         class={css({
           color: "button.text-muted",
