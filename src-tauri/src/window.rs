@@ -22,13 +22,12 @@ pub async fn init_windows(app_handle: &AppHandle) -> eyre::Result<()> {
 }
 
 pub fn open_pot_selector(app_handle: &AppHandle) -> eyre::Result<()> {
-    let win_builder =
-        WebviewWindowBuilder::new(app_handle, "pot-selector", WebviewUrl::App("".into()))
-            .title("Potrin")
-            .hidden_title(true)
-            .resizable(false)
-            .inner_size(800.0, 650.0)
-            .visible(false);
+    let win_builder = WebviewWindowBuilder::new(app_handle, "entry", WebviewUrl::App("".into()))
+        .title("Potrin")
+        .hidden_title(true)
+        .resizable(false)
+        .inner_size(800.0, 650.0)
+        .visible(false);
 
     // set transparent title bar only when building for macOS
     #[cfg(target_os = "macos")]

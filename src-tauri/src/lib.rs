@@ -36,7 +36,7 @@ pub fn run() {
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(StateFlags::all() - StateFlags::VISIBLE)
-                .with_denylist(&["pot-selector"])
+                .with_denylist(&["entry"])
                 .build(),
         )
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
@@ -61,7 +61,7 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
-                if window.label() != "pot-selector" {
+                if window.label() != "entry" {
                     let app_handle = window.app_handle();
                     let pot_id: UUIDv7Base64URL = window.label().try_into().unwrap();
 
