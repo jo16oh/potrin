@@ -22,7 +22,7 @@ export const App = {
     commands = cmds;
   },
   init(value: AppState) {
-    let state = $state(value);
+    let state = $state.raw(value);
     let prev: AppState | undefined;
 
     let fromEvent = false;
@@ -62,8 +62,8 @@ export const App = {
 
     // Change values inside the update function to avoid
     // `ownership_invalid_mutation` warning.
-    const updateState = (update: (state: AppState) => void) => {
-      update(state);
+    const updateState = (fn: (state: AppState) => AppState) => {
+      state = fn($state.snapshot(state));
     };
 
     // Pass reference to this window to filter out events from this window.
@@ -71,14 +71,18 @@ export const App = {
       fromEvent = true;
       updateState((state) => {
         applyPatch(state, JSON.parse(e.payload.patch));
+        return state;
       });
     });
 
-    setContext(key, [state, updateState]);
+    setContext(key, [() => state, updateState]);
   },
   state() {
     return getContext<
-      [DeepReadonly<AppState>, (update: (state: AppState) => void) => void]
+      [
+        () => DeepReadonly<AppState>,
+        (update: (state: AppState) => AppState) => void,
+      ]
     >(key);
   },
 };

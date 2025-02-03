@@ -17,7 +17,7 @@
   } = $props();
 </script>
 
-<Button.Root class={css(buttonStyle, style)} {disabled} {...others}>
+<Button.Root class={css(buttonStyle, style) + " group"} {disabled} {...others}>
   {@render children?.()}</Button.Root
 >
 

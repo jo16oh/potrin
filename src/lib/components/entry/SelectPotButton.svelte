@@ -12,7 +12,8 @@
   import DialogClose from "$lib/components/common/DialogClose.svelte";
   import RenamePot from "./RenamePot.svelte";
 
-  const [appState, updateAppState] = App.state();
+  const [getAppState, updateAppState] = App.state();
+  const appState = $derived.by(getAppState);
 
   let open = $state(false);
   let potsPromise = $state(commands.fetchPots());
@@ -41,6 +42,7 @@
   async function openPot(id: string, name: string) {
     updateAppState((state) => {
       state.pots[id] = name;
+      return state;
     });
 
     unwrap(await commands.openPot(id, name));
@@ -177,6 +179,7 @@
             unwrap(await commands.deletePot(pot.id));
             updateAppState((state) => {
               delete state.pots[pot.id];
+              return state;
             });
             await reloadPots();
           }}

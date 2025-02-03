@@ -43,6 +43,7 @@
 
     updateAppState((state) => {
       state.pots[pot.id] = pot.name;
+      return state;
     });
 
     unwrap(await commands.openPot(pot.id, pot.name));

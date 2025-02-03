@@ -26,7 +26,7 @@
 </script>
 
 <Popover.Root bind:open {...restProps}>
-  <Popover.Trigger class={css(triggerStyle)} {...triggerProps}
+  <Popover.Trigger class={css(triggerStyle) + " group"} {...triggerProps}
     >{@render trigger()}</Popover.Trigger
   >
   <Popover.Content

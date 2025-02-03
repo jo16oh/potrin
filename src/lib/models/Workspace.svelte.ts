@@ -22,7 +22,7 @@ export const Workspace = {
     commands = cmds;
   },
   init(value: WorkspaceState) {
-    let state = $state(value);
+    let state = $state.raw(value);
     let prev: WorkspaceState | undefined;
 
     let fromEvent = false;
@@ -54,26 +54,25 @@ export const Workspace = {
       },
     );
 
-    const updateState = (update: (state: WorkspaceState) => void) => {
-      const newState = { ...state };
-      update(newState);
-      state = newState;
+    const updateState = (fn: (state: WorkspaceState) => WorkspaceState) => {
+      state = fn($state.snapshot(state));
     };
 
     events.workspaceStateChange(getCurrent()).listen((e) => {
       fromEvent = true;
-      updateState((state) => {
-        applyPatch(state, JSON.parse(e.payload.patch));
+      updateState((prev) => {
+        applyPatch(prev, JSON.parse(e.payload.patch));
+        return prev;
       });
     });
 
-    setContext(key, [state, updateState]);
+    setContext(key, [() => state, updateState]);
   },
   state() {
     return getContext<
       [
-        DeepReadonly<WorkspaceState>,
-        (updaste: (state: WorkspaceState) => void) => void,
+        () => DeepReadonly<WorkspaceState>,
+        (update: (state: WorkspaceState) => WorkspaceState) => void,
       ]
     >(key);
   },

@@ -51,6 +51,7 @@
 
     updateAppState((state) => {
       state.pots[pot.id] = pot.name;
+      return state;
     });
     onSubmit?.();
   }
