@@ -1,4 +1,7 @@
-import { defineConfig } from "@pandacss/dev";
+import {
+  defineConfig,
+  defineGlobalStyles,
+} from "@pandacss/dev";
 import { preset } from "@pandacss/preset-panda";
 import pandaAnimate from "pandacss-animate";
 
@@ -203,6 +206,12 @@ export default defineConfig({
 
   // The output directory for your css system
   outdir: "styled-system",
+
+  globalCss: defineGlobalStyles({
+    "html, body": {
+      overscrollBehavior: "none",
+    },
+  }),
 
   strictTokens: true,
   strictPropertyValues: true,
