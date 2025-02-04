@@ -7,7 +7,7 @@
   class={css({
     position: "fixed",
     zIndex: "0",
-    height: "7",
+    height: "[28px]",
     w: "full",
     userSelect: "none",
   })}
