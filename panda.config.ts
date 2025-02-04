@@ -1,6 +1,8 @@
 import {
   defineConfig,
+  defineKeyframes,
   defineGlobalStyles,
+  defineAnimationStyles,
 } from "@pandacss/dev";
 import { preset } from "@pandacss/preset-panda";
 import pandaAnimate from "pandacss-animate";
@@ -112,7 +114,7 @@ export default defineConfig({
         accent: {
           bg: {
             value: {
-              base: "#A39E93",
+              base: "#C8C3B9",
               _dark: "#525252",
             },
           },
@@ -195,6 +197,42 @@ export default defineConfig({
       dropShadows: {
         md: { value: "drop-shadow(0px 4px 4px rgb(0 0 0 / 0.25))" },
       },
+    },
+    extend: {
+      keyframes: defineKeyframes({
+        sidebarSlideIn: {
+          from: {
+            transform: "translateX(-110%)",
+          },
+          to: {
+            transform: "translateX(0%)",
+          },
+        },
+        sidebarSlideOut: {
+          from: {
+            transform: "translateX(0%)",
+          },
+          to: {
+            transform: "translateX(-110%)",
+          },
+        },
+      }),
+      animationStyles: defineAnimationStyles({
+        "sidebar-slide-in": {
+          value: {
+            animationFillMode: "forwards",
+            animationDuration: "fast",
+            animationName: "sidebarSlideIn",
+          },
+        },
+        "sidebar-slide-out": {
+          value: {
+            animationFillMode: "forwards",
+            animationDuration: "fast",
+            animationName: "sidebarSlideOut",
+          },
+        },
+      }),
     },
   },
   themes: {

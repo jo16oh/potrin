@@ -46,7 +46,7 @@ impl WorkspaceState {
             focus: FocusState::Timeline {},
             sidebar: SidebarState {
                 is_float: false,
-                width: 300,
+                width: 20.0,
             },
         }
     }
@@ -56,14 +56,14 @@ impl WorkspaceState {
 #[serde(rename_all = "camelCase")]
 pub struct SidebarState {
     pub is_float: bool,
-    pub width: u16,
+    pub width: f64,
 }
 
 impl Default for SidebarState {
     fn default() -> Self {
         Self {
             is_float: false,
-            width: 300,
+            width: 20.0,
         }
     }
 }

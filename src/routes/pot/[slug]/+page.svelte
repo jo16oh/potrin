@@ -1,11 +1,13 @@
 <script lang="ts">
   import TitleBarHandler from "$lib/components/common/TitleBarHandler.svelte";
+  import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
   import { css } from "styled-system/css";
 </script>
 
 <TitleBarHandler />
 
 <div class={containerStyle}>
+  <Sidebar />
 </div>
 
 <script module>
