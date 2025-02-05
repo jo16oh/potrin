@@ -43,7 +43,7 @@ pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Opti
     query_builder
         .fetch_optional(pool)
         .await
-        .map_err(|e| e.into())
+        .map_err(eyre::Error::from)
 }
 
 pub async fn self_and_its_ancestors(
@@ -97,7 +97,10 @@ pub async fn y_updates_by_doc_id(
     );
 
     query_builder = query_builder.bind(y_doc_id);
-    query_builder.fetch_all(pool).await.map_err(|e| e.into())
+    query_builder
+        .fetch_all(pool)
+        .await
+        .map_err(eyre::Error::from)
 }
 
 pub async fn y_updates_by_id(
@@ -359,7 +362,10 @@ pub async fn paragraph_delete_targets(
         query_builder = query_builder.bind(id);
     }
 
-    query_builder.fetch_all(pool).await.map_err(|e| e.into())
+    query_builder
+        .fetch_all(pool)
+        .await
+        .map_err(eyre::Error::from)
 }
 
 pub async fn conflicting_outline_ids(
@@ -403,7 +409,7 @@ pub async fn conflicting_outline_ids(
     .fetch_all(pool)
     .await
     .map(|r| r.into_iter().map(|r| (r.id, r.text)).collect())
-    .map_err(|e| e.into())
+    .map_err(eyre::Error::from)
 }
 
 pub async fn descendant_ids(
@@ -507,7 +513,10 @@ pub async fn descendants(
         query_builder = query_builder.bind(id);
     }
 
-    query_builder.fetch_all(pool).await.map_err(|e| e.into())
+    query_builder
+        .fetch_all(pool)
+        .await
+        .map_err(eyre::Error::from)
 }
 
 pub async fn outline_trees(
@@ -770,7 +779,10 @@ pub async fn outline_delete_targets(
         query_builder = query_builder.bind(id);
     }
 
-    query_builder.fetch_all(pool).await.map_err(|e| e.into())
+    query_builder
+        .fetch_all(pool)
+        .await
+        .map_err(eyre::Error::from)
 }
 
 pub async fn relation_back(
@@ -1268,7 +1280,10 @@ pub async fn oplogs_by_rowid(pool: &SqlitePool, rowids: &[i64]) -> Result<Vec<Op
         query_builder = query_builder.bind(id);
     }
 
-    query_builder.fetch_all(pool).await.map_err(|e| e.into())
+    query_builder
+        .fetch_all(pool)
+        .await
+        .map_err(eyre::Error::from)
 }
 
 #[allow(dead_code)]
@@ -1282,7 +1297,7 @@ pub async fn pending_y_updates(pool: &SqlitePool) -> Result<Vec<PendingYUpdate>>
     )
     .fetch_all(pool)
     .await
-    .map_err(|e| e.into())
+    .map_err(eyre::Error::from)
 }
 
 pub async fn paragraphs_doc_and_path_by_id(
@@ -1307,7 +1322,7 @@ pub async fn paragraphs_doc_and_path_by_id(
         .fetch_one(pool)
         .await
         .map(|r| (r.doc, r.path))
-        .map_err(|e| e.into())
+        .map_err(eyre::Error::from)
 }
 
 pub async fn app_state(pool: &SqlitePool) -> Result<Option<AppState>> {
