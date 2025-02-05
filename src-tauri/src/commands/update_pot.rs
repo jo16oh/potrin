@@ -25,6 +25,8 @@ pub async fn update_pot<R: Runtime>(app_handle: AppHandle<R>, pot: Pot) -> eyre:
     query::update::pot(pool, &pot, now).await?;
 
     if let Some(win) = app_handle.get_webview_window(&pot.id.to_string()) {
+        win.set_title(&pot.name)?;
+
         let lock = get_rw_state::<R, WorkspaceState>(&win)?;
 
         let prev = lock.read().await.clone();
