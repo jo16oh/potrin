@@ -619,25 +619,16 @@ mod test {
         let reconciler = get_state::<MockRuntime, Reconciler>(app_handle)?;
         reconciler.wait().await?;
 
-        let path = fetch_path(app_handle.clone(), o1.id)
-            .await
-            .unwrap()
-            .unwrap();
+        let path = fetch_path(app_handle.clone(), o1.id).await.unwrap();
         assert_eq!(path.len(), 1);
         assert_eq!(path.inner()[0].id, o1.id);
 
-        let path = fetch_path(app_handle.clone(), o2.id)
-            .await
-            .unwrap()
-            .unwrap();
+        let path = fetch_path(app_handle.clone(), o2.id).await.unwrap();
         assert_eq!(path.len(), 2);
         assert_eq!(path.inner()[0].id, o1.id);
         assert_eq!(path.inner()[1].id, o2.id);
 
-        let path = fetch_path(app_handle.clone(), o3.id)
-            .await
-            .unwrap()
-            .unwrap();
+        let path = fetch_path(app_handle.clone(), o3.id).await.unwrap();
         assert_eq!(path.len(), 3);
         assert_eq!(path.inner()[0].id, o1.id);
         assert_eq!(path.inner()[1].id, o2.id);

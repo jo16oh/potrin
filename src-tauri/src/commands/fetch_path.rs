@@ -13,7 +13,7 @@ use tauri::Runtime;
 pub async fn fetch_path<R: Runtime>(
     app_handle: AppHandle<R>,
     outline_id: UUIDv7Base64URL,
-) -> eyre::Result<Option<Path>> {
+) -> eyre::Result<Path> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     fetch::path(pool, outline_id).await

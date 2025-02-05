@@ -29,7 +29,7 @@ pub async fn pot_by_id(pool: &SqlitePool, pot_id: UUIDv7Base64URL) -> Result<Pot
         .map_err(eyre::Error::from)
 }
 
-pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Option<Path>> {
+pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Path> {
     let query = r#"
         SELECT path
         FROM outline_paths
@@ -41,7 +41,7 @@ pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Opti
     query_builder = query_builder.bind(outline_id);
 
     query_builder
-        .fetch_optional(pool)
+        .fetch_one(pool)
         .await
         .map_err(eyre::Error::from)
 }
