@@ -1,3 +1,4 @@
+use super::model::Pot;
 use crate::types::{setting::AppSetting, util::UUIDv7Base64URL};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -21,27 +22,17 @@ pub struct UserState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct PotState {
-    pub id: UUIDv7Base64URL,
-    pub name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
-#[serde(rename_all = "camelCase")]
 pub struct WorkspaceState {
-    pub pot: PotState,
+    pub pot: Pot,
     pub tabs: Vec<TabState>,
     pub focus: FocusState,
     pub sidebar: SidebarState,
 }
 
 impl WorkspaceState {
-    pub fn new(pot_id: UUIDv7Base64URL, pot_name: String) -> Self {
+    pub fn new(pot: &Pot) -> Self {
         Self {
-            pot: PotState {
-                id: pot_id,
-                name: pot_name,
-            },
+            pot: pot.clone(),
             tabs: Vec::new(),
             focus: FocusState::Timeline {},
             sidebar: SidebarState {

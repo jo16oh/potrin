@@ -6,6 +6,7 @@ use crate::{
             ParagraphForIndex, Path, PendingYUpdate, Pot, RawParagraph, RawParagraphForIndex,
             YUpdate,
         },
+        state::{AppState, WorkspaceState},
         util::{BytesBase64URL, UUIDv7Base64URL},
     },
 };
@@ -16,6 +17,14 @@ use sqlx::{prelude::FromRow, SqlitePool};
 pub async fn pots(pool: &SqlitePool) -> Result<Vec<Pot>> {
     sqlx::query_as::<_, Pot>("SELECT * FROM pots;")
         .fetch_all(pool)
+        .await
+        .map_err(eyre::Error::from)
+}
+
+pub async fn pot_by_id(pool: &SqlitePool, pot_id: UUIDv7Base64URL) -> Result<Pot> {
+    sqlx::query_as::<_, Pot>("SELECT * FROM pots WHERE id = ?;")
+        .bind(pot_id)
+        .fetch_one(pool)
         .await
         .map_err(eyre::Error::from)
 }
@@ -1299,4 +1308,36 @@ pub async fn paragraphs_doc_and_path_by_id(
         .await
         .map(|r| (r.doc, r.path))
         .map_err(|e| e.into())
+}
+
+pub async fn app_state(pool: &SqlitePool) -> Result<Option<AppState>> {
+    sqlx::query_scalar!(
+        r#"
+            SELECT value
+            FROM kvs
+            WHERE id = "app_state";
+        "#
+    )
+    .fetch_optional(pool)
+    .await?
+    .map(|b| serde_sqlite_jsonb::from_slice::<AppState>(&b).map_err(eyre::Error::from))
+    .transpose()
+}
+
+pub async fn workspace_state(
+    pool: &SqlitePool,
+    pot_id: UUIDv7Base64URL,
+) -> Result<Option<WorkspaceState>> {
+    sqlx::query_scalar!(
+        r#"
+            SELECT value
+            FROM workspaces
+            WHERE pot_id = ?;
+        "#,
+        pot_id
+    )
+    .fetch_optional(pool)
+    .await?
+    .map(|b| serde_sqlite_jsonb::from_slice::<WorkspaceState>(&b).map_err(eyre::Error::from))
+    .transpose()
 }

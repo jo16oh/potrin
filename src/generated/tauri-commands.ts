@@ -173,9 +173,9 @@ async updateWorkspaceState(patch: string) : Promise<Result<null, PotrinError>> {
     else return { status: "error", error: e  as any };
 }
 },
-async openPot(potId: UUIDv7Base64URL, potName: string) : Promise<Result<null, PotrinError>> {
+async openPot(potId: UUIDv7Base64URL) : Promise<Result<null, PotrinError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("open_pot", { potId, potName }) };
+    return { status: "ok", data: await TAURI_INVOKE("open_pot", { potId }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -253,7 +253,6 @@ export type ParagraphChange = { operation: Operation<ParagraphForIndex>; origin:
 export type ParagraphForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; path: Path; links: Links; hidden: boolean; deleted: boolean; createdAt: number; updatedAt: number }
 export type Path = Link[]
 export type Pot = { id: UUIDv7Base64URL; name: string; owner: UUIDv7Base64URL | null; createdAt: number }
-export type PotState = { id: UUIDv7Base64URL; name: string }
 export type PotrinError = { anyError: { rootCause: string; msg: string } }
 export type Quote = { id: UUIDv7Base64URL; versionId: UUIDv7Base64URL; path: Path; doc: string; latestDoc: string | null }
 export type RelationOption = { direction: Direction; includeChildren: IncludeChildrenOption | null }
@@ -267,7 +266,7 @@ export type UUIDv7Base64URL = string
 export type UserState = { id: UUIDv7Base64URL; name: string }
 export type ViewState = { id: UUIDv7Base64URL; viewType: ViewType; title: string; flexGrow: number }
 export type ViewType = "outline" | "relation" | "search"
-export type WorkspaceState = { pot: PotState; tabs: TabState[]; focus: FocusState; sidebar: SidebarState }
+export type WorkspaceState = { pot: Pot; tabs: TabState[]; focus: FocusState; sidebar: SidebarState }
 export type WorkspaceStateChange = { patch: string }
 
 /** tauri-specta globals **/

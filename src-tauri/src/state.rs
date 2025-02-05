@@ -1,5 +1,7 @@
-use crate::events::AppStateChange;
+use crate::database::query::{fetch, upsert};
+use crate::events::{AppStateChange, WorkspaceStateChange};
 use crate::search_engine::SearchIndex;
+use crate::types::model::Pot;
 use crate::types::util::UUIDv7Base64URL;
 use crate::utils::{get_rw_state, get_state};
 use crate::{types::state::*, utils::set_rw_state};
@@ -8,46 +10,14 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, EventTarget, Manager, Runtime, WebviewWindow, Window};
 use tauri_specta::Event;
 
-struct QueryResult {
-    value: Vec<u8>,
-}
-
 pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
-    let prev_state = sqlx::query_as!(
-        QueryResult,
-        r#"
-            SELECT value
-            FROM kvs
-            WHERE id = ?;
-        "#,
-        "app_state"
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    let app_state = match prev_state {
-        Some(result) => serde_sqlite_jsonb::from_slice::<AppState>(&result.value)?,
+    let app_state = match fetch::app_state(pool).await? {
+        Some(state) => state,
         None => {
             let app_state = AppState::default();
-
-            let jsonb = serde_sqlite_jsonb::to_vec(&app_state)?;
-
-            sqlx::query!(
-                r#"
-                    INSERT INTO kvs (id, value)
-                    VALUES (?, ?)
-                    ON CONFLICT DO UPDATE
-                    SET
-                        value = excluded.value;
-                "#,
-                "app_state",
-                jsonb
-            )
-            .execute(pool)
-            .await?;
-
+            upsert::app_state(pool, &app_state).await?;
             app_state
         }
     };
@@ -60,45 +30,16 @@ pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Resu
 pub async fn init_workspace_state<R: Runtime>(
     app_handle: &AppHandle<R>,
     window: &WebviewWindow<R>,
-    pot_id: UUIDv7Base64URL,
-    pot_name: &str,
+    pot: &Pot,
 ) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
 
-    let prev_state = sqlx::query_as!(
-        QueryResult,
-        r#"
-            SELECT value
-            FROM workspaces
-            WHERE pot_id = ?;
-        "#,
-        pot_id
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    let workspace_state = match prev_state {
-        Some(result) => serde_sqlite_jsonb::from_slice::<WorkspaceState>(&result.value)?,
+    let workspace_state = match fetch::workspace_state(pool, pot.id).await? {
+        Some(state) => state,
         None => {
-            let app_state = WorkspaceState::new(pot_id, pot_name.to_string());
-
-            let jsonb = serde_sqlite_jsonb::to_vec(&app_state)?;
-
-            sqlx::query!(
-                r#"
-                    INSERT INTO workspaces (pot_id, value)
-                    VALUES (?, ?)
-                    ON CONFLICT DO UPDATE
-                    SET
-                        value = excluded.value;
-                "#,
-                pot_id,
-                jsonb
-            )
-            .execute(pool)
-            .await?;
-
-            app_state
+            let workspace_state = WorkspaceState::new(pot);
+            upsert::workspace_state(pool, &workspace_state).await?;
+            workspace_state
         }
     };
 
@@ -124,18 +65,7 @@ pub async fn update_app_state<R: Runtime>(
         serde_json::from_value::<AppState>(value)?
     };
 
-    let current_app_state_jsonb = serde_sqlite_jsonb::to_vec(&current_app_state)?;
-
-    sqlx::query!(
-        r#"
-            UPDATE kvs
-            SET value = ?
-            WHERE id = "app_state";
-        "#,
-        current_app_state_jsonb
-    )
-    .execute(pool)
-    .await?;
+    upsert::app_state(pool, &current_app_state).await?;
 
     *app_state = current_app_state;
 
@@ -151,7 +81,7 @@ pub async fn update_app_state<R: Runtime>(
 
 pub async fn update_workspace_state<R: Runtime>(
     app_handle: &AppHandle<R>,
-    window: &Window<R>,
+    window: &WebviewWindow<R>,
     patch: String,
 ) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle)?;
@@ -166,21 +96,16 @@ pub async fn update_workspace_state<R: Runtime>(
         serde_json::from_value::<WorkspaceState>(value)?
     };
 
-    let current_app_state_jsonb = serde_sqlite_jsonb::to_vec(&current_workspace_state)?;
-
-    sqlx::query!(
-        r#"
-            UPDATE workspaces
-            SET value = ?
-            WHERE pot_id = ?;
-        "#,
-        current_app_state_jsonb,
-        current_workspace_state.pot.id
-    )
-    .execute(pool)
-    .await?;
+    upsert::workspace_state(pool, &current_workspace_state).await?;
 
     *workspace_state = current_workspace_state;
+
+    WorkspaceStateChange::new(patch).emit_filter(app_handle, |target| match target {
+        EventTarget::WebviewWindow { label } => label == window.label(),
+        EventTarget::Webview { label } => label == window.label(),
+        EventTarget::Window { label } => label == window.label(),
+        _ => false,
+    })?;
 
     Ok(())
 }
@@ -200,18 +125,7 @@ pub async fn close_pot<R: Runtime>(
 
     let patch = json_patch::diff(&prev_app_state, &current_app_state).to_string();
 
-    let current_app_state_jsonb = serde_sqlite_jsonb::to_vec(&*app_state)?;
-
-    sqlx::query!(
-        r#"
-            UPDATE kvs
-            SET value = ?
-            WHERE id = "app_state";
-        "#,
-        current_app_state_jsonb
-    )
-    .execute(pool)
-    .await?;
+    upsert::app_state(pool, &app_state).await?;
 
     window.unmanage::<SearchIndex>();
 

@@ -5,10 +5,6 @@ use tauri::AppHandle;
 #[specta::specta]
 #[macros::eyre_to_any]
 #[macros::log_err]
-pub async fn open_pot(
-    app_handle: AppHandle,
-    pot_id: UUIDv7Base64URL,
-    pot_name: String,
-) -> eyre::Result<()> {
-    crate::window::open_pot(&app_handle, pot_id, &pot_name).await
+pub async fn open_pot(app_handle: AppHandle, pot_id: UUIDv7Base64URL) -> eyre::Result<()> {
+    crate::window::open_pot(&app_handle, pot_id).await
 }

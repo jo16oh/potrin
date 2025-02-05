@@ -46,7 +46,7 @@
       return state;
     });
 
-    unwrap(await commands.openPot(pot.id, pot.name));
+    unwrap(await commands.openPot(pot.id));
 
     // getCurrent().close();
   }

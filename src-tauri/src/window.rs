@@ -1,9 +1,11 @@
 use crate::{
+    database::query::fetch,
     search_engine::load_index,
     state::init_workspace_state,
     types::{setting::SearchFuzziness, state::AppState, util::UUIDv7Base64URL},
-    utils::get_rw_state,
+    utils::{get_rw_state, get_state},
 };
+use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 
 pub async fn init_windows(app_handle: &AppHandle) -> eyre::Result<()> {
@@ -13,8 +15,8 @@ pub async fn init_windows(app_handle: &AppHandle) -> eyre::Result<()> {
     if app_state.pots.is_empty() {
         open_pot_selector(app_handle)?;
     } else {
-        for (id, name) in app_state.pots.iter() {
-            open_pot(app_handle, *id, name).await?;
+        for (id, _) in app_state.pots.iter() {
+            open_pot(app_handle, *id).await?;
         }
     }
 
@@ -22,6 +24,10 @@ pub async fn init_windows(app_handle: &AppHandle) -> eyre::Result<()> {
 }
 
 pub fn open_pot_selector(app_handle: &AppHandle) -> eyre::Result<()> {
+    if let Some(win) = app_handle.webview_windows().get("entry") {
+        return win.set_focus().map_err(|e| e.into());
+    }
+
     let win_builder = WebviewWindowBuilder::new(app_handle, "entry", WebviewUrl::App("".into()))
         .title("Potrin")
         .hidden_title(true)
@@ -37,21 +43,21 @@ pub fn open_pot_selector(app_handle: &AppHandle) -> eyre::Result<()> {
     Ok(())
 }
 
-pub async fn open_pot(
-    app_handle: &AppHandle,
-    pot_id: UUIDv7Base64URL,
-    pot_name: &str,
-) -> eyre::Result<()> {
+pub async fn open_pot(app_handle: &AppHandle, pot_id: UUIDv7Base64URL) -> eyre::Result<()> {
     if let Some(win) = app_handle.webview_windows().get(&pot_id.to_string()) {
         return win.set_focus().map_err(|e| e.into());
     }
 
+    let pool = get_state::<_, SqlitePool>(app_handle)?;
+
+    let pot = fetch::pot_by_id(pool, pot_id).await?;
+
     let win_builder = WebviewWindowBuilder::new(
         app_handle,
-        pot_id,
-        WebviewUrl::App(format!("pot/{}", pot_id).into()),
+        pot.id,
+        WebviewUrl::App(format!("pot/{}", pot.id).into()),
     )
-    .title(pot_name)
+    .title(&pot.name)
     .hidden_title(true)
     .inner_size(1025.0, 800.0)
     .visible(false);
@@ -62,11 +68,11 @@ pub async fn open_pot(
 
     let window = win_builder.build()?;
 
-    init_workspace_state(app_handle, &window, pot_id, pot_name)
+    init_workspace_state(app_handle, &window, &pot)
         .await
         .unwrap();
 
-    let search_index = load_index(app_handle, pot_id, SearchFuzziness::Exact).await?;
+    let search_index = load_index(app_handle, pot.id, SearchFuzziness::Exact).await?;
     window.manage(search_index);
 
     Ok(())

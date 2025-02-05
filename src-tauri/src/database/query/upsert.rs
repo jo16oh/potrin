@@ -1,5 +1,6 @@
 use crate::types::{
     model::{Outline, Paragraph},
+    state::{AppState, WorkspaceState},
     util::UUIDv7Base64URL,
 };
 use eyre::{OptionExt, Result};
@@ -132,6 +133,52 @@ where
     }
 
     query_builder.execute(conn).await?;
+
+    Ok(())
+}
+
+pub async fn app_state<'a, E>(conn: E, app_state: &AppState) -> Result<()>
+where
+    E: SqliteExecutor<'a>,
+{
+    let jsonb = serde_sqlite_jsonb::to_vec(app_state)?;
+
+    sqlx::query!(
+        r#"
+            INSERT INTO kvs (id, value)
+            VALUES (?, ?)
+            ON CONFLICT DO UPDATE
+            SET
+                value = excluded.value;
+        "#,
+        "app_state",
+        jsonb
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn workspace_state<'a, E>(conn: E, workspace_state: &WorkspaceState) -> Result<()>
+where
+    E: SqliteExecutor<'a>,
+{
+    let jsonb = serde_sqlite_jsonb::to_vec(workspace_state)?;
+
+    sqlx::query!(
+        r#"
+            INSERT INTO workspaces (pot_id, value)
+            VALUES (?, ?)
+            ON CONFLICT DO UPDATE
+            SET
+                value = excluded.value;
+        "#,
+        workspace_state.pot.id,
+        jsonb
+    )
+    .execute(conn)
+    .await?;
 
     Ok(())
 }
