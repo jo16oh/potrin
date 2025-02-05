@@ -11,6 +11,7 @@
   import Popover from "$lib/components/common/Popover.svelte";
   import DialogClose from "$lib/components/common/DialogClose.svelte";
   import RenamePot from "./RenamePot.svelte";
+  import { getCurrent } from "@tauri-apps/api/webviewWindow";
 
   const [getAppState, updateAppState] = App.state();
   const appState = $derived.by(getAppState);
@@ -45,8 +46,8 @@
       return state;
     });
 
-    // getCurrent().close();
     unwrap(await commands.openPot(id));
+    getCurrent().close();
   }
 </script>
 
@@ -197,6 +198,7 @@
     h: "9",
     color: "button.text",
   });
+
   const iconStyle = css({
     color: "view.text-muted",
     w: "4",

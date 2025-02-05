@@ -15,11 +15,13 @@
     button,
     buttonStyle,
     onSubmit,
+    open = $bindable(false),
   }: {
     pot: Pot;
     button: Snippet;
     buttonStyle: Styles;
     onSubmit?: () => void;
+    open?: boolean;
   } = $props();
 
   const [_, updateAppState] = App.state();
@@ -27,7 +29,6 @@
   const minNameLength = 1;
   const maxNameLength = 50;
 
-  let open = $state(false);
   let name = $state("");
   let canSubmit = $state(true);
 
@@ -59,11 +60,7 @@
 
 <Dialog
   bind:open
-  triggerStyle={{
-    ...buttonStyle,
-    w: "full",
-    h: "9",
-  }}
+  triggerStyle={buttonStyle}
   contentProps={{
     onOpenAutoFocus: (e) => {
       e.preventDefault();

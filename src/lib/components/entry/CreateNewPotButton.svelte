@@ -6,7 +6,7 @@
   import { uuidv7, unwrap } from "$lib/utils";
   import { App } from "$lib/models/App.svelte";
   import CloseButton from "./CloseButton.svelte";
-  // import { getCurrent } from "@tauri-apps/api/window";
+  import { getCurrent } from "@tauri-apps/api/window";
 
   const [_, updateAppState] = App.state();
 
@@ -48,7 +48,7 @@
 
     unwrap(await commands.openPot(pot.id));
 
-    // getCurrent().close();
+    getCurrent().close();
   }
 </script>
 

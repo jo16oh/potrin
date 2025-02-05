@@ -1,12 +1,23 @@
 <script lang="ts">
   import { css } from "styled-system/css";
   import Button, { buttonStyle } from "../common/Button.svelte";
-  import { ChevronDown, PanelLeft, PanelRightOpen } from "lucide-svelte";
+  import {
+    ChevronDown,
+    PanelRight,
+    PanelRightOpen,
+    PencilLine,
+    SquareArrowUpRight,
+  } from "lucide-svelte";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import Popover from "../common/Popover.svelte";
+  import { commands } from "../../../generated/tauri-commands";
+  import PopoverClose from "../common/PopoverClose.svelte";
+  import RenamePot from "../entry/RenamePot.svelte";
+  import { watch } from "runed";
+  import { unwrap } from "$lib/utils";
 
-  const MAX_WIDTH = 38;
-  const MIN_WIDTH = 10;
+  const MAX_WIDTH_REM = 38;
+  const MIN_WIDTH_REM = 10;
   const REM = 16;
 
   const [getWorkspaceState, updateWorkspaceState] = Workspace.state();
@@ -16,8 +27,22 @@
   // svelte-ignore state_referenced_locally
   let width = $state(workspaceState.sidebar.width);
   // svelte-ignore state_referenced_locally
-  let visible = $state(!workspaceState.sidebar.isFloat);
+  let sidebarOpen = $state(!workspaceState.sidebar.isFloat);
   let dragging = $state(false);
+
+  let potOperationsOpen = $state(false);
+  let potRenameDialogOpen = $state(false);
+
+  watch(
+    () => potRenameDialogOpen,
+    () => {
+      if (!potRenameDialogOpen && workspaceState.sidebar.isFloat) {
+        potOperationsOpen = false;
+        sidebarOpen = false;
+      }
+    },
+    { lazy: true },
+  );
 
   function resize(
     e: MouseEvent & {
@@ -31,7 +56,7 @@
     const handleMouseMove = (e: MouseEvent) => {
       const currentWidth = prevWidth + (e.clientX / REM - start / REM);
 
-      if (MIN_WIDTH <= currentWidth && currentWidth <= MAX_WIDTH) {
+      if (MIN_WIDTH_REM <= currentWidth && currentWidth <= MAX_WIDTH_REM) {
         width = currentWidth;
       }
     };
@@ -52,7 +77,7 @@
   }
 
   function toggleFloat() {
-    visible = false;
+    sidebarOpen = false;
     updateWorkspaceState((state) => {
       state.sidebar.isFloat = !state.sidebar.isFloat;
       return state;
@@ -60,11 +85,11 @@
   }
 </script>
 
-{#if workspaceState.sidebar.isFloat && !visible}
+{#if workspaceState.sidebar.isFloat && !sidebarOpen}
   <!-- eslint-ignore a11y_no_static_element_interactions  -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    onmouseenter={() => (visible = true)}
+    onmouseenter={() => (sidebarOpen = true)}
     class={css({
       position: "fixed",
       h: "screen",
@@ -76,27 +101,34 @@
 {/if}
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  data-visible={visible}
+  data-visible={sidebarOpen}
   data-float={workspaceState.sidebar.isFloat}
   class={containerStyle}
   style:width={`${workspaceState.sidebar.isFloat ? width + 1 : width}rem`}
   onmouseleave={(e) => {
-    if (!dragging && e.clientX > 16) visible = false;
+    if (potRenameDialogOpen) return;
+    if (workspaceState.sidebar.isFloat) potOperationsOpen = false;
+    if (!dragging && e.clientX > 16) sidebarOpen = false;
   }}
 >
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-  <div
-    role="separator"
-    aria-orientation="vertical"
-    class={resizeHandlerStyle}
-    onmousedown={resize}
-    data-float={workspaceState.sidebar.isFloat}
-    data-dragging={dragging}
-  >
-    <div></div>
-  </div>
   <div class={headerStyle}>
-    <Popover triggerStyle={potNameButtonStyle} contentProps={{ align: "end" }}>
+    <Popover
+      bind:open={potOperationsOpen}
+      triggerStyle={potNameButtonStyle}
+      contentStyle={potOperationsContainerStyle}
+      contentProps={{
+        align: "end",
+        onclick: (e) => {
+          e.stopPropagation();
+        },
+        onOpenAutoFocus: (e) => {
+          e.preventDefault();
+        },
+        onCloseAutoFocus: (e) => {
+          e.preventDefault();
+        },
+      }}
+    >
       {#snippet trigger()}
         <div class={potNameStyle}>
           {workspaceState.pot.name}
@@ -106,17 +138,42 @@
         </div>
       {/snippet}
       {#snippet content()}
-        text
+        <RenamePot
+          pot={workspaceState.pot}
+          buttonStyle={potOperationsItemStyle}
+          bind:open={potRenameDialogOpen}
+        >
+          {#snippet button()}
+            <PencilLine class={iconStyle} />
+            Rename the pot
+          {/snippet}
+        </RenamePot>
+        <PopoverClose
+          class={css(potOperationsItemStyle)}
+          onclick={async () => unwrap(await commands.openPotSelector())}
+        >
+          <SquareArrowUpRight class={iconStyle} />
+          Open another pot</PopoverClose
+        >
       {/snippet}
     </Popover>
     <Button style={collapseButtonStyle} onclick={toggleFloat}>
       {#if workspaceState.sidebar.isFloat}
-        <PanelLeft class={sidebarButtonIconStyle} />
+        <PanelRight class={sidebarButtonIconStyle} />
       {:else}
         <PanelRightOpen class={sidebarButtonIconStyle} />
       {/if}
     </Button>
   </div>
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <div
+    role="separator"
+    aria-orientation="vertical"
+    class={resizeHandlerStyle}
+    onmousedown={resize}
+    data-float={workspaceState.sidebar.isFloat}
+    data-dragging={dragging}
+  ></div>
 </div>
 
 <script module>
@@ -124,14 +181,13 @@
     flexShrink: "0",
     position: "relative",
     h: "full",
-    py: "2",
     display: "flex",
     flexDir: "column",
     gap: "1",
     bg: "accent.bg",
     userSelect: "none",
     "&[data-float=true]": {
-      px: "2",
+      p: "2",
       bg: "accent.bg/95",
       position: "fixed",
       h: "[calc(100% - 28px)]",
@@ -201,7 +257,7 @@
 
   const collapseButtonStyle = css.raw({
     bg: "transparent",
-    shadow: "[ none ]",
+    shadow: "[none]",
     display: "flex",
     flexDir: "row",
     justifyContent: "center",
@@ -235,5 +291,29 @@
     _groupHover: {
       color: "view.text-muted",
     },
+  });
+
+  const potOperationsContainerStyle = css.raw({
+    p: "1",
+    userSelect: "none",
+    bg: "view.bg",
+  });
+
+  const potOperationsItemStyle = css.raw({
+    ...buttonStyle,
+    justifyContent: "start",
+    fontSize: "sm",
+    p: "1",
+    w: "full",
+    h: "fit",
+    rounded: "[0.25rem]",
+    bg: "transparent",
+    shadow: "[none]",
+  });
+
+  const iconStyle = css({
+    color: "view.text-muted",
+    w: "4",
+    h: "4",
   });
 </script>
