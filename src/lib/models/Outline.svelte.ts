@@ -67,21 +67,33 @@ export class Outline {
     }
   }
 
-  static new(): Outline {
-    const outline = Outline.from({
-      id: uuidv7(),
-      parentId: null,
-      fractionalIndex: generateKeyBetween(null, null),
-      doc: "",
-      text: "",
-      links: {},
-      path: null,
-      hidden: false,
-      collapsed: false,
-      deleted: false,
-      createdAt: new Date().getUTCMilliseconds(),
-      updatedAt: new Date().getUTCMilliseconds(),
-    });
+  static async new(parent?: Outline): Promise<Outline> {
+    const id = uuidv7();
+
+    const linkToThis = { id: id, text: "", hidden: false };
+    const path = parent
+      ? parent.#path
+        ? [...parent.#path, linkToThis]
+        : [...unwrap(await commands.fetchPath(parent.id)), linkToThis]
+      : [linkToThis];
+
+    const outline = Outline.from(
+      {
+        id: id,
+        parentId: parent ? parent.id : null,
+        fractionalIndex: generateKeyBetween(null, null),
+        doc: "",
+        text: "",
+        links: {},
+        path: path,
+        hidden: false,
+        collapsed: false,
+        deleted: false,
+        createdAt: new Date().getUTCMilliseconds(),
+        updatedAt: new Date().getUTCMilliseconds(),
+      },
+      parent,
+    );
 
     outline.#ydoc = new Y.Doc();
 
