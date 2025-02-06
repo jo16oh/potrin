@@ -226,7 +226,7 @@
     flexDir: "row",
     justifyContent: "space-between",
     alignItems: "start",
-    gap: "1",
+    gap: "0.5",
   });
 
   const potNameButtonStyle = css.raw({
