@@ -1,12 +1,10 @@
 use crate::{
     database::query::{delete, fetch, upsert},
-    events::{Origin, OutlineChange, ParagraphChange, Target},
+    events::Origin,
     search_engine::{add_index, remove_index, DeleteTarget, IndexTarget},
     types::{
         error::PotrinError,
-        model::{
-            Ancestor, Descendant, Link, Oplog, OutlineForIndex, ParagraphForIndex, Path, YUpdate,
-        },
+        model::{Ancestor, Descendant, Link, Oplog, Path, YUpdate},
         util::UUIDv7Base64URL,
     },
     utils::get_state,
@@ -20,7 +18,6 @@ use tauri::{
     async_runtime::{self, channel, Sender},
     AppHandle, Manager, Runtime,
 };
-use tauri_specta::Event;
 use tokio::sync::oneshot;
 
 #[derive(Deserialize)]
@@ -156,8 +153,8 @@ async fn reconcile<R: Runtime>(
 async fn process_outline_changes<R: Runtime>(
     app_handle: &AppHandle<R>,
     outline_logs: Vec<&Oplog>,
-    y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
-    origin: &Origin,
+    _y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
+    _origin: &Origin,
 ) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
 
@@ -208,21 +205,21 @@ async fn process_outline_changes<R: Runtime>(
                     )
                     .await?;
 
-                    OutlineChange::insert(
-                        inserted_outlines
-                            .into_iter()
-                            .map(|o| {
-                                let y_updates = y_updates_map
-                                    .remove(&o.id)
-                                    .ok_or_eyre("")?
-                                    .into_iter()
-                                    .map(|y| y.data)
-                                    .collect();
-                                Ok(Target::new(o, y_updates))
-                            })
-                            .collect::<eyre::Result<Vec<Target<OutlineForIndex>>>>()?,
-                        origin.clone(),
-                    );
+                    // OutlineChange::insert(
+                    //     inserted_outlines
+                    //         .into_iter()
+                    //         .map(|o| {
+                    //             let y_updates = y_updates_map
+                    //                 .remove(&o.id)
+                    //                 .ok_or_eyre("")?
+                    //                 .into_iter()
+                    //                 .map(|y| y.data)
+                    //                 .collect();
+                    //             Ok(Target::new(o, y_updates))
+                    //         })
+                    //         .collect::<eyre::Result<Vec<Target<OutlineForIndex>>>>()?,
+                    //     origin.clone(),
+                    // );
                 }
             }
             "update" => {
@@ -269,22 +266,22 @@ async fn process_outline_changes<R: Runtime>(
                     )
                     .await?;
 
-                    OutlineChange::update(
-                        updated_outlines
-                            .into_iter()
-                            .map(|o| {
-                                let y_updates = y_updates_map
-                                    .remove(&o.id)
-                                    .ok_or_eyre("")?
-                                    .into_iter()
-                                    .map(|y| y.data)
-                                    .collect();
-                                Ok(Target::new(o, y_updates))
-                            })
-                            .collect::<eyre::Result<Vec<Target<OutlineForIndex>>>>()?,
-                        origin.clone(),
-                    )
-                    .emit(app_handle)?;
+                    // OutlineChange::update(
+                    //     updated_outlines
+                    //         .into_iter()
+                    //         .map(|o| {
+                    //             let y_updates = y_updates_map
+                    //                 .remove(&o.id)
+                    //                 .ok_or_eyre("")?
+                    //                 .into_iter()
+                    //                 .map(|y| y.data)
+                    //                 .collect();
+                    //             Ok(Target::new(o, y_updates))
+                    //         })
+                    //         .collect::<eyre::Result<Vec<Target<OutlineForIndex>>>>()?,
+                    //     origin.clone(),
+                    // )
+                    // .emit(app_handle)?;
                 }
 
                 if !deleted_ids.is_empty() {
@@ -292,7 +289,7 @@ async fn process_outline_changes<R: Runtime>(
                     upsert_path(pool, &deleted_ids).await?;
                     remove_index(app_handle, delete_targets).await?;
 
-                    OutlineChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
+                    // OutlineChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
                 }
             }
             "delete" => {
@@ -320,7 +317,7 @@ async fn process_outline_changes<R: Runtime>(
                 upsert_path(pool, &deleted_ids).await?;
                 remove_index(app_handle, delete_targets).await?;
 
-                OutlineChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
+                // OutlineChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
             }
             _ => {}
         }
@@ -332,8 +329,8 @@ async fn process_outline_changes<R: Runtime>(
 async fn process_paragraph_changes<R: Runtime>(
     app_handle: &AppHandle<R>,
     paragraph_logs: Vec<&Oplog>,
-    y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
-    origin: &Origin,
+    _y_updates_map: &mut HashMap<UUIDv7Base64URL, Vec<YUpdate>>,
+    _origin: &Origin,
 ) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(app_handle).unwrap();
 
@@ -382,21 +379,21 @@ async fn process_paragraph_changes<R: Runtime>(
                     )
                     .await?;
 
-                    ParagraphChange::insert(
-                        inserted_paragraphs
-                            .into_iter()
-                            .map(|c| {
-                                let y_updates = y_updates_map
-                                    .remove(&c.id)
-                                    .ok_or_eyre("")?
-                                    .into_iter()
-                                    .map(|y| y.data)
-                                    .collect();
-                                Ok(Target::new(c, y_updates))
-                            })
-                            .collect::<eyre::Result<Vec<Target<ParagraphForIndex>>>>()?,
-                        origin.clone(),
-                    );
+                    // ParagraphChange::insert(
+                    //     inserted_paragraphs
+                    //         .into_iter()
+                    //         .map(|c| {
+                    //             let y_updates = y_updates_map
+                    //                 .remove(&c.id)
+                    //                 .ok_or_eyre("")?
+                    //                 .into_iter()
+                    //                 .map(|y| y.data)
+                    //                 .collect();
+                    //             Ok(Target::new(c, y_updates))
+                    //         })
+                    //         .collect::<eyre::Result<Vec<Target<ParagraphForIndex>>>>()?,
+                    //     origin.clone(),
+                    // );
                 }
             }
             "update" => {
@@ -441,22 +438,22 @@ async fn process_paragraph_changes<R: Runtime>(
                     )
                     .await?;
 
-                    ParagraphChange::update(
-                        updated_paragraphs
-                            .into_iter()
-                            .map(|c| {
-                                let y_updates = y_updates_map
-                                    .remove(&c.id)
-                                    .ok_or_eyre("")?
-                                    .into_iter()
-                                    .map(|y| y.data)
-                                    .collect();
-                                Ok(Target::new(c, y_updates))
-                            })
-                            .collect::<eyre::Result<Vec<Target<ParagraphForIndex>>>>()?,
-                        origin.clone(),
-                    )
-                    .emit(app_handle)?;
+                    // ParagraphChange::update(
+                    //     updated_paragraphs
+                    //         .into_iter()
+                    //         .map(|c| {
+                    //             let y_updates = y_updates_map
+                    //                 .remove(&c.id)
+                    //                 .ok_or_eyre("")?
+                    //                 .into_iter()
+                    //                 .map(|y| y.data)
+                    //                 .collect();
+                    //             Ok(Target::new(c, y_updates))
+                    //         })
+                    //         .collect::<eyre::Result<Vec<Target<ParagraphForIndex>>>>()?,
+                    //     origin.clone(),
+                    // )
+                    // .emit(app_handle)?;
                 }
 
                 if !deleted_ids.is_empty() {
@@ -464,11 +461,11 @@ async fn process_paragraph_changes<R: Runtime>(
                         fetch::paragraph_delete_targets(pool, &deleted_ids).await?;
                     remove_index(app_handle, delete_targets).await?;
 
-                    ParagraphChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
+                    // ParagraphChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
                 }
             }
             "delete" => {
-                let deleted_ids = logs.iter().map(|l| l.primary_key).collect();
+                // let deleted_ids = logs.iter().map(|l| l.primary_key).collect();
                 let delete_targets = logs
                     .into_iter()
                     .map(|log| {
@@ -487,7 +484,7 @@ async fn process_paragraph_changes<R: Runtime>(
 
                 remove_index(app_handle, delete_targets).await?;
 
-                OutlineChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
+                // OutlineChange::delete(deleted_ids, origin.clone()).emit(app_handle)?;
             }
             _ => {}
         }

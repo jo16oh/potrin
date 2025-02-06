@@ -11,7 +11,6 @@ import {
   type Links,
   type Path,
   commands,
-  events,
 } from "../../generated/tauri-commands";
 import { Outline } from "./Outline.svelte";
 import * as Y from "yjs";
@@ -42,7 +41,7 @@ export class Paragraph {
 
     if (paragraph) {
       paragraph.#fractionalIndex = data.fractionalIndex;
-      paragraph.#doc = data.doc;
+      paragraph.doc = data.doc;
       paragraph.#updatedAt = new Date(data.updatedAt);
       paragraph.#hidden = data.hidden;
       paragraph.#deleted = data.deleted;
@@ -98,68 +97,68 @@ export class Paragraph {
     }
   }
 
-  static async init() {
-    await events.paragraphChange.listen((e) => {
-      const payload = e.payload;
-
-      const operation = payload.operation;
-
-      if ("insert" in operation) {
-        for (const { currentValue } of operation.insert.targets) {
-          const outline = Outline.buffer.get(currentValue.outlineId);
-          outline?.insertParagraph(Paragraph.from(currentValue, outline));
-        }
-      } else if ("update" in operation) {
-        for (const { currentValue, relatedYUpdates } of operation.update
-          .targets) {
-          const paragraph = this.buffer.get(currentValue.id);
-
-          if (paragraph) {
-            paragraph.#fractionalIndex = currentValue.fractionalIndex;
-            paragraph.#doc = currentValue.doc;
-            paragraph.#hidden = currentValue.hidden;
-            paragraph.#deleted = currentValue.deleted;
-            paragraph.quote = currentValue.quote;
-            paragraph.links = currentValue.links;
-
-            if (currentValue.outlineId !== paragraph.#outlineId) {
-              paragraph.outline?.removeParagraph(paragraph);
-              paragraph.#outlineId = currentValue.outlineId;
-              const outline = Outline.buffer.get(currentValue.outlineId);
-              if (outline) paragraph.#outlineRef = new WeakRef(outline);
-            } else {
-              paragraph.outline?.sortParagraphs();
-            }
-
-            if (paragraph.#ydoc) {
-              for (const u of relatedYUpdates) {
-                Y.applyUpdateV2(paragraph.#ydoc, base64URLToUint8Array(u));
-              }
-            }
-          } else {
-            const outline = Outline.buffer.get(currentValue.outlineId);
-            if (outline)
-              outline.insertParagraph(Paragraph.from(currentValue, outline));
-          }
-
-          this.#updateQuote(currentValue.id, currentValue.doc);
-        }
-      } else if ("delete" in operation) {
-        const deletedParagraphs = operation.delete.target_ids
-          .map((id) => Paragraph.buffer.get(id))
-          .filter((o) => o !== undefined);
-
-        for (const paragraph of deletedParagraphs) {
-          paragraph.outline?.removeParagraph(paragraph);
-        }
-      }
-    });
-  }
+  // static async init() {
+  //   await events.paragraphChange.listen((e) => {
+  //     const payload = e.payload;
+  //
+  //     const operation = payload.operation;
+  //
+  //     if ("insert" in operation) {
+  //       for (const { currentValue } of operation.insert.targets) {
+  //         const outline = Outline.buffer.get(currentValue.outlineId);
+  //         outline?.insertParagraph(Paragraph.from(currentValue, outline));
+  //       }
+  //     } else if ("update" in operation) {
+  //       for (const { currentValue, relatedYUpdates } of operation.update
+  //         .targets) {
+  //         const paragraph = this.buffer.get(currentValue.id);
+  //
+  //         if (paragraph) {
+  //           paragraph.#fractionalIndex = currentValue.fractionalIndex;
+  //           paragraph.#doc = currentValue.doc;
+  //           paragraph.#hidden = currentValue.hidden;
+  //           paragraph.#deleted = currentValue.deleted;
+  //           paragraph.quote = currentValue.quote;
+  //           paragraph.links = currentValue.links;
+  //
+  //           if (currentValue.outlineId !== paragraph.#outlineId) {
+  //             paragraph.outline?.removeParagraph(paragraph);
+  //             paragraph.#outlineId = currentValue.outlineId;
+  //             const outline = Outline.buffer.get(currentValue.outlineId);
+  //             if (outline) paragraph.#outlineRef = new WeakRef(outline);
+  //           } else {
+  //             paragraph.outline?.sortParagraphs();
+  //           }
+  //
+  //           if (paragraph.#ydoc) {
+  //             for (const u of relatedYUpdates) {
+  //               Y.applyUpdateV2(paragraph.#ydoc, base64URLToUint8Array(u));
+  //             }
+  //           }
+  //         } else {
+  //           const outline = Outline.buffer.get(currentValue.outlineId);
+  //           if (outline)
+  //             outline.insertParagraph(Paragraph.from(currentValue, outline));
+  //         }
+  //
+  //         this.#updateQuote(currentValue.id, currentValue.doc);
+  //       }
+  //     } else if ("delete" in operation) {
+  //       const deletedParagraphs = operation.delete.target_ids
+  //         .map((id) => Paragraph.buffer.get(id))
+  //         .filter((o) => o !== undefined);
+  //
+  //       for (const paragraph of deletedParagraphs) {
+  //         paragraph.outline?.removeParagraph(paragraph);
+  //       }
+  //     }
+  //   });
+  // }
 
   readonly id: string;
   readonly createdAt: Readonly<Date>;
   #fractionalIndex = $state<string>() as string;
-  #doc = $state<string>() as string;
+  readonly #doc = $state<string>() as string;
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   #hidden = $state() as boolean;
   #deleted = $state() as boolean;
@@ -231,6 +230,13 @@ export class Paragraph {
         return path;
       });
     }
+  }
+
+  private set doc(value: string) {
+    // @ts-expect-error allow update only thorugh setter
+    this.#doc = value;
+
+    Paragraph.#updateQuote(this.id, value);
   }
 
   private set links(value: Links) {

@@ -13,7 +13,6 @@ import {
   type Paragraph as RawParagraph,
   type Path,
   commands,
-  events,
 } from "../../generated/tauri-commands";
 import { Paragraph } from "./Paragraph.svelte";
 import * as Y from "yjs";
@@ -50,7 +49,7 @@ export class Outline {
     if (outline) {
       outline.#fractionalIndex = data.fractionalIndex;
       outline.#doc = data.doc;
-      outline.#text = data.text;
+      outline.text = data.text;
       outline.links = data.links;
       outline.#hidden = data.hidden;
       outline.#collapsed = data.collapsed;
@@ -197,88 +196,88 @@ export class Outline {
     }
   }
 
-  static async init() {
-    await events.outlineChange.listen((e) => {
-      const payload = e.payload;
-
-      const operation = payload.operation;
-
-      if ("insert" in operation) {
-        for (const { currentValue } of operation.insert.targets) {
-          if (!currentValue.parentId) continue;
-          const parent = this.buffer.get(currentValue.parentId);
-          if (parent) parent.insertChild(Outline.from(currentValue, parent));
-          this.#updateLinks(currentValue.id, currentValue.path);
-        }
-      } else if ("update" in operation) {
-        for (const { currentValue, relatedYUpdates } of operation.update
-          .targets) {
-          const outline = this.buffer.get(currentValue.id);
-
-          if (outline) {
-            outline.#fractionalIndex = currentValue.fractionalIndex;
-            outline.#doc = currentValue.doc;
-            outline.#text = currentValue.text;
-            outline.links = currentValue.links;
-            outline.path = currentValue.path;
-            outline.#hidden = currentValue.hidden;
-            outline.#collapsed = currentValue.collapsed;
-            outline.#deleted = currentValue.deleted;
-
-            if (currentValue.parentId !== outline.#parentId) {
-              const parent = currentValue.parentId
-                ? this.buffer.get(currentValue.parentId)
-                : undefined;
-
-              if (parent) {
-                outline.parent?.removeChild(outline);
-                outline.#parentId = currentValue.parentId;
-                outline.parentRef = new WeakRef(parent);
-                parent.insertChild(outline);
-              } else {
-                outline.parent?.removeChild(outline);
-                outline.#parentId = currentValue.parentId;
-                outline.parentRef = undefined;
-              }
-            } else {
-              outline.parent?.sortChildren();
-            }
-
-            if (outline.#ydoc) {
-              for (const u of relatedYUpdates) {
-                Y.applyUpdateV2(outline.#ydoc, base64URLToUint8Array(u));
-              }
-            }
-          } else if (currentValue.parentId) {
-            const parent = this.buffer.get(currentValue.parentId);
-            parent?.insertChild(Outline.from(currentValue, parent));
-          }
-
-          Outline.#updatePath(
-            currentValue.id,
-            currentValue.text,
-            currentValue.path.length - 1,
-          );
-
-          this.#updateLinks(currentValue.id, currentValue.path);
-        }
-      } else if ("delete" in operation) {
-        const deletedOutlines = operation.delete.target_ids
-          .map((id) => Outline.buffer.get(id))
-          .filter((o) => o !== undefined);
-
-        for (const o of deletedOutlines) {
-          o.parent?.removeChild(o);
-        }
-      }
-    });
-  }
+  // static async init() {
+  //   await events.outlineChange.listen((e) => {
+  //     const payload = e.payload;
+  //
+  //     const operation = payload.operation;
+  //
+  //     if ("insert" in operation) {
+  //       for (const { currentValue } of operation.insert.targets) {
+  //         if (!currentValue.parentId) continue;
+  //         const parent = this.buffer.get(currentValue.parentId);
+  //         if (parent) parent.insertChild(Outline.from(currentValue, parent));
+  //         this.#updateLinks(currentValue.id, currentValue.path);
+  //       }
+  //     } else if ("update" in operation) {
+  //       for (const { currentValue, relatedYUpdates } of operation.update
+  //         .targets) {
+  //         const outline = this.buffer.get(currentValue.id);
+  //
+  //         if (outline) {
+  //           outline.#fractionalIndex = currentValue.fractionalIndex;
+  //           outline.#doc = currentValue.doc;
+  //           outline.#text = currentValue.text;
+  //           outline.links = currentValue.links;
+  //           outline.path = currentValue.path;
+  //           outline.#hidden = currentValue.hidden;
+  //           outline.#collapsed = currentValue.collapsed;
+  //           outline.#deleted = currentValue.deleted;
+  //
+  //           if (currentValue.parentId !== outline.#parentId) {
+  //             const parent = currentValue.parentId
+  //               ? this.buffer.get(currentValue.parentId)
+  //               : undefined;
+  //
+  //             if (parent) {
+  //               outline.parent?.removeChild(outline);
+  //               outline.#parentId = currentValue.parentId;
+  //               outline.parentRef = new WeakRef(parent);
+  //               parent.insertChild(outline);
+  //             } else {
+  //               outline.parent?.removeChild(outline);
+  //               outline.#parentId = currentValue.parentId;
+  //               outline.parentRef = undefined;
+  //             }
+  //           } else {
+  //             outline.parent?.sortChildren();
+  //           }
+  //
+  //           if (outline.#ydoc) {
+  //             for (const u of relatedYUpdates) {
+  //               Y.applyUpdateV2(outline.#ydoc, base64URLToUint8Array(u));
+  //             }
+  //           }
+  //         } else if (currentValue.parentId) {
+  //           const parent = this.buffer.get(currentValue.parentId);
+  //           parent?.insertChild(Outline.from(currentValue, parent));
+  //         }
+  //
+  //         Outline.#updatePath(
+  //           currentValue.id,
+  //           currentValue.text,
+  //           currentValue.path.length - 1,
+  //         );
+  //
+  //         this.#updateLinks(currentValue.id, currentValue.path);
+  //       }
+  //     } else if ("delete" in operation) {
+  //       const deletedOutlines = operation.delete.target_ids
+  //         .map((id) => Outline.buffer.get(id))
+  //         .filter((o) => o !== undefined);
+  //
+  //       for (const o of deletedOutlines) {
+  //         o.parent?.removeChild(o);
+  //       }
+  //     }
+  //   });
+  // }
 
   readonly id: string;
   readonly createdAt: Readonly<Date>;
   #fractionalIndex: string;
   #doc = $state<string>() as string;
-  #text: string;
+  readonly #text: string = "";
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   #children = $state.raw<Outline[]>() as Outline[];
   #paragraphs = $state.raw<Paragraph[]>() as Paragraph[];
@@ -297,7 +296,7 @@ export class Outline {
     this.id = data.id;
     this.#fractionalIndex = data.fractionalIndex;
     this.#doc = data.doc;
-    this.#text = data.text;
+    this.text = data.text;
     this.createdAt = new Date(data.createdAt);
     this.#updatedAt = new Date(data.updatedAt);
     this.path = data.path;
@@ -382,6 +381,18 @@ export class Outline {
         return path;
       });
     }
+  }
+
+  private set text(value: string) {
+    // @ts-expect-error allow update only through this setter
+    this.#text = value;
+
+    (async () => {
+      const path = await this.path;
+      path.at(-1)!.text = value;
+      Outline.#updatePath(this.id, this.#text, path.length - 1);
+      Outline.#updateLinks(this.id, path);
+    })();
   }
 
   private set parentRef(value: WeakRef<Outline> | undefined) {
