@@ -66,14 +66,14 @@ export class Outline {
     }
   }
 
-  static async new(parent?: Outline): Promise<Outline> {
+  static new(parent?: Outline): Outline {
     const id = uuidv7();
 
     const linkToThis = { id: id, text: "", hidden: false };
     const path = parent
       ? parent.#path
         ? [...parent.#path, linkToThis]
-        : [...unwrap(await commands.fetchPath(parent.id)), linkToThis]
+        : null
       : [linkToThis];
 
     const outline = Outline.from(
@@ -93,6 +93,15 @@ export class Outline {
       },
       parent,
     );
+
+    if (!path && parent) {
+      (async () => {
+        outline.path = [
+          ...unwrap(await commands.fetchPath(parent.id)),
+          linkToThis,
+        ];
+      })();
+    }
 
     outline.#ydoc = new Y.Doc();
 
@@ -296,10 +305,11 @@ export class Outline {
     this.id = data.id;
     this.#fractionalIndex = data.fractionalIndex;
     this.#doc = data.doc;
+    // setting path before setting text because the setter of text depends on path
+    this.path = data.path;
     this.text = data.text;
     this.createdAt = new Date(data.createdAt);
     this.#updatedAt = new Date(data.updatedAt);
-    this.path = data.path;
     this.links = data.links;
     this.#hidden = data.hidden;
     this.#collapsed = data.collapsed;
