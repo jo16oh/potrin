@@ -18,6 +18,7 @@ import { Paragraph } from "./Paragraph.svelte";
 import * as Y from "yjs";
 import { generateKeyBetween } from "fractional-indexing-jittered";
 import { DescendantsIndex, ReversedLinkIndex, WeakRefMap } from "./utils";
+import type { JSONContent } from "@tiptap/core";
 
 export type { RawOutline };
 
@@ -48,7 +49,7 @@ export class Outline {
 
     if (outline) {
       outline.#fractionalIndex = data.fractionalIndex;
-      outline.#doc = data.doc;
+      outline.doc = JSON.parse(data.doc);
       outline.text = data.text;
       outline.links = data.links;
       outline.#hidden = data.hidden;
@@ -81,7 +82,7 @@ export class Outline {
         id: id,
         parentId: parent ? parent.id : null,
         fractionalIndex: generateKeyBetween(null, null),
-        doc: "",
+        doc: '{ type: "doc", content: []}',
         text: "",
         links: {},
         path: path,
@@ -285,7 +286,7 @@ export class Outline {
   readonly id: string;
   readonly createdAt: Readonly<Date>;
   #fractionalIndex: string;
-  #doc = $state<string>() as string;
+  doc = $state<JSONContent>();
   readonly #text: string = "";
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   #children = $state.raw<Outline[]>() as Outline[];
@@ -304,7 +305,7 @@ export class Outline {
   private constructor(data: RawOutline, parent?: Outline) {
     this.id = data.id;
     this.#fractionalIndex = data.fractionalIndex;
-    this.#doc = data.doc;
+    this.doc = JSON.parse(data.doc);
     // setting path before setting text because the setter of text depends on path
     this.path = data.path;
     this.text = data.text;
@@ -321,10 +322,6 @@ export class Outline {
 
   get fractionalIndex() {
     return this.#fractionalIndex;
-  }
-
-  get doc() {
-    return this.#doc;
   }
 
   get text() {
@@ -393,7 +390,7 @@ export class Outline {
     }
   }
 
-  private set text(value: string) {
+  set text(value: string) {
     // @ts-expect-error allow update only through this setter
     this.#text = value;
 
@@ -491,7 +488,7 @@ export class Outline {
   async save() {
     const updates = this.#pendingYUpdates.map((u) => uint8ArrayToBase64URL(u));
     this.#pendingYUpdates.length = 0;
-    await Outline.#commands.upsertOutline(this.toJSON(), updates);
+    await Outline.#commands.upsertOutline(this.toJSON(), updates).then(unwrap);
   }
 
   sortChildren() {
@@ -573,7 +570,7 @@ export class Outline {
       id: this.id,
       parentId: this.parentId,
       fractionalIndex: this.#fractionalIndex,
-      doc: this.#doc,
+      doc: JSON.stringify(this.doc),
       text: this.#text,
       path: this.#path ? this.#path : null,
       links: this.links,

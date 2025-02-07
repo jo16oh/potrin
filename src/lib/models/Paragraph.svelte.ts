@@ -15,6 +15,7 @@ import {
 import { Outline } from "./Outline.svelte";
 import * as Y from "yjs";
 import { ReversedQuoteIndex, WeakRefMap } from "./utils";
+import type { JSONContent } from "@tiptap/core";
 
 export type { RawParagraph };
 
@@ -41,7 +42,7 @@ export class Paragraph {
 
     if (paragraph) {
       paragraph.#fractionalIndex = data.fractionalIndex;
-      paragraph.doc = data.doc;
+      paragraph.doc = JSON.parse(data.doc);
       paragraph.#updatedAt = new Date(data.updatedAt);
       paragraph.#hidden = data.hidden;
       paragraph.#deleted = data.deleted;
@@ -63,7 +64,7 @@ export class Paragraph {
         id: uuidv7(),
         outlineId: outline.id,
         fractionalIndex: fractionalIndex ?? generateKeyBetween(null, null),
-        doc: "",
+        doc: '{ type: "doc", content: []}',
         links: {},
         hidden: false,
         deleted: false,
@@ -89,10 +90,10 @@ export class Paragraph {
     return paragraph;
   }
 
-  static #updateQuote(id_to: string, doc: string) {
+  static #updateQuote(id_to: string, doc: JSONContent) {
     for (const p of this.#reversedQuoteIndex.get(id_to)) {
       if (p.quote) {
-        p.quote.latestDoc = doc;
+        p.quote.latestDoc = JSON.stringify(doc);
       }
     }
   }
@@ -158,7 +159,7 @@ export class Paragraph {
   readonly id: string;
   readonly createdAt: Readonly<Date>;
   #fractionalIndex = $state<string>() as string;
-  readonly #doc = $state<string>() as string;
+  #doc = $state<JSONContent>() as JSONContent;
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   #hidden = $state() as boolean;
   #deleted = $state() as boolean;
@@ -174,7 +175,7 @@ export class Paragraph {
     this.id = data.id;
     this.createdAt = new Date(data.createdAt);
     this.#fractionalIndex = data.fractionalIndex;
-    this.#doc = data.doc;
+    this.doc = JSON.parse(data.doc);
     this.#hidden = data.hidden;
     this.#deleted = data.deleted;
     this.#updatedAt = new Date(data.updatedAt);
@@ -188,7 +189,7 @@ export class Paragraph {
     return this.#fractionalIndex;
   }
 
-  get doc() {
+  get doc(): JSONContent {
     return this.#doc;
   }
 
@@ -232,8 +233,7 @@ export class Paragraph {
     }
   }
 
-  private set doc(value: string) {
-    // @ts-expect-error allow update only thorugh setter
+  set doc(value: JSONContent) {
     this.#doc = value;
 
     Paragraph.#updateQuote(this.id, value);
@@ -330,7 +330,7 @@ export class Paragraph {
       id: this.id,
       outlineId: this.#outlineId,
       fractionalIndex: this.#fractionalIndex,
-      doc: this.#doc,
+      doc: JSON.stringify(this.#doc),
       links: this.#links,
       hidden: this.#hidden,
       deleted: this.#deleted,
