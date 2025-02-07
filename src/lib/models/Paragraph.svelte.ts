@@ -64,7 +64,7 @@ export class Paragraph {
         id: uuidv7(),
         outlineId: outline.id,
         fractionalIndex: fractionalIndex ?? generateKeyBetween(null, null),
-        doc: '{ type: "doc", content: []}',
+        doc: '{ "type": "doc", "content": [] }',
         links: {},
         hidden: false,
         deleted: false,
