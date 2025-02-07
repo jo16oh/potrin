@@ -124,7 +124,9 @@ export class DescendantsIndex {
     this.#paragraphBuffer.addHook(this.#reconcile);
   }
 
-  #reconcile(deletedId: string) {
+  // Using arrow function to fix `this` to the instance,
+  // which avoids `this` reference error in FinalizationRegistry
+  #reconcile = (deletedId: string) => {
     if (
       !(
         this.#outlineBuffer.get(deletedId) ??
@@ -142,7 +144,7 @@ export class DescendantsIndex {
     }
 
     this.#prevPathMap.delete(deletedId);
-  }
+  };
 
   set(descendantId: string, path: Path) {
     // Exclude the last element because the last element
