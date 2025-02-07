@@ -234,9 +234,9 @@ async fn process_outline_changes<R: Runtime>(
                     .into_iter()
                     .partition_map(|(log, deleted)| {
                         if deleted {
-                            Either::Left(&log.primary_key)
-                        } else {
                             Either::Right(&log.primary_key)
+                        } else {
+                            Either::Left(&log.primary_key)
                         }
                     });
 
@@ -408,9 +408,9 @@ async fn process_paragraph_changes<R: Runtime>(
                     .into_iter()
                     .partition_map(|(log, deleted)| {
                         if deleted {
-                            Either::Left(&log.primary_key)
-                        } else {
                             Either::Right(&log.primary_key)
+                        } else {
+                            Either::Left(&log.primary_key)
                         }
                     });
 

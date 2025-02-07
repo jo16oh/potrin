@@ -762,9 +762,10 @@ pub async fn outline_delete_targets(
 ) -> eyre::Result<Vec<DeleteTarget>> {
     let query = format!(
         r#"
-            SELECT id, pot_id
+            SELECT outlines.id, y_docs.pot_id
             FROM outlines
-            WHERE id IN ({});
+            INNER JOIN y_docs ON outlines.id = y_docs.id
+            WHERE outlines.id IN ({});
         "#,
         &deleted_ids
             .iter()
