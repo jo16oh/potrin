@@ -31,7 +31,7 @@
   ></div>
 
   <img
-    src="icon.svg"
+    src="Pot.svg"
     alt="Potrin logo"
     class={css({
       h: "44",
@@ -43,7 +43,7 @@
   />
 
   <img
-    src="Potrin.svg"
+    src="PotrinLogo.svg"
     alt="Potrin"
     class={css({
       h: "8",
