@@ -93,13 +93,13 @@ pub async fn init<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
                             .send(())
                             .map_err(|_| eyre!("failed to send message"))
                             .map_err(PotrinError::from)
-                            .inspect_err(|e| eprintln!("{:?}", e));
+                            .inspect_err(|e| eprintln!("{}", e));
                     }
                     Message::DatabaseChange(change) => {
                         let _ = reconcile(&app_handle, change)
                             .await
                             .map_err(PotrinError::from)
-                            .inspect_err(|e| eprintln!("{:?}", e));
+                            .inspect_err(|e| eprintln!("{}", e));
                     }
                 }
             }
