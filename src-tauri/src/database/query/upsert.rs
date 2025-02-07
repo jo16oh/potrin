@@ -3,7 +3,7 @@ use crate::types::{
     state::{AppState, WorkspaceState},
     util::UUIDv7Base64URL,
 };
-use eyre::{OptionExt, Result};
+use eyre::{Context, Result};
 use sqlx::SqliteExecutor;
 
 pub async fn outline<'a, E>(conn: E, outline: &Outline) -> Result<i64>
@@ -12,7 +12,7 @@ where
 {
     let text = (!outline.text.is_empty()).then_some(&outline.text);
 
-    sqlx::query_scalar!(
+    sqlx::query_scalar::<_, i64>(
         r#"
             INSERT INTO outlines (
                 id,
@@ -41,27 +41,27 @@ where
               SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
-        outline.id,
-        outline.parent_id,
-        outline.fractional_index,
-        outline.doc,
-        text,
-        outline.hidden,
-        outline.collapsed,
-        outline.deleted,
-        outline.created_at,
-        outline.updated_at,
     )
+    .bind(outline.id)
+    .bind(outline.parent_id)
+    .bind(&outline.fractional_index)
+    .bind(&outline.doc)
+    .bind(text)
+    .bind(outline.hidden)
+    .bind(outline.collapsed)
+    .bind(outline.deleted)
+    .bind(outline.created_at)
+    .bind(outline.updated_at)
     .fetch_one(conn)
-    .await?
-    .ok_or_eyre("failed to insert into oplog")
+    .await
+    .context("database error")
 }
 
 pub async fn paragraph<'a, E>(conn: E, paragraph: &Paragraph) -> Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
-    sqlx::query_scalar!(
+    sqlx::query_scalar::<_, i64>(
         r#"
             INSERT INTO paragraphs (
                 id,
@@ -87,18 +87,17 @@ where
               SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
-        paragraph.id,
-        paragraph.outline_id,
-        paragraph.fractional_index,
-        paragraph.doc,
-        paragraph.hidden,
-        paragraph.deleted,
-        paragraph.created_at,
-        paragraph.updated_at,
     )
+    .bind(paragraph.outline_id)
+    .bind(&paragraph.fractional_index)
+    .bind(&paragraph.doc)
+    .bind(paragraph.hidden)
+    .bind(paragraph.deleted)
+    .bind(paragraph.created_at)
+    .bind(paragraph.updated_at)
     .fetch_one(conn)
-    .await?
-    .ok_or_eyre("failed to insert into oplog")
+    .await
+    .context("database error")
 }
 
 pub async fn path<'a, E>(conn: E, values: &[(UUIDv7Base64URL, Vec<u8>)]) -> Result<()>

@@ -11,14 +11,14 @@ use crate::{
     },
 };
 use chrono::{DateTime, Utc};
-use eyre::Result;
+use eyre::{Context, Result};
 use sqlx::{prelude::FromRow, SqlitePool};
 
 pub async fn pots(pool: &SqlitePool) -> Result<Vec<Pot>> {
     sqlx::query_as::<_, Pot>("SELECT * FROM pots;")
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn pot_by_id(pool: &SqlitePool, pot_id: UUIDv7Base64URL) -> Result<Pot> {
@@ -26,7 +26,7 @@ pub async fn pot_by_id(pool: &SqlitePool, pot_id: UUIDv7Base64URL) -> Result<Pot
         .bind(pot_id)
         .fetch_one(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Path> {
@@ -43,7 +43,7 @@ pub async fn path(pool: &SqlitePool, outline_id: UUIDv7Base64URL) -> Result<Path
     query_builder
         .fetch_one(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn self_and_its_ancestors(
@@ -81,7 +81,7 @@ pub async fn self_and_its_ancestors(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn y_updates_by_doc_id(
@@ -100,7 +100,7 @@ pub async fn y_updates_by_doc_id(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn y_updates_by_id(
@@ -129,7 +129,7 @@ pub async fn y_updates_by_id(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn paragraphs_by_id(
@@ -179,7 +179,7 @@ pub async fn paragraphs_by_id(
         .fetch_all(pool)
         .await
         .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn paragraphs_for_index_by_id(
@@ -239,7 +239,7 @@ pub async fn paragraphs_for_index_by_id(
                 .map(ParagraphForIndex::from)
                 .collect()
         })
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn paragraphs_by_outline_id(
@@ -289,7 +289,7 @@ pub async fn paragraphs_by_outline_id(
         .fetch_all(pool)
         .await
         .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn paragraphs_by_created_at(
@@ -336,7 +336,7 @@ pub async fn paragraphs_by_created_at(
         .fetch_all(pool)
         .await
         .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn paragraph_delete_targets(
@@ -365,7 +365,7 @@ pub async fn paragraph_delete_targets(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn conflicting_outline_ids(
@@ -409,7 +409,7 @@ pub async fn conflicting_outline_ids(
     .fetch_all(pool)
     .await
     .map(|r| r.into_iter().map(|r| (r.id, r.text)).collect())
-    .map_err(eyre::Error::from)
+    .context("database error")
 }
 
 pub async fn descendant_ids(
@@ -516,7 +516,7 @@ pub async fn descendants(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn outline_trees(
@@ -660,7 +660,7 @@ pub async fn outline_trees(
             query_builder.fetch_all(pool).await
         }
     }
-    .map_err(eyre::Error::from)
+    .context("database error")
 }
 
 pub async fn outlines_by_id(
@@ -703,7 +703,7 @@ pub async fn outlines_by_id(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn outlines_for_index_by_id(
@@ -753,7 +753,7 @@ pub async fn outlines_for_index_by_id(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn outline_delete_targets(
@@ -783,7 +783,7 @@ pub async fn outline_delete_targets(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn relation_back(
@@ -1102,7 +1102,7 @@ pub async fn relation_count(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn recursive_relation_count(
@@ -1244,7 +1244,7 @@ pub async fn recursive_relation_count(
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn unversioned_y_updates(pool: &SqlitePool) -> Result<Vec<YUpdate>> {
@@ -1257,14 +1257,14 @@ pub async fn unversioned_y_updates(pool: &SqlitePool) -> Result<Vec<YUpdate>> {
     )
     .fetch_all(pool)
     .await
-    .map_err(eyre::Error::from)
+    .context("database error")
 }
 
 pub async fn oplog_rowids_all(pool: &SqlitePool) -> Result<Vec<i64>> {
     sqlx::query_scalar::<_, i64>("SELECT rowid FROM operation_logs;")
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn oplogs_by_rowid(pool: &SqlitePool, rowids: &[i64]) -> Result<Vec<Oplog>> {
@@ -1284,7 +1284,7 @@ pub async fn oplogs_by_rowid(pool: &SqlitePool, rowids: &[i64]) -> Result<Vec<Op
     query_builder
         .fetch_all(pool)
         .await
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 #[allow(dead_code)]
@@ -1298,7 +1298,7 @@ pub async fn pending_y_updates(pool: &SqlitePool) -> Result<Vec<PendingYUpdate>>
     )
     .fetch_all(pool)
     .await
-    .map_err(eyre::Error::from)
+    .context("database error")
 }
 
 pub async fn paragraphs_doc_and_path_by_id(
@@ -1323,7 +1323,7 @@ pub async fn paragraphs_doc_and_path_by_id(
         .fetch_one(pool)
         .await
         .map(|r| (r.doc, r.path))
-        .map_err(eyre::Error::from)
+        .context("database error")
 }
 
 pub async fn app_state(pool: &SqlitePool) -> Result<Option<AppState>> {
@@ -1336,7 +1336,7 @@ pub async fn app_state(pool: &SqlitePool) -> Result<Option<AppState>> {
     )
     .fetch_optional(pool)
     .await?
-    .map(|b| serde_sqlite_jsonb::from_slice::<AppState>(&b).map_err(eyre::Error::from))
+    .map(|b| serde_sqlite_jsonb::from_slice::<AppState>(&b).context("database error"))
     .transpose()
 }
 
@@ -1354,6 +1354,6 @@ pub async fn workspace_state(
     )
     .fetch_optional(pool)
     .await?
-    .map(|b| serde_sqlite_jsonb::from_slice::<WorkspaceState>(&b).map_err(eyre::Error::from))
+    .map(|b| serde_sqlite_jsonb::from_slice::<WorkspaceState>(&b).context("database error"))
     .transpose()
 }

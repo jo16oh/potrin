@@ -2,7 +2,7 @@ use crate::types::{
     model::{Pot, YUpdate},
     util::UUIDv7Base64URL,
 };
-use eyre::OptionExt;
+use eyre::Context;
 use sqlx::SqliteExecutor;
 
 pub mod from_local {
@@ -97,7 +97,7 @@ pub async fn pot<'a, E>(conn: E, pot: &Pot, timestamp: i64) -> eyre::Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
-    sqlx::query_scalar!(
+    sqlx::query_scalar::<_, i64>(
         r#"
             INSERT OR IGNORE INTO pots (id, name, owner, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?)
@@ -105,15 +105,15 @@ where
               SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
-        pot.id,
-        pot.name,
-        pot.owner,
-        timestamp,
-        timestamp
     )
+    .bind(pot.id)
+    .bind(&pot.name)
+    .bind(pot.owner)
+    .bind(timestamp)
+    .bind(timestamp)
     .fetch_one(conn)
-    .await?
-    .ok_or_eyre("failed to insert into oplog")
+    .await
+    .context("database error")
 }
 
 async fn y_doc<'a, E>(
@@ -186,7 +186,10 @@ where
         query_builder = query_builder.bind(from_remote);
     }
 
-    query_builder.fetch_all(conn).await.map_err(|e| e.into())
+    query_builder
+        .fetch_all(conn)
+        .await
+        .context("database error")
 }
 
 async fn version<'a, E>(
@@ -200,7 +203,7 @@ where
 {
     let from_remote = if from_remote { 1 } else { 0 };
 
-    sqlx::query_scalar!(
+    sqlx::query_scalar::<_, i64>(
         r#"
             INSERT OR IGNORE INTO versions (id, pot_id, from_remote)
             VALUES (?, ?, ?)
@@ -208,13 +211,13 @@ where
               SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
-        version_id,
-        pot_id,
-        from_remote
     )
+    .bind(version_id)
+    .bind(pot_id)
+    .bind(from_remote)
     .fetch_one(conn)
-    .await?
-    .ok_or_eyre("failed to insert into oplog")
+    .await
+    .context("database error")
 }
 
 pub async fn y_doc_trees_of_version<'a, E>(

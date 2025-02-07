@@ -1,5 +1,5 @@
 use crate::types::util::UUIDv7Base64URL;
-use eyre::OptionExt;
+use eyre::Context;
 use sqlx::SqliteExecutor;
 
 pub async fn pot<'a, E>(conn: E, id: UUIDv7Base64URL) -> eyre::Result<()>
@@ -23,7 +23,7 @@ pub async fn y_doc<'a, E>(conn: E, id: UUIDv7Base64URL) -> eyre::Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
-    sqlx::query_scalar!(
+    sqlx::query_scalar::<_, i64>(
         r#"
             DELETE FROM y_docs
             WHERE id = ?
@@ -31,11 +31,11 @@ where
               SELECT rowid FROM operation_logs WHERE primary_key = id
             ) AS rowid;
         "#,
-        id,
     )
+    .bind(id)
     .fetch_one(conn)
-    .await?
-    .ok_or_eyre("failed to insert into oplog")
+    .await
+    .context("database error")
 }
 
 pub async fn y_updates<'a, E>(conn: E, update_ids: &[UUIDv7Base64URL]) -> eyre::Result<()>
