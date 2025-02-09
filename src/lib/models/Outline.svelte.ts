@@ -278,7 +278,7 @@ export class Outline {
   readonly createdAt: Readonly<Date>;
   #fractionalIndex: string;
   doc = $state<JSONContent>();
-  readonly #text: string = "";
+  readonly #text: string = $state("");
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   #children = $state.raw<Outline[]>() as Outline[];
   #paragraphs = $state.raw<Paragraph[]>() as Paragraph[];
