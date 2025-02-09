@@ -95,26 +95,25 @@ export class Outline {
       parent,
     );
 
-    outline.#ydoc = new Y.Doc();
+    const ydoc = new Y.Doc();
+    outline.#ydoc = ydoc;
 
-    const yMap = outline.#ydoc.getMap("potrin");
-    yMap.set("parentId", outline.#parentId);
-    yMap.set("fractionalIndex", outline.#fractionalIndex);
-    yMap.set("doc", new Y.XmlFragment());
-    yMap.set("links", new Y.Map());
-    yMap.set("hidden", outline.#hidden);
-    yMap.set("collapsed", outline.#collapsed);
-    yMap.set("deleted", false);
-
-    outline.#ydoc.on("updateV2", (u) => {
+    ydoc.on("updateV2", (u) => {
       outline.#pendingYUpdates.push(u);
       Outline.#commands
         .insertPendingYUpdate(outline.id, uint8ArrayToBase64URL(u))
         .then(unwrap);
     });
 
-    const fractionalIndex = outline.#ydoc.getText("fractionalIndex");
-    fractionalIndex.insert(0, outline.#fractionalIndex);
+    ydoc.transact(() => {
+      const yMap = ydoc.getMap("potrin");
+      yMap.set("fractionalIndex", outline.#fractionalIndex);
+      yMap.set("doc", new Y.XmlFragment());
+      yMap.set("links", new Y.Map());
+      yMap.set("hidden", outline.#hidden);
+      yMap.set("collapsed", outline.#collapsed);
+      yMap.set("deleted", false);
+    });
 
     return outline;
   }

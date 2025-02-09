@@ -75,16 +75,26 @@ export class Paragraph {
       outline,
     );
 
+    const ydoc = new Y.Doc();
     paragraph.#ydoc = new Y.Doc();
-    paragraph.#ydoc.on("updateV2", (u) => {
+
+    ydoc.on("updateV2", (u) => {
       paragraph.#pendingYUpdates.push(u);
       Paragraph.#commands
         .insertPendingYUpdate(paragraph.id, uint8ArrayToBase64URL(u))
         .then(unwrap);
     });
 
-    const yFractionalIndex = paragraph.#ydoc.getText("fractionalIndex");
-    yFractionalIndex.insert(0, outline.fractionalIndex);
+    ydoc.transact(() => {
+      const yMap = ydoc.getMap("potrin");
+      yMap.set("outlineId", paragraph.#outlineId);
+      yMap.set("fractionalIndex", paragraph.#fractionalIndex);
+      yMap.set("doc", new Y.XmlFragment());
+      yMap.set("links", new Y.Map());
+      yMap.set("hidden", paragraph.#hidden);
+      yMap.set("quote", paragraph.#quote);
+      yMap.set("deleted", false);
+    });
 
     return paragraph;
   }
