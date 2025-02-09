@@ -3,9 +3,35 @@
   import { css } from "styled-system/css";
   import DialogClose from "../common/DialogClose.svelte";
   import { buttonStyle } from "../common/Button.svelte";
+  import OutlineEditor from "../editor/OutlineEditor.svelte";
+  import { commands } from "../../../generated/tauri-commands";
+  import { unwrap } from "$lib/utils";
+  import { Outline } from "$lib/models/Outline.svelte";
+  import { Paragraph } from "$lib/models/Paragraph.svelte";
+  import Asterisk from "../icon/Asterisk.svelte";
+  import ScrollArea from "../common/ScrollArea.svelte";
+  import ParagraphEditor from "../editor/ParagraphEditor.svelte";
+
+  let { outlineId }: { outlineId?: string } = $props();
+
+  const promise = (async () => {
+    return outlineId
+      ? await commands
+          .fetchTree(outlineId, 2)
+          .then(unwrap)
+          .then(([outlines, paragraphs]) =>
+            Outline.tree(outlines, paragraphs, outlineId),
+          )
+      : await (async () => {
+          const outline = await Outline.new();
+          const paragraph = Paragraph.new(outline);
+          outline.insertParagraph(paragraph);
+          return outline;
+        })();
+  })();
 </script>
 
-<div class={containerStyle}>
+<div class={viewContainer}>
   <div class={headerStyle}>
     <div class={headerLeftButtons}></div>
     <div class={headerRightButtons}>
@@ -14,17 +40,46 @@
       </DialogClose>
     </div>
   </div>
-  <div class={contentContainerStyle}>content</div>
+
+  <ScrollArea orientation="vertical" type="scroll">
+    <div class={contentContainerStyle}>
+      {#await promise then outline}
+        <div class={titleOutlineContainerStyle}>
+          <div class={titleOutlineBulletContainerStyle}>
+            <Asterisk
+              class={titleOutlineAsteriskStyle}
+              data-outline-empty={Boolean(outline.text.length)}
+            />
+            <div class={titleBulletBoxLine}></div>
+          </div>
+          <OutlineEditor {outline} />
+        </div>
+        <div class={paragraphContainerStyle}>
+          <div class={paragraphContainerLine}></div>
+          {#each outline.paragraphs as paragraph}
+            <div class={paragraphStyle}>
+              <ParagraphEditor {paragraph} />
+            </div>
+          {/each}
+        </div>
+      {/await}
+      <div class={contentBoxBottomSpace}>
+        <div class={contetBoxBottomLine}></div>
+        <div class={roundedLineEnd}></div>
+      </div>
+    </div>
+  </ScrollArea>
 </div>
 
 <script module>
-  const containerStyle = css({
-    h: "fit",
+  const viewContainer = css({
     w: "full",
+    h: "fit",
   });
 
   const headerStyle = css({
-    display: "flex",
+    position: "absolute",
+    zIndex: "10",
     flexDir: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -32,18 +87,19 @@
     h: "8",
     px: "1",
     py: "1",
+    bg: "transparent",
   });
 
   const headerLeftButtons = css({
     display: "flex",
     flexDir: "row",
-    w: "fit",
+    justifyContent: "flex-start",
   });
 
   const headerRightButtons = css({
     display: "flex",
     flexDir: "row",
-    w: "fit",
+    justifyContent: "flex-end",
   });
 
   const headerButtonStyle = css({
@@ -66,9 +122,105 @@
   });
 
   const contentContainerStyle = css({
+    maxH: "[calc(95vh - 2rem)]",
     px: "2",
-    py: "24",
+    pt: "32",
+  });
+
+  const titleOutlineContainerStyle = css({
+    display: "grid",
+    gridTemplateColumns: "2.5rem 1fr",
+    position: "relative",
+    w: "full",
+  });
+
+  const titleOutlineBulletContainerStyle = css({
+    position: "absolute",
+    left: "0",
+    top: "0",
+    w: "10",
+    h: "full",
+  });
+
+  const titleOutlineAsteriskStyle = css({
+    w: "6",
+    h: "6",
+    fill: "view.text",
+    position: "relative",
+    top: "3",
+    left: "0",
+    transition: "colors",
+    "&[data-outline-empty=false]": {
+      fill: "view.text-muted",
+    },
+  });
+
+  const titleBulletBoxLine = css({
+    w: "[0.0625rem]",
+    h: "[calc(100% - 2.5rem)]",
+    position: "absolute",
+    top: "10",
+    left: "[0.75rem]",
+    bg: "view.text-muted",
+    rounded: "md",
+  });
+
+  const contentBoxBottomSpace = css({
+    h: "32",
+    w: "full",
+    position: "relative",
+  });
+
+  const contetBoxBottomLine = css({
+    w: "[0.0625rem]",
+    h: "[1.125rem]",
+    position: "absolute",
+    top: "0",
+    left: "[0.75rem]",
+    bg: "view.text-muted",
+    rounded: "md",
+  });
+
+  const roundedLineEnd = css({
+    w: "1",
+    h: "1",
+    bg: "view.text-muted",
+    rounded: "circle",
+    position: "absolute",
+    top: "[1.125rem]",
+    left: "[0.65rem]",
+  });
+
+  const paragraphContainerStyle = css({
+    position: "relative",
     display: "flex",
     flexDir: "column",
+    h: "fit",
+    w: "full",
+    pt: "4",
+    gap: "4",
+  });
+
+  const paragraphContainerLine = css({
+    w: "[0.0625rem]",
+    h: "full",
+    position: "absolute",
+    z: "0",
+    top: "0",
+    left: "[0.75rem]",
+    bg: "view.text-muted",
+  });
+
+  const paragraphStyle = css({
+    position: "relative",
+    z: "10",
+    display: "flex",
+    py: "[1.3125rem]",
+    px: "[1.75rem]",
+    bg: "card.bg",
+    rounded: "lg",
+    w: "full",
+    h: "fit",
+    shadow: "sm",
   });
 </script>

@@ -32,6 +32,14 @@
   <Dialog
     triggerStyle={floatingButtonStyle}
     contentStyle={hoverViewContainerStyle}
+    contentProps={{
+      onOpenAutoFocus: (e) => {
+        e.preventDefault();
+      },
+      onCloseAutoFocus: (e) => {
+        e.preventDefault();
+      },
+    }}
   >
     {#snippet trigger()}
       <PencilLine class={floatingButtonIconStyle} />
@@ -81,7 +89,6 @@
 
   const hoverViewContainerStyle = css.raw({
     w: "[90vw]",
-    h: "fit",
     maxW: "[37.5rem]",
     maxH: "[95vh]",
     p: "0",
