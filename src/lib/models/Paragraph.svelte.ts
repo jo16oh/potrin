@@ -288,10 +288,13 @@ export class Paragraph {
   }
 
   async save() {
-    await Paragraph.#commands.upsertParagraph(
-      this.toJSON(),
-      this.#pendingYUpdates.map((u) => uint8ArrayToBase64URL(u)),
-    );
+    if (this.#pendingYUpdates.length) {
+      await this.outline?.save();
+      await Paragraph.#commands.upsertParagraph(
+        this.toJSON(),
+        this.#pendingYUpdates.map((u) => uint8ArrayToBase64URL(u)),
+      );
+    }
   }
 
   async moveTo(target: Outline, index: number | "last") {
