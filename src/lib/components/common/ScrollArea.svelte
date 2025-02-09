@@ -16,7 +16,11 @@
   }: Props = $props();
 </script>
 
-{#snippet Scrollbar({ orientation }: { orientation: "vertical" | "horizontal" })}
+{#snippet Scrollbar({
+  orientation,
+}: {
+  orientation: "vertical" | "horizontal";
+})}
   <ScrollArea.Scrollbar
     {orientation}
     class={css({
