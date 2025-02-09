@@ -460,10 +460,9 @@ export class Outline {
       this.#ydoc = new Y.Doc();
       this.#ydoc.on("updateV2", (u) => {
         this.#pendingYUpdates.push(u);
-        void Outline.#commands.insertPendingYUpdate(
-          this.id,
-          uint8ArrayToBase64URL(u),
-        );
+        Outline.#commands
+          .insertPendingYUpdate(this.id, uint8ArrayToBase64URL(u))
+          .then(unwrap);
       });
     }
 
@@ -477,9 +476,13 @@ export class Outline {
   }
 
   async save() {
-    const updates = this.#pendingYUpdates.map((u) => uint8ArrayToBase64URL(u));
-    this.#pendingYUpdates.length = 0;
-    await Outline.#commands.upsertOutline(this.toJSON(), updates).then(unwrap);
+    if (this.#pendingYUpdates.length) {
+      const updates = this.#pendingYUpdates.map(uint8ArrayToBase64URL);
+      this.#pendingYUpdates.length = 0;
+      await Outline.#commands
+        .upsertOutline(this.toJSON(), updates)
+        .then(unwrap);
+    }
   }
 
   sortChildren() {
