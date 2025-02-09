@@ -190,6 +190,7 @@ pub async fn paragraphs_for_index_by_id(
         r#"
             SELECT
                 paragraphs.id,
+                y_docs.pot_id,
                 paragraphs.outline_id,
                 paragraphs.fractional_index,
                 paragraphs.doc,
@@ -208,6 +209,7 @@ pub async fn paragraphs_for_index_by_id(
                 paragraphs.created_at,
                 paragraphs.updated_at
             FROM paragraphs
+            LEFT JOIN y_docs ON paragraphs.id = y_docs.id
             LEFT JOIN quotes ON paragraphs.id = quotes.paragraph_id
             LEFT JOIN paragraphs AS quoted_paragraphs ON quotes.quoted_paragraph_id = paragraphs.id
             LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id

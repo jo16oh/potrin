@@ -88,6 +88,7 @@ where
             ) AS rowid;
         "#,
     )
+    .bind(paragraph.id)
     .bind(paragraph.outline_id)
     .bind(&paragraph.fractional_index)
     .bind(&paragraph.doc)
