@@ -28,18 +28,18 @@ export function insertToFractionalIndexedArray<
 >(arr: T[], item: T): T[] {
   if (arr.length === 0) {
     arr.push(item);
+  } else {
+    let low = 0;
+    let high = arr.length;
+
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      if (arr[mid]!.fractionalIndex < item.fractionalIndex) low = mid + 1;
+      else high = mid;
+    }
+
+    arr.splice(low, 0, item);
   }
-
-  let low = 0;
-  let high = arr.length;
-
-  while (low < high) {
-    const mid = (low + high) >>> 1;
-    if (arr[mid]!.fractionalIndex < item.fractionalIndex) low = mid + 1;
-    else high = mid;
-  }
-
-  arr.splice(low, 0, item);
 
   return arr;
 }

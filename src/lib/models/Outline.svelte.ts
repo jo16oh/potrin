@@ -281,7 +281,7 @@ export class Outline {
   readonly #text: string = $state("");
   #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   #children = $state.raw<Outline[]>() as Outline[];
-  #paragraphs = $state.raw<Paragraph[]>() as Paragraph[];
+  #paragraphs = $state.raw<Paragraph[]>([]);
   #parentId = $state<string | null>(null);
   readonly #parentRef = $state.raw<WeakRef<Outline> | undefined>(); // allow update only through setter
   readonly #path = $state<Path | null>(null); // allow update only through setter
