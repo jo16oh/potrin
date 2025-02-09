@@ -188,7 +188,7 @@
     rounded: "circle",
     position: "absolute",
     top: "[1.125rem]",
-    left: "[0.65rem]",
+    left: "[0.675rem]",
   });
 
   const paragraphContainerStyle = css({
