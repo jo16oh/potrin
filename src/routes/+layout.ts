@@ -10,6 +10,6 @@ import { unwrap } from "$lib/utils";
 
 export const load: LayoutLoad = async () => {
   return {
-    appState: unwrap(await commands.getAppState()),
+    appState: await commands.getAppState().then(unwrap),
   };
 };

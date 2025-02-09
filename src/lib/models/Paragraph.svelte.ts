@@ -78,10 +78,9 @@ export class Paragraph {
     paragraph.#ydoc = new Y.Doc();
     paragraph.#ydoc.on("updateV2", (u) => {
       paragraph.#pendingYUpdates.push(u);
-      void Paragraph.#commands.insertPendingYUpdate(
-        paragraph.id,
-        uint8ArrayToBase64URL(u),
-      );
+      Paragraph.#commands
+        .insertPendingYUpdate(paragraph.id, uint8ArrayToBase64URL(u))
+        .then(unwrap);
     });
 
     const yFractionalIndex = paragraph.#ydoc.getText("fractionalIndex");

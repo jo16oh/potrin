@@ -46,7 +46,7 @@
       return state;
     });
 
-    unwrap(await commands.openPot(id));
+    await commands.openPot(id).then(unwrap);
     getCurrent().close();
   }
 </script>
@@ -177,7 +177,7 @@
         <DialogClose
           class={deletePotDialogCloseButton}
           onclick={async () => {
-            unwrap(await commands.deletePot(pot.id));
+            await commands.deletePot(pot.id).then(unwrap);
             updateAppState((state) => {
               delete state.pots[pot.id];
               return state;

@@ -74,7 +74,7 @@ export class Outline {
     const path = parent
       ? parent.#path
         ? [...parent.#path, linkToThis]
-        : [...unwrap(await commands.fetchPath(parent.id)), linkToThis]
+        : [...(await commands.fetchPath(parent.id).then(unwrap)), linkToThis]
       : [linkToThis];
 
     const outline = Outline.from(
@@ -108,10 +108,9 @@ export class Outline {
 
     outline.#ydoc.on("updateV2", (u) => {
       outline.#pendingYUpdates.push(u);
-      void Outline.#commands.insertPendingYUpdate(
-        outline.id,
-        uint8ArrayToBase64URL(u),
-      );
+      Outline.#commands
+        .insertPendingYUpdate(outline.id, uint8ArrayToBase64URL(u))
+        .then(unwrap);
     });
 
     const fractionalIndex = outline.#ydoc.getText("fractionalIndex");
@@ -428,14 +427,14 @@ export class Outline {
       const checker = ConflictChecker.get(this.parentId);
       checker.set(this.id, this.#text);
       if (this.#text) {
-        void Outline.#commands
+        Outline.#commands
           .fetchConflictingOutlineIds(this.id, this.parentId, this.#text)
+          .then(unwrap)
           .then((r) => {
-            const result = unwrap(r);
-            for (const [id, text] of result) {
+            for (const [id, text] of r) {
               checker.set(id, text);
             }
-            checker.reconcile(result.map((o) => o[0]));
+            checker.reconcile(r.map((o) => o[0]));
           });
       }
     } else {
@@ -466,9 +465,11 @@ export class Outline {
       });
     }
 
-    const updates = await Outline.#commands.fetchYUpdatesByDocId(this.id);
+    const updates = await Outline.#commands
+      .fetchYUpdatesByDocId(this.id)
+      .then(unwrap);
 
-    for (const u of unwrap(updates)) {
+    for (const u of updates) {
       Y.applyUpdateV2(this.#ydoc, base64URLToUint8Array(u));
     }
 

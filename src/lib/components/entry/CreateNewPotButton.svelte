@@ -39,14 +39,14 @@
       createdAt: new Date().getMilliseconds(),
     };
 
-    unwrap(await commands.createPot(pot));
+    await commands.createPot(pot).then(unwrap);
 
     updateAppState((state) => {
       state.pots[pot.id] = pot.name;
       return state;
     });
 
-    unwrap(await commands.openPot(pot.id));
+    await commands.openPot(pot.id).then(unwrap);
 
     getCurrent().close();
   }

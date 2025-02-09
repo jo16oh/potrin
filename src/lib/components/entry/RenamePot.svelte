@@ -48,7 +48,7 @@
     open = false;
     const newPot: Pot = { ...pot, name: name };
 
-    unwrap(await commands.updatePot(newPot));
+    await commands.updatePot(newPot).then(unwrap);
 
     updateAppState((state) => {
       state.pots[pot.id] = pot.name;

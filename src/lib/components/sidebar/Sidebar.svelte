@@ -150,7 +150,7 @@
         </RenamePot>
         <PopoverClose
           class={css(potOperationsItemStyle)}
-          onclick={async () => unwrap(await commands.openPotSelector())}
+          onclick={async () => await commands.openPotSelector().then(unwrap)}
         >
           <SquareArrowUpRight class={iconStyle} />
           Open another pot</PopoverClose

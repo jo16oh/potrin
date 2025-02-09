@@ -4,6 +4,6 @@ import { unwrap } from "$lib/utils";
 
 export const load: LayoutLoad = async () => {
   return {
-    workspaceState: unwrap(await commands.getWorkspaceState()),
+    workspaceState: await commands.getWorkspaceState().then(unwrap),
   };
 };
