@@ -1,32 +1,55 @@
 <script lang="ts">
   import { Editor } from "@tiptap/core";
   import { onDestroy } from "svelte";
-  import { css } from "styled-system/css";
+  import { css, type Styles } from "styled-system/css";
   import type { Outline } from "$lib/models/Outline.svelte";
-  import Collabolation from "@tiptap/extension-collaboration";
-  import { OutlineSchema } from "./schema";
+  import type { FocusPosition, EditorFocusPosition } from "./utils";
+  import { watch } from "runed";
+  import { createOutlineSchema } from "./schema";
 
-  type Props = { outline: Outline };
+  type EditorStyleVariant = "cardsViewTitle" | "cardsViewChildren";
 
-  let { outline }: Props = $props();
+  type Props = {
+    outline: Outline;
+    focusPosition: FocusPosition;
+    containerStyle?: Styles;
+    editorStyleVariant: EditorStyleVariant;
+  };
+
+  let {
+    outline,
+    focusPosition = $bindable(),
+    containerStyle,
+    editorStyleVariant,
+  }: Props = $props();
 
   let editor: Editor | undefined = $state();
   let editorElement: HTMLDivElement = $state() as HTMLDivElement;
 
+  watch(
+    () => focusPosition,
+    () => {
+      if (focusPosition && focusPosition.id === outline.id) {
+        if (editor) {
+          editor.commands.focus(focusPosition.position);
+        } else {
+          (async () => await createEditor(outline, focusPosition.position))();
+        }
+      } else {
+        editor?.commands.blur();
+      }
+    },
+  );
+
   let focus = $state(false);
 
-  async function createEditor(outline: Outline) {
-    const ydoc = await outline.ydoc();
-
+  async function createEditor(outline: Outline, pos: EditorFocusPosition) {
     if (editor) return;
 
     editor = new Editor({
       element: editorElement,
       extensions: [
-        ...OutlineSchema,
-        Collabolation.configure({
-          fragment: ydoc.getXmlFragment("doc"),
-        }),
+        ...(await createOutlineSchema(outline, (pos) => (focusPosition = pos))),
       ],
       editorProps: {
         attributes: {
@@ -44,7 +67,6 @@
           editor?.destroy();
         });
       },
-      onCreate: () => {},
       onDestroy: () => {
         if (editor) {
           outline.doc = editor.getJSON();
@@ -57,6 +79,10 @@
         focus = true;
       },
     });
+
+    if (pos !== null && pos !== undefined) {
+      editor.commands.focus(pos);
+    }
   }
 
   onDestroy(() => {
@@ -69,7 +95,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   bind:this={editorElement}
-  class={editorBoxStyle}
+  class={css(containerStyle, editorStylesVariants[editorStyleVariant])}
   style:display={editor ? "block" : "none"}
   onmouseleave={() => {
     if (editor && !focus) {
@@ -79,9 +105,9 @@
 ></div>
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class={editorBoxStyle}
+  class={css(containerStyle, editorStylesVariants[editorStyleVariant])}
   style:display={editor ? "none" : "block"}
-  onmouseenter={() => createEditor(outline)}
+  onmouseenter={() => createEditor(outline, null)}
 >
   {#if outline.doc}
     {#each outline.doc.content ?? [] as content}
@@ -99,18 +125,22 @@
 </div>
 
 <script module>
-  const editorBoxStyle = css({
-    w: "full",
-    h: "fit",
-    wordBreak: "break-word",
-    gridColumn: "2",
-    minHeight: "[3rem]",
-    color: "view.text",
-    "& p": {
-      wordBreak: "break-word",
-      fontSize: "[2rem]",
-      fontWeight: "semibold",
-      color: "view.text",
-    },
-  });
+  const editorStylesVariants = {
+    cardsViewTitle: css.raw({
+      "& p": {
+        wordBreak: "break-word",
+        fontSize: "[2rem]",
+        fontWeight: "semibold",
+        color: "view.text",
+      },
+    }),
+    cardsViewChildren: css.raw({
+      "& p": {
+        wordBreak: "break-word",
+        fontSize: "[2rem]",
+        fontWeight: "semibold",
+        color: "view.text",
+      },
+    }),
+  };
 </script>

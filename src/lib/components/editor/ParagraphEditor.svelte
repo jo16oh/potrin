@@ -1,32 +1,58 @@
 <script lang="ts">
   import { Editor } from "@tiptap/core";
   import { onDestroy } from "svelte";
-  import { css } from "styled-system/css";
-  import type { Paragraph } from "$lib/models/Paragraph.svelte";
-  import Collabolation from "@tiptap/extension-collaboration";
-  import { ParagraphSchema } from "./schema";
+  import { css, type Styles } from "styled-system/css";
+  import { Paragraph } from "$lib/models/Paragraph.svelte";
+  import { createParagraphSchema } from "./schema";
+  import type { FocusPosition, EditorFocusPosition } from "./utils";
+  import { watch } from "runed";
 
-  type Props = { paragraph: Paragraph };
+  type EditorStyleVariant = "card";
 
-  let { paragraph }: Props = $props();
+  type Props = {
+    paragraph: Paragraph;
+    focusPosition: FocusPosition;
+    containerStyle?: Styles;
+    editorStyleVariant: EditorStyleVariant;
+  };
+
+  let {
+    paragraph,
+    focusPosition = $bindable(),
+    containerStyle,
+    editorStyleVariant,
+  }: Props = $props();
 
   let editor: Editor | undefined = $state();
   let editorElement: HTMLDivElement = $state() as HTMLDivElement;
 
+  watch(
+    () => focusPosition,
+    () => {
+      if (focusPosition && focusPosition.id === paragraph.id) {
+        if (editor) {
+          editor.commands.focus(focusPosition.position);
+        } else {
+          (async () => await createEditor(paragraph, focusPosition.position))();
+        }
+      } else {
+        editor?.commands.blur();
+      }
+    },
+  );
+
   let focus = $state(false);
 
-  async function createEditor(paragraph: Paragraph) {
-    const ydoc = await paragraph.ydoc();
-
+  async function createEditor(paragraph: Paragraph, pos: EditorFocusPosition) {
     if (editor) return;
 
     editor = new Editor({
       element: editorElement,
       extensions: [
-        ...ParagraphSchema,
-        Collabolation.configure({
-          fragment: ydoc.getXmlFragment("doc"),
-        }),
+        ...(await createParagraphSchema(
+          paragraph,
+          (pos) => (focusPosition = pos),
+        )),
       ],
       editorProps: {
         attributes: {
@@ -42,8 +68,12 @@
         setTimeout(() => {
           editor?.destroy();
         }, 0);
+
+        if (focusPosition.id === paragraph.id) {
+          focusPosition.id = null;
+          focusPosition.position = null;
+        }
       },
-      onCreate: () => {},
       onDestroy: () => {
         if (editor) {
           paragraph.doc = editor.getJSON();
@@ -52,9 +82,14 @@
         }
       },
       onFocus: () => {
+        console.log("onFocus");
         focus = true;
       },
     });
+
+    if (pos !== null && pos !== undefined) {
+      editor.commands.focus(pos);
+    }
   }
 
   onDestroy(() => {
@@ -67,7 +102,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   bind:this={editorElement}
-  class={editorBoxStyle}
+  class={css(containerStyle, editorStyleVariants[editorStyleVariant])}
   style:display={editor ? "block" : "none"}
   onmouseleave={() => {
     if (editor && !focus) {
@@ -77,9 +112,12 @@
 ></div>
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class={editorBoxStyle}
+  class={css(containerStyle, editorStyleVariants[editorStyleVariant])}
   style:display={editor ? "none" : "block"}
-  onmouseenter={() => createEditor(paragraph)}
+  onmouseenter={() => {
+    console.log("mouseenter");
+    createEditor(paragraph, null);
+  }}
 >
   {#if paragraph.doc}
     {#each paragraph.doc.content ?? [] as content}
@@ -97,15 +135,13 @@
 </div>
 
 <script module>
-  const editorBoxStyle = css({
-    w: "full",
-    h: "fit",
-    wordBreak: "break-word",
-    minHeight: "[1.5rem]",
-    "& p": {
-      wordBreak: "break-word",
-      color: "card.text",
-      minHeight: "[1.5rem]",
-    },
-  });
+  const editorStyleVariants = {
+    card: css.raw({
+      "& p": {
+        wordBreak: "break-word",
+        color: "card.text",
+        minHeight: "[1.5rem]",
+      },
+    }),
+  };
 </script>

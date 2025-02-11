@@ -11,8 +11,11 @@
   import Asterisk from "../icon/Asterisk.svelte";
   import ScrollArea from "../common/ScrollArea.svelte";
   import ParagraphEditor from "../editor/ParagraphEditor.svelte";
+  import type { FocusPosition } from "../editor/utils";
 
-  let { outlineId }: { outlineId?: string } = $props();
+  let { outlineId = $bindable() }: { outlineId?: string } = $props();
+
+  let focusPosition: FocusPosition = $state({ id: null, position: null });
 
   const promise = (async () => {
     return outlineId
@@ -26,6 +29,7 @@
           const outline = await Outline.new();
           const paragraph = Paragraph.new(outline);
           outline.insertParagraph(paragraph);
+          focusPosition = { id: paragraph.id, position: "start" };
           return outline;
         })();
   })();
@@ -41,9 +45,9 @@
     </div>
   </div>
 
-  <ScrollArea orientation="vertical" type="scroll">
-    <div class={contentContainerStyle}>
-      {#await promise then outline}
+  {#await promise then outline}
+    <ScrollArea orientation="vertical" type="scroll">
+      <div class={contentContainerStyle}>
         <div class={titleOutlineContainerStyle}>
           <div class={titleOutlineBulletContainerStyle}>
             <Asterisk
@@ -52,23 +56,33 @@
             />
             <div class={titleBulletBoxLine}></div>
           </div>
-          <OutlineEditor {outline} />
+          <OutlineEditor
+            {outline}
+            bind:focusPosition
+            containerStyle={titleOutlineEditorContainer}
+            editorStyleVariant="cardsViewTitle"
+          />
         </div>
         <div class={paragraphContainerStyle}>
           <div class={paragraphContainerLine}></div>
-          {#each outline.paragraphs as paragraph}
+          {#each outline.paragraphs as paragraph (paragraph.id)}
             <div class={paragraphStyle}>
-              <ParagraphEditor {paragraph} />
+              <ParagraphEditor
+                {paragraph}
+                bind:focusPosition
+                containerStyle={paragraphEditorContainer}
+                editorStyleVariant="card"
+              />
             </div>
           {/each}
         </div>
-      {/await}
-      <div class={contentBoxBottomSpace}>
-        <div class={contetBoxBottomLine}></div>
-        <div class={roundedLineEnd}></div>
+        <div class={contentBoxBottomSpace}>
+          <div class={contetBoxBottomLine}></div>
+          <div class={roundedLineEnd}></div>
+        </div>
       </div>
-    </div>
-  </ScrollArea>
+    </ScrollArea>
+  {/await}
 </div>
 
 <script module>
@@ -222,5 +236,21 @@
     w: "full",
     h: "fit",
     shadow: "sm",
+  });
+
+  const titleOutlineEditorContainer = css.raw({
+    w: "full",
+    h: "fit",
+    wordBreak: "break-word",
+    gridColumn: "2",
+    minHeight: "[3rem]",
+    color: "view.text",
+  });
+
+  const paragraphEditorContainer = css.raw({
+    w: "full",
+    h: "fit",
+    wordBreak: "break-word",
+    minHeight: "[1.5rem]",
   });
 </script>
