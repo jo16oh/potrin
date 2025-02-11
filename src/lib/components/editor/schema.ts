@@ -7,6 +7,7 @@ import {
   handleEnterLastLineParagraph,
   handleEnterLastLineOutline,
 } from "./handleEnterLastLine";
+import { handleBsWhenEmpty } from "./handleBsWhenEmpty";
 import type { FocusPosition } from "./utils";
 import type { Paragraph as ParagraphModel } from "$lib/models/Paragraph.svelte";
 import type { Outline } from "$lib/models/Outline.svelte";
@@ -33,6 +34,7 @@ export const createParagraphSchema = async (
       fragment: ydoc.getXmlFragment("doc"),
     }),
     handleEnterLastLineParagraph(paragraph, updateFocusPosition),
+    handleBsWhenEmpty(paragraph, updateFocusPosition),
   ];
 };
 
