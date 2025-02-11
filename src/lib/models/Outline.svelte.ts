@@ -546,13 +546,13 @@ export class Outline {
 
   removeChild(child: Outline) {
     const idx = this.#children.findIndex((c) => c.id === child.id);
-    this.#paragraphs = [...this.#paragraphs.splice(idx, 1)];
+    this.#children = this.#children.toSpliced(idx, 1);
     this.#conflictChecker.reconcile(this.#children.map((c) => c.id));
   }
 
   removeParagraph(paragraph: Paragraph) {
     const idx = this.#paragraphs.findIndex((c) => c.id === paragraph.id);
-    this.#paragraphs = [...this.#paragraphs.splice(idx, 1)];
+    this.#paragraphs = this.#paragraphs.toSpliced(idx, 1);
   }
 
   flatten(): Outline[] {
