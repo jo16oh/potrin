@@ -76,7 +76,7 @@ export class Paragraph {
     );
 
     const ydoc = new Y.Doc();
-    paragraph.#ydoc = new Y.Doc();
+    paragraph.#ydoc = ydoc;
 
     ydoc.on("updateV2", (u) => {
       paragraph.#pendingYUpdates.push(u);

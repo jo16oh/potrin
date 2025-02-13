@@ -9,6 +9,7 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Paragraph } from "$lib/models/Paragraph.svelte?";
 import type { Paragraph as ParagraphModel } from "$lib/models/Paragraph.svelte";
 import { generateKeyBetween } from "fractional-indexing-jittered";
+import * as Y from "yjs";
 
 const OutlineDocument = Node.create({
   name: "doc",
@@ -23,13 +24,14 @@ export const createParagraphSchema = async (
   updateFocusPosition: (pos: FocusPosition) => void,
 ) => {
   const ydoc = await paragraph.ydoc();
+  const fragment = ydoc.getMap("potrin").get("doc") as Y.XmlFragment;
 
   return [
     Document,
     ParagraphSchema,
     Text,
     Collabolation.configure({
-      fragment: ydoc.getXmlFragment("doc"),
+      fragment: fragment,
     }),
     Extension.create({
       name: "KeydownHandler",
@@ -169,13 +171,14 @@ export const createOutlineSchema = async (
   updateFocusPosition: (pos: FocusPosition) => void,
 ) => {
   const ydoc = await outline.ydoc();
+  const fragment = ydoc.getMap("potrin").get("doc") as Y.XmlFragment;
 
   return [
     OutlineDocument,
     ParagraphSchema,
     Text,
     Collabolation.configure({
-      fragment: ydoc.getXmlFragment("doc"),
+      fragment: fragment,
     }),
     Extension.create({
       name: "KeydownHandler",
