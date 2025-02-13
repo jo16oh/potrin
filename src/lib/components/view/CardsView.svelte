@@ -15,7 +15,7 @@
 
   let { outlineId = $bindable() }: { outlineId?: string } = $props();
 
-  let focusPosition: FocusPosition = $state({ id: null, position: null });
+  let focusPosition: FocusPosition = $state.raw({ id: null, position: null });
 
   const promise = (async () => {
     return outlineId
