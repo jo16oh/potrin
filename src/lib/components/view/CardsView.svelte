@@ -250,7 +250,6 @@
   const paragraphEditorContainer = css.raw({
     w: "full",
     h: "fit",
-    wordBreak: "break-word",
     minHeight: "[1.5rem]",
   });
 </script>

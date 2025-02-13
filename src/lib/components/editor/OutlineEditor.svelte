@@ -53,7 +53,7 @@
       ],
       editorProps: {
         attributes: {
-          class: css({ _focus: { ring: "none" } }),
+          class: css({ ring: "none" }),
         },
       },
       onTransaction: () => {
@@ -95,7 +95,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   bind:this={editorElement}
-  class={css(containerStyle, editorStylesVariants[editorStyleVariant])}
+  class={css(containerStyle, editorStyleVariants[editorStyleVariant])}
   style:display={editor ? "block" : "none"}
   onmouseleave={() => {
     if (editor && !focus) {
@@ -105,9 +105,16 @@
 ></div>
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class={css(containerStyle, editorStylesVariants[editorStyleVariant])}
+  class={[
+    css(containerStyle, editorStyleVariants[editorStyleVariant], {
+      ring: "none",
+    }),
+    "tiptap",
+    "ProseMirror",
+  ].join(" ")}
   style:display={editor ? "none" : "block"}
   onmouseenter={() => createEditor(outline, null)}
+  contenteditable
 >
   {#if outline.doc}
     {#each outline.doc.content ?? [] as content}
@@ -125,10 +132,9 @@
 </div>
 
 <script module>
-  const editorStylesVariants = {
+  const editorStyleVariants = {
     cardsViewTitle: css.raw({
       "& p": {
-        wordBreak: "break-word",
         fontSize: "[2rem]",
         fontWeight: "semibold",
         color: "view.text",
@@ -136,7 +142,6 @@
     }),
     cardsViewChildren: css.raw({
       "& p": {
-        wordBreak: "break-word",
         fontSize: "[2rem]",
         fontWeight: "semibold",
         color: "view.text",

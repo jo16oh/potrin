@@ -56,7 +56,7 @@
       ],
       editorProps: {
         attributes: {
-          class: css({ _focus: { ring: "none" } }),
+          class: css({ ring: "none" }),
         },
       },
       onTransaction: () => {
@@ -112,12 +112,19 @@
 ></div>
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class={css(containerStyle, editorStyleVariants[editorStyleVariant])}
+  class={[
+    css(containerStyle, editorStyleVariants[editorStyleVariant], {
+      ring: "none",
+    }),
+    "tiptap",
+    "ProseMirror",
+  ].join(" ")}
   style:display={editor ? "none" : "block"}
   onmouseenter={() => {
     console.log("mouseenter");
     createEditor(paragraph, null);
   }}
+  contenteditable
 >
   {#if paragraph.doc}
     {#each paragraph.doc.content ?? [] as content}
@@ -138,7 +145,6 @@
   const editorStyleVariants = {
     card: css.raw({
       "& p": {
-        wordBreak: "break-word",
         color: "card.text",
         minHeight: "[1.5rem]",
       },
