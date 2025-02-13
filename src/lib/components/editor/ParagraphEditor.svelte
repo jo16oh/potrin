@@ -23,6 +23,8 @@
     editorStyleVariant,
   }: Props = $props();
 
+  const isFocused = $derived(focusPosition.id === paragraph.id);
+
   let editor: Editor | undefined = $state();
   let editorElement: HTMLDivElement = $state() as HTMLDivElement;
 
@@ -41,8 +43,6 @@
     },
   );
 
-  let focus = $state(false);
-
   async function createEditor(paragraph: Paragraph, pos: EditorFocusPosition) {
     if (editor) return;
 
@@ -59,15 +59,10 @@
           class: css({ ring: "none" }),
         },
       },
-      onTransaction: () => {
-        // force re-render
-        editor = editor;
-      },
       onBlur: () => {
-        focus = false;
         setTimeout(() => {
           editor?.destroy();
-        }, 0);
+        });
 
         if (focusPosition.id === paragraph.id) {
           focusPosition.id = null;
@@ -82,8 +77,10 @@
         }
       },
       onFocus: () => {
-        console.log("onFocus");
-        focus = true;
+        if (focusPosition.id !== paragraph.id) {
+          focusPosition.id = paragraph.id;
+          focusPosition.position = editor!.state.selection.from;
+        }
       },
     });
 
@@ -105,7 +102,7 @@
   class={css(containerStyle, editorStyleVariants[editorStyleVariant])}
   style:display={editor ? "block" : "none"}
   onmouseleave={() => {
-    if (editor && !focus) {
+    if (editor && !isFocused) {
       editor?.destroy();
     }
   }}
@@ -121,7 +118,6 @@
   ].join(" ")}
   style:display={editor ? "none" : "block"}
   onmouseenter={() => {
-    console.log("mouseenter");
     createEditor(paragraph, null);
   }}
   contenteditable

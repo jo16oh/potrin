@@ -23,6 +23,8 @@
     editorStyleVariant,
   }: Props = $props();
 
+  const isFocused = $derived(focusPosition.id === outline.id);
+
   let editor: Editor | undefined = $state();
   let editorElement: HTMLDivElement = $state() as HTMLDivElement;
 
@@ -41,8 +43,6 @@
     },
   );
 
-  let focus = $state(false);
-
   async function createEditor(outline: Outline, pos: EditorFocusPosition) {
     if (editor) return;
 
@@ -57,15 +57,17 @@
         },
       },
       onTransaction: () => {
-        // force re-render
-        editor = editor;
         outline.text = editor!.getText();
       },
       onBlur: () => {
-        focus = false;
         setTimeout(() => {
           editor?.destroy();
         });
+
+        if (focusPosition.id === outline.id) {
+          focusPosition.id = null;
+          focusPosition.position = null;
+        }
       },
       onDestroy: () => {
         if (editor) {
@@ -76,7 +78,10 @@
         }
       },
       onFocus: () => {
-        focus = true;
+        if (focusPosition.id !== outline.id) {
+          focusPosition.id = outline.id;
+          focusPosition.position = editor!.state.selection.from;
+        }
       },
     });
 
@@ -98,7 +103,7 @@
   class={css(containerStyle, editorStyleVariants[editorStyleVariant])}
   style:display={editor ? "block" : "none"}
   onmouseleave={() => {
-    if (editor && !focus) {
+    if (editor && !isFocused) {
       editor?.destroy();
     }
   }}
