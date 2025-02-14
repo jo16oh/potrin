@@ -136,7 +136,7 @@
   });
 
   const contentContainerStyle = css({
-    maxH: "[calc(95vh - 2rem)]",
+    maxH: "[95vh]",
     px: "2",
     pt: "32",
   });

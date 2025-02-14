@@ -89,8 +89,8 @@
 
   const hoverViewContainerStyle = css.raw({
     w: "[90vw]",
+    h: "[95vh]",
     maxW: "[37.5rem]",
-    maxH: "[95vh]",
     p: "0",
   });
 </script>
