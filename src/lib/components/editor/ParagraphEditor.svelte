@@ -62,12 +62,14 @@
       onBlur: () => {
         setTimeout(() => {
           editor?.destroy();
-        });
 
-        if (focusPosition.id === paragraph.id) {
-          focusPosition.id = null;
-          focusPosition.position = null;
-        }
+          if (focusPosition.id === paragraph.id) {
+            focusPosition = {
+              id: null,
+              position: null,
+            };
+          }
+        });
       },
       onDestroy: () => {
         if (editor) {
@@ -78,8 +80,10 @@
       },
       onFocus: () => {
         if (focusPosition.id !== paragraph.id) {
-          focusPosition.id = paragraph.id;
-          focusPosition.position = editor!.state.selection.from;
+          focusPosition = {
+            id: paragraph.id,
+            position: editor!.state.selection.from,
+          };
         }
       },
     });
