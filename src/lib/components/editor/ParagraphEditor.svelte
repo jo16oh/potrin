@@ -56,7 +56,7 @@
       ],
       editorProps: {
         attributes: {
-          class: css({ ring: "none" }),
+          class: css(noRing),
         },
       },
       onBlur: () => {
@@ -113,32 +113,27 @@
 ></div>
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class={[
-    css(containerStyle, editorStyleVariants[editorStyleVariant], {
-      ring: "none",
-    }),
-    "tiptap",
-    "ProseMirror",
-  ].join(" ")}
+  class={css(containerStyle, editorStyleVariants[editorStyleVariant], noRing)}
   style:display={editor ? "none" : "block"}
   onmouseenter={() => {
     createEditor(paragraph, null);
   }}
-  contenteditable
 >
-  {#if paragraph.doc}
-    {#each paragraph.doc.content ?? [] as content}
-      {#if content.type === "paragraph"}
-        <p>
-          {#each content.content ?? [] as c}
-            {#if c.type === "text"}
-              {c.text}
-            {/if}
-          {/each}
-        </p>
-      {/if}
-    {/each}
-  {/if}
+  <div class="tiptap ProseMirror">
+    {#if paragraph.doc}
+      {#each paragraph.doc.content ?? [] as content}
+        {#if content.type === "paragraph"}
+          <p>
+            {#each content.content ?? [] as c}
+              {#if c.type === "text"}
+                {c.text}
+              {/if}
+            {/each}
+          </p>
+        {/if}
+      {/each}
+    {/if}
+  </div>
 </div>
 
 <script module>
@@ -150,4 +145,10 @@
       },
     }),
   };
+
+  const noRing = css.raw({
+    ring: "none",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+  });
 </script>
