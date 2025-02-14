@@ -47,6 +47,7 @@
     "ohash": "^1.1.4",
     "runed": "^0.23.3",
     "uuidv7": "^1.0.2",
+    "y-prosemirror": "^1.2.15",
     "yjs": "^13.6.23"
   },
   "devDependencies": {
