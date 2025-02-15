@@ -178,6 +178,7 @@
 
 <script module>
   const containerStyle = css({
+    maxW: "[45vw]",
     flexShrink: "0",
     position: "relative",
     h: "full",
@@ -187,6 +188,7 @@
     bg: "accent.bg",
     userSelect: "none",
     "&[data-float=true]": {
+      maxW: "[90vw]",
       p: "2",
       bg: "accent.bg/95",
       position: "fixed",
