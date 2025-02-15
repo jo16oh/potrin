@@ -92,5 +92,6 @@
     h: "[95vh]",
     maxW: "[37.5rem]",
     p: "0",
+    overflow: "hidden",
   });
 </script>
