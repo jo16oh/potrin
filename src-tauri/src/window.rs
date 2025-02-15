@@ -60,6 +60,7 @@ pub async fn open_pot(app_handle: &AppHandle, pot_id: UUIDv7Base64URL) -> eyre::
     .title(&pot.name)
     .hidden_title(true)
     .inner_size(1025.0, 800.0)
+    .min_inner_size(470.0, 380.0)
     .visible(false);
 
     // set transparent title bar only when building for macOS
