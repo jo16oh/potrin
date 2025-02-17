@@ -24,11 +24,12 @@
   <ScrollArea.Scrollbar
     {orientation}
     class={css({
+      zIndex: "local.scrollbar",
       display: "flex",
       w: "2.5",
       touchAction: "none",
       userSelect: "none",
-      borderRadius: "[9999px]",
+      borderRadius: "circle",
       transition: "all",
       p: "[1px]",
       bg: "selected",
@@ -39,9 +40,6 @@
         bg: "selected",
       },
       duration: "500",
-      "&[data-state=visible]": {
-        fadeIn: "0",
-      },
       "&[data-state=hidden]": {
         fadeOut: "0",
       },
@@ -50,7 +48,7 @@
     <ScrollArea.Thumb
       class={css({
         flex: "1",
-        borderRadius: "[9999px]",
+        borderRadius: "circle",
         bg: "view.text-muted",
       })}
     />
