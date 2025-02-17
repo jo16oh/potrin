@@ -56,7 +56,7 @@
     display: "flex",
     flexDir: "row",
     gap: "2",
-    bg: "accent.bg",
+    bg: "workspace.bg",
     w: "screen",
     h: "screen",
     pt: "[28px]",
@@ -75,11 +75,11 @@
     p: "0",
     w: "14",
     h: "14",
-    bg: "accent.bg/90",
+    bg: "workspace.bg/90",
     rounded: "[100%]",
     transition: "colors",
     _hover: {
-      bg: "accent.bg-selected",
+      bg: "workspace.bg-selected",
     },
   });
 

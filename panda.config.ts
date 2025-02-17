@@ -47,6 +47,32 @@ export default defineConfig({
             _dark: "{colors.lighten}",
           },
         },
+        workspace: {
+          bg: {
+            value: {
+              base: "#C8C3B9",
+              _dark: "#525252",
+            },
+          },
+          "bg-selected": {
+            value: {
+              base: "color-mix(in srgb, #C8C3B9, {colors.darken})",
+              _dark: "color-mix(in srgb, #525252, {colors.lighten})",
+            },
+          },
+          text: {
+            value: {
+              base: "#FEFEFE",
+              _dark: "#F9F9F9",
+            },
+          },
+          "text-muted": {
+            value: {
+              base: "#78716C",
+              _dark: "9D948D",
+            },
+          },
+        },
         view: {
           bg: {
             value: {
@@ -122,32 +148,6 @@ export default defineConfig({
             value: {
               base: "#78716C",
               _dark: "C7C7C7",
-            },
-          },
-        },
-        accent: {
-          bg: {
-            value: {
-              base: "#C8C3B9",
-              _dark: "#525252",
-            },
-          },
-          "bg-selected": {
-            value: {
-              base: "color-mix(in srgb, #C8C3B9, {colors.darken})",
-              _dark: "color-mix(in srgb, #525252, {colors.lighten})",
-            },
-          },
-          text: {
-            value: {
-              base: "#FEFEFE",
-              _dark: "#F9F9F9",
-            },
-          },
-          "text-muted": {
-            value: {
-              base: "#78716C",
-              _dark: "9D948D",
             },
           },
         },
