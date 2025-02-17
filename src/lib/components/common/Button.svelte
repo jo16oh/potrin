@@ -36,7 +36,7 @@
     width: "fit",
     height: "fit",
     _hover: {
-      bg: "selected",
+      bg: "darken",
     },
     _disabled: {
       color: "button.text-muted",

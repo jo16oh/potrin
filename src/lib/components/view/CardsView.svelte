@@ -101,7 +101,7 @@
     h: "8",
     px: "1",
     py: "1",
-    bg: "transparent",
+    bg: "view.bg/90",
   });
 
   const headerLeftButtons = css({
@@ -125,7 +125,7 @@
     shadow: "[none]",
     bg: "transparent",
     _hover: {
-      bg: "selected",
+      bg: "darken",
     },
   });
 

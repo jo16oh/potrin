@@ -29,27 +29,22 @@ export default defineConfig({
     // @ts-expect-error exactOptionalPropertyTypes
     tokens: {
       ...preset.theme.tokens,
-      colors: {},
+      colors: {
+        darken: { value: "rgb(0 0 0 / 0.05)" },
+        lighten: { value: "rgb(255 255 255/ 0.05)" },
+        transparent: { value: "transparent" },
+        overlay: { value: "rgb(0 0 0 / 0.70)" },
+      },
       radii: {},
       shadows: {},
       zIndex: {},
     },
     semanticTokens: {
       colors: {
-        transparent: {
-          value: {
-            base: "transparent",
-          },
-        },
-        overlay: {
-          value: {
-            base: "rgb(0 0 0 / 0.80)",
-          },
-        },
         selected: {
           value: {
-            base: "rgb(0 0 0 / 0.05)",
-            _dark: "rgb(255 255 255 / 0.05)",
+            base: "{colors.darken}",
+            _dark: "{colors.lighten}",
           },
         },
         view: {
@@ -57,6 +52,12 @@ export default defineConfig({
             value: {
               base: "#F7F7F7",
               _dark: "#242424",
+            },
+          },
+          "bg-selected": {
+            value: {
+              base: "color-mix(in srgb, #F7F7F7, {colors.darken})",
+              _dark: "color-mix(in srgb, #242424, {colors.lighten})",
             },
           },
           text: {
@@ -79,6 +80,12 @@ export default defineConfig({
               _dark: "#333333",
             },
           },
+          "bg-selected": {
+            value: {
+              base: "color-mix(in srgb, #FFFFFF, {colors.darken})",
+              _dark: "color-mix(in srgb, #333333, {colors.lighten})",
+            },
+          },
           text: {
             value: {
               base: "#0C0A09",
@@ -99,6 +106,12 @@ export default defineConfig({
               _dark: "#333333",
             },
           },
+          "bg-selected": {
+            value: {
+              base: "color-mix(in srgb, #FFFFFF, {colors.darken})",
+              _dark: "color-mix(in srgb, #333333, {colors.lighten})",
+            },
+          },
           text: {
             value: {
               base: "#0C0A09",
@@ -117,6 +130,12 @@ export default defineConfig({
             value: {
               base: "#C8C3B9",
               _dark: "#525252",
+            },
+          },
+          "bg-selected": {
+            value: {
+              base: "color-mix(in srgb, #C8C3B9, {colors.darken})",
+              _dark: "color-mix(in srgb, #525252, {colors.lighten})",
             },
           },
           text: {

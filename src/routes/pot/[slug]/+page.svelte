@@ -77,7 +77,7 @@
     rounded: "[100%]",
     transition: "colors",
     _hover: {
-      bg: "selected",
+      bg: "accent.bg-selected",
     },
   });
 

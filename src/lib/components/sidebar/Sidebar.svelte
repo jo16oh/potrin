@@ -235,6 +235,9 @@
   const potNameButtonStyle = css.raw({
     ...buttonStyle,
     bg: "transparent",
+    _hover: {
+      bg: "accent.bg-selected",
+    },
     shadow: "[ none ]",
     display: "flex",
     flexDir: "row",
