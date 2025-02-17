@@ -1,8 +1,9 @@
 <script lang="ts">
+  import Button from "$lib/components/common/Button.svelte";
   import Dialog from "$lib/components/common/Dialog.svelte";
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
   import CardsView from "$lib/components/view/CardsView.svelte";
-  import { PencilLine } from "lucide-svelte";
+  import { Columns2, Maximize2, PencilLine } from "lucide-svelte";
   import { css } from "styled-system/css";
 </script>
 
@@ -35,6 +36,17 @@
     {/snippet}
     {#snippet content()}
       <CardsView />
+      <div class={rightSideButtonContainer}>
+        <Button style={rightSideButtonStyle}>
+          <Maximize2 class={iconInsideRightSideButton} />
+        </Button>
+        <Button style={rightSideButtonStyle}>
+          <Columns2 class={iconInsideRightSideButton} />
+        </Button>
+        <Button style={rightSideButtonStyle}>
+          <PencilLine class={iconInsideRightSideButton} />
+        </Button>
+      </div>
     {/snippet}
   </Dialog>
 </div>
@@ -53,6 +65,7 @@
   });
 
   const floatingButtonStyle = css.raw({
+    zIndex: "global.float",
     position: "fixed",
     right: "[16px]",
     bottom: "[16px]",
@@ -77,10 +90,39 @@
   });
 
   const hoverViewContainerStyle = css.raw({
-    w: "[90vw]",
-    h: "[95vh]",
+    top: "[0.5rem]",
+    w: "[80vw]",
+    h: "[90vh]",
     maxW: "[37.5rem]",
     p: "0",
-    overflow: "hidden",
+  });
+
+  const rightSideButtonContainer = css({
+    display: "flex",
+    flexDir: "column",
+    gap: "4",
+    p: "0",
+    position: "absolute",
+    top: "4",
+    left: "[calc(100% + 0.75rem)]",
+    w: "fit",
+    h: "fit",
+  });
+
+  const rightSideButtonStyle = css.raw({
+    p: "0",
+    w: "8",
+    h: "8",
+    bg: "view.bg",
+    _hover: {
+      bg: "view.bg-selected",
+    },
+    rounded: "circle",
+  });
+
+  const iconInsideRightSideButton = css({
+    w: "4",
+    h: "4",
+    color: "view.text-muted",
   });
 </script>

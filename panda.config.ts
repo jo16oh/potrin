@@ -225,8 +225,8 @@ export default defineConfig({
           titlebar: { value: "9999" },
         },
         local: {
-          header: { value: "0" },
-          scrollbar: { value: "10" },
+          header: { value: "10" },
+          scrollbar: { value: "20" },
         },
       },
     },

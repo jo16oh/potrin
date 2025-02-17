@@ -102,6 +102,7 @@
     px: "1",
     py: "1",
     bg: "view.bg/90",
+    roundedTop: "md",
   });
 
   const headerLeftButtons = css({
@@ -125,7 +126,7 @@
     shadow: "[none]",
     bg: "transparent",
     _hover: {
-      bg: "darken",
+      bg: "view.bg-selected",
     },
   });
 
@@ -136,7 +137,7 @@
   });
 
   const contentContainerStyle = css({
-    maxH: "[95vh]",
+    maxH: "[90vh]",
     px: "2",
     pt: "32",
   });
