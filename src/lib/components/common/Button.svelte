@@ -4,17 +4,19 @@
   import type { Styles } from "styled-system/css";
   import type { Snippet } from "svelte";
 
-  let {
-    style,
-    disabled = $bindable(),
-    children,
-    ...others
-  }: {
+  type ButtonProps = Omit<Button.RootProps, "style">;
+  type Props = ButtonProps & {
     style?: Styles;
     disabled?: boolean;
     children: Snippet;
-    onclick?: () => void;
-  } = $props();
+  };
+
+  let {
+    style,
+    disabled = $bindable(false),
+    children,
+    ...others
+  }: Props = $props();
 </script>
 
 <Button.Root class={css(buttonStyle, style) + " group"} {disabled} {...others}>
