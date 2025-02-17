@@ -2,6 +2,7 @@
   import type { Snippet } from "svelte";
   import { Dialog, type WithoutChild } from "bits-ui";
   import { css, type Styles } from "styled-system/css";
+  import TitleBarHandler from "./TitleBarHandler.svelte";
 
   type Props = Dialog.RootProps & {
     trigger: Snippet;
@@ -29,9 +30,33 @@
     {@render trigger()}
   </Dialog.Trigger>
   <Dialog.Portal>
-    <Dialog.Overlay class={overlayStyle} />
+    <Dialog.Overlay class={overlayStyle}>
+      <TitleBarHandler />
+    </Dialog.Overlay>
     <Dialog.Content
       class={css(defaultContentStyle, contentStyle)}
+      onInteractOutside={(e) => {
+        const start = performance.now();
+        if (e.clientY <= 28) {
+          e.preventDefault();
+
+          const handleMouseUp = () => {
+            if (performance.now() - start < 250) {
+              open = false;
+            }
+
+            window.removeEventListener("mouseup", handleMouseUp);
+          };
+
+          window.addEventListener("mouseup", handleMouseUp);
+        }
+      }}
+      onOpenAutoFocus={(e) => {
+        e.preventDefault();
+      }}
+      onCloseAutoFocus={(e) => {
+        e.preventDefault();
+      }}
       {...contentProps}
     >
       {@render content()}

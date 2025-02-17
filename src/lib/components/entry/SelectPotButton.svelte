@@ -57,14 +57,6 @@
   {@const pots = unwrap(potsResult)}
   <Dialog
     bind:open
-    contentProps={{
-      onOpenAutoFocus: (e) => {
-        e.preventDefault();
-      },
-      onCloseAutoFocus: (e) => {
-        e.preventDefault();
-      },
-    }}
     triggerProps={{ disabled: pots.length === 0 }}
     triggerStyle={{ ...buttonStyle, ...selectPotButtonStyle }}
   >
@@ -154,14 +146,6 @@
 
 {#snippet deletePotDialog(pot: Pot)}
   <Dialog
-    contentProps={{
-      onOpenAutoFocus: (e) => {
-        e.preventDefault();
-      },
-      onCloseAutoFocus: (e) => {
-        e.preventDefault();
-      },
-    }}
     triggerStyle={deletePotButtonStyle}
     contentStyle={deletePotDialogContainerStyle}
   >

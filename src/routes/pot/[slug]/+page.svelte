@@ -1,13 +1,10 @@
 <script lang="ts">
   import Dialog from "$lib/components/common/Dialog.svelte";
-  import TitleBarHandler from "$lib/components/common/TitleBarHandler.svelte";
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
   import CardsView from "$lib/components/view/CardsView.svelte";
   import { PencilLine } from "lucide-svelte";
   import { css } from "styled-system/css";
 </script>
-
-<TitleBarHandler />
 
 <div class={containerStyle}>
   <Sidebar />
@@ -32,14 +29,6 @@
   <Dialog
     triggerStyle={floatingButtonStyle}
     contentStyle={hoverViewContainerStyle}
-    contentProps={{
-      onOpenAutoFocus: (e) => {
-        e.preventDefault();
-      },
-      onCloseAutoFocus: (e) => {
-        e.preventDefault();
-      },
-    }}
   >
     {#snippet trigger()}
       <PencilLine class={floatingButtonIconStyle} />

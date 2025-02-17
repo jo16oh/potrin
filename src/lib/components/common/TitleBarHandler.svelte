@@ -3,7 +3,7 @@
 </script>
 
 <div
-  data-tauri-drag-region="button"
+  data-tauri-drag-region
   class={css({
     position: "fixed",
     zIndex: "global.titlebar",

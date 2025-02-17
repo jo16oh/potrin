@@ -60,9 +60,6 @@
       e.preventDefault();
       input.focus();
     },
-    onCloseAutoFocus: (e) => {
-      e.preventDefault();
-    },
   }}
 >
   {#snippet trigger()}
