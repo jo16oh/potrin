@@ -188,6 +188,7 @@
     bg: "accent.bg",
     userSelect: "none",
     "&[data-float=true]": {
+      zIndex: "global.sidebar",
       maxW: "[90vw]",
       p: "2",
       bg: "accent.bg/95",

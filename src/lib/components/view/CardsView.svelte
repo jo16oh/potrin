@@ -93,7 +93,7 @@
 
   const headerStyle = css({
     position: "absolute",
-    zIndex: "10",
+    zIndex: "local.header",
     flexDir: "row",
     justifyContent: "space-between",
     alignItems: "center",

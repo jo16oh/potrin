@@ -6,7 +6,7 @@
   data-tauri-drag-region="button"
   class={css({
     position: "fixed",
-    zIndex: "0",
+    zIndex: "global.titlebar",
     height: "[28px]",
     w: "full",
     userSelect: "none",

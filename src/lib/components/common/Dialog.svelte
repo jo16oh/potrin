@@ -45,7 +45,7 @@
     inset: "0",
     top: "0",
     left: "0",
-    zIndex: "50",
+    zIndex: "global.overlay",
     bg: "overlay",
     duration: "150",
     _open: {
@@ -66,7 +66,7 @@
     w: "80",
     h: "fit",
     p: "1",
-    zIndex: "[50]",
+    zIndex: "global.overlay",
     rounded: "md",
     bg: "view.bg",
     shadow: "lg",

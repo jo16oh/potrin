@@ -32,6 +32,7 @@ export default defineConfig({
       colors: {},
       radii: {},
       shadows: {},
+      zIndex: {},
     },
     semanticTokens: {
       colors: {
@@ -196,6 +197,18 @@ export default defineConfig({
       //@ts-expect-error define tokens which doesn't have default values
       dropShadows: {
         md: { value: "drop-shadow(0px 4px 4px rgb(0 0 0 / 0.25))" },
+      },
+      zIndex: {
+        global: {
+          float: { value: "0" },
+          sidebar: { value: "10" },
+          overlay: { value: "100" },
+          titlebar: { value: "9999" },
+        },
+        local: {
+          header: { value: "0" },
+          scrollbar: { value: "10" },
+        },
       },
     },
     extend: {

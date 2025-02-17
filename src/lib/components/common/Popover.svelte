@@ -40,7 +40,7 @@
 
 <script module>
   const defaultContentStyle = css.raw({
-    zIndex: "30",
+    zIndex: "global.overlay",
     w: "full",
     maxW: "80",
     rounded: "md",
