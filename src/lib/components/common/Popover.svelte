@@ -32,6 +32,12 @@
   <Popover.Content
     class={css(defaultContentStyle, contentStyle)}
     sideOffset={8}
+    onOpenAutoFocus={(e) => {
+      e.preventDefault();
+    }}
+    onCloseAutoFocus={(e) => {
+      e.preventDefault();
+    }}
     {...contentProps}
   >
     {@render content()}</Popover.Content

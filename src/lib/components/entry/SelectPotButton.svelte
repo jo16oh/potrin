@@ -117,12 +117,6 @@
       onclick: (e) => {
         e.stopPropagation();
       },
-      onOpenAutoFocus: (e) => {
-        e.preventDefault();
-      },
-      onCloseAutoFocus: (e) => {
-        e.preventDefault();
-      },
     }}
   >
     {#snippet trigger()}
