@@ -62,14 +62,14 @@ export default defineConfig({
           },
           text: {
             value: {
-              base: "#FEFEFE",
-              _dark: "#F9F9F9",
+              base: "#0C0A09",
+              _dark: "#F8F8F8",
             },
           },
           "text-muted": {
             value: {
-              base: "#78716C",
-              _dark: "9D948D",
+              base: "9D948D",
+              _dark: "#78716C",
             },
           },
         },
