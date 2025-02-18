@@ -46,7 +46,7 @@
   </div>
 
   {#await promise then outline}
-    <ScrollArea orientation="vertical" type="scroll">
+    <ScrollArea orientation="vertical" type="auto" scrollbarMode="overlay">
       <div class={contentContainerStyle}>
         <div class={titleOutlineContainerStyle}>
           <div class={titleOutlineBulletContainerStyle}>
@@ -138,7 +138,7 @@
 
   const contentContainerStyle = css({
     maxH: "[90vh]",
-    px: "2",
+    px: "3",
     pt: "32",
   });
 
