@@ -3,10 +3,12 @@
   import Button, { buttonStyle } from "../common/Button.svelte";
   import {
     ChevronDown,
+    ClockArrowDown,
     PanelRight,
     PanelRightOpen,
     PencilLine,
     SquareArrowUpRight,
+    X,
   } from "lucide-svelte";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import Popover from "../common/Popover.svelte";
@@ -15,6 +17,8 @@
   import RenamePot from "../entry/RenamePot.svelte";
   import { watch } from "runed";
   import { unwrap } from "$lib/utils";
+  import CardStack from "../icon/CardStack.svelte";
+  import ScrollArea from "../common/ScrollArea.svelte";
 
   const MAX_WIDTH_REM = 38;
   const MIN_WIDTH_REM = 10;
@@ -23,6 +27,23 @@
   const [getWorkspaceState, updateWorkspaceState] = Workspace.state();
 
   const workspaceState = $derived.by(getWorkspaceState);
+  const tabs = $derived(workspaceState.tabs);
+
+  updateWorkspaceState((state) => {
+    state.tabs = Array(19).fill({
+      views: [
+        {
+          id: crypto.randomUUID(),
+          title: "吾輩は猫である",
+          flexGrow: 1,
+          viewType: "outline",
+        },
+      ],
+      focusedViewIdx: 0,
+    });
+
+    return state;
+  });
 
   // svelte-ignore state_referenced_locally
   let width = $state(workspaceState.sidebar.width);
@@ -156,11 +177,57 @@
       {/if}
     </Button>
   </div>
+  <div class={contentContainerStyle}>
+    <div class={fixedTabsContainerStyle}>
+      <Button class={tabItemStyle + " group"}>
+        <div class={viewItemStyle}>
+          <div class={viewIconContainerStyle}>
+            <ClockArrowDown class={viewIconStyle} />
+          </div>
+          <div class={viewTitleStyle}>Timeline</div>
+        </div>
+      </Button>
+    </div>
+
+    <div class={tabsContainerStyle}>
+      <div class={tabsTitleStyle}>Tabs</div>
+      <ScrollArea orientation="vertical" type="auto" scrollbarMode="inset">
+        <div class={tabsContainerStyle}>
+          {#each tabs as tab, idx}
+            <Button
+              class={tabItemStyle + " group"}
+              data-selected={"tabs" in workspaceState.focus
+                ? workspaceState.focus.tabs.index === idx
+                : false}
+              onclick={() =>
+                updateWorkspaceState((state) => {
+                  state.focus = { tabs: { index: idx } };
+                  return state;
+                })}
+            >
+              {#each tab.views as view}
+                <div class={viewItemStyle}>
+                  <div class={viewIconContainerStyle}>
+                    <CardStack class={viewIconStyle} />
+                  </div>
+                  <div class={viewTitleStyle}>{view.title}</div>
+                  <Button class={viewCloseButtonStyle}>
+                    <X class={viewIconStyle} />
+                  </Button>
+                </div>
+              {/each}
+            </Button>
+          {/each}
+        </div>
+      </ScrollArea>
+    </div>
+  </div>
+
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     role="separator"
     aria-orientation="vertical"
-    class={resizeHandlerStyle}
+    class={resizeHandlerStyle + " resize"}
     onmousedown={resize}
     data-float={workspaceState.sidebar.isFloat}
     data-dragging={dragging}
@@ -175,7 +242,7 @@
     h: "full",
     display: "flex",
     flexDir: "column",
-    gap: "1",
+    gap: "2",
     bg: "workspace.bg",
     userSelect: "none",
     "&[data-float=true]": {
@@ -246,7 +313,7 @@
     textOverflow: "ellipsis",
     overflow: "hidden",
     fontWeight: "semibold",
-    fontSize: "md",
+    fontSize: "sm",
     textAlign: "start",
     whiteSpace: "nowrap",
     minWidth: "0",
@@ -270,7 +337,7 @@
   const sidebarButtonIconStyle = css({
     w: "4",
     h: "4",
-    color: "view.text",
+    color: "workspace.text",
   });
 
   const chevronDownContainerStyle = css({
@@ -286,7 +353,7 @@
     h: "4",
     color: "transparent",
     _groupHover: {
-      color: "view.text-muted",
+      color: "workspace.text-muted",
     },
   });
 
@@ -309,8 +376,137 @@
   });
 
   const iconStyle = css({
-    color: "view.text-muted",
+    color: "workspace.text-muted",
     w: "4",
     h: "4",
+  });
+
+  const contentContainerStyle = css({
+    display: "flex",
+    flexDir: "column",
+    justifyContent: "start",
+    alignItems: "start",
+    gap: "2",
+    w: "full",
+    h: "full",
+    flex: "auto",
+    minH: "0",
+    overflow: "hidden",
+    rounded: "md",
+  });
+
+  const fixedTabsContainerStyle = css({
+    display: "flex",
+    flexDir: "column",
+    justifyContent: "start",
+    alignItems: "start",
+    gap: "2",
+    w: "full",
+    flexShrink: "0",
+  });
+
+  const tabsContainerStyle = css({
+    w: "full",
+    flex: "auto",
+    display: "flex",
+    flexDir: "column",
+    gap: "1",
+    overflow: "hidden",
+  });
+
+  const tabsTitleStyle = css({
+    px: "2",
+    fontSize: "xs",
+    color: "workspace.text-muted",
+    h: "6",
+    display: "flex",
+    alignItems: "center",
+  });
+
+  const tabItemStyle = css({
+    flexShrink: "0",
+    display: "flex",
+    flexDir: "row",
+    alignItems: "center",
+    justifyContent: "start",
+    w: "full",
+    h: "8",
+    px: "1",
+    gap: "0.5",
+    color: "button.text",
+    rounded: "md",
+    bg: "transparent",
+    shadow: "[none]",
+    divideX: "[1px]",
+    divideColor: "workspace.text-muted",
+    overflow: "hidden",
+    _hover: {
+      bg: "selected",
+    },
+    "&[data-selected=true]": {
+      bg: "button.bg",
+      shadow: "sm",
+      _hover: {
+        bg: "button.bg",
+      },
+    },
+  });
+
+  const viewItemStyle = css({
+    display: "flex",
+    flexDir: "row",
+    alignItems: "center",
+    justifyContent: "start",
+    flex: "1",
+    flexShrink: "1",
+    minWidth: "14",
+    w: "full",
+    h: "8",
+    color: "button.text",
+    bg: "transparent",
+    transition: "all",
+  });
+
+  const viewIconContainerStyle = css({
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    w: "6",
+    h: "6",
+  });
+
+  const viewIconStyle = css({
+    color: "workspace.text",
+    w: "4",
+    h: "4",
+  });
+
+  const viewTitleStyle = css({
+    pl: "2",
+    fontSize: "sm",
+    color: "workspace.text",
+    flex: "1",
+    textAlign: "start",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  });
+
+  const viewCloseButtonStyle = css({
+    display: "none",
+    transition: "all",
+    _groupHover: {
+      display: "flex",
+      color: "workspace.text-muted",
+    },
+    alignItems: "center",
+    justifyContent: "center",
+    w: "6",
+    h: "6",
+    color: "workspace.text",
+    _hover: {
+      bg: "selected",
+    },
+    rounded: "[0.25rem]",
   });
 </script>
