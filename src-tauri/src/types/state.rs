@@ -85,19 +85,19 @@ pub struct TabState {
 #[serde(tag = "type")]
 pub enum ViewState {
     Cards {
-        id: UUIDv7Base64URL,
+        id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
         pinned: bool,
     },
     Outline {
-        id: UUIDv7Base64URL,
+        id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
         pinned: bool,
     },
     Document {
-        id: UUIDv7Base64URL,
+        id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
         pinned: bool,
