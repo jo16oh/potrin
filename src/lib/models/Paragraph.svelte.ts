@@ -41,13 +41,13 @@ export class Paragraph {
     const paragraph = this.buffer.get(data.id);
 
     if (paragraph) {
-      paragraph.#fractionalIndex = data.fractionalIndex;
+      paragraph._fractionalIndex = data.fractionalIndex;
       paragraph.doc = JSON.parse(data.doc);
-      paragraph.#updatedAt = new Date(data.updatedAt);
-      paragraph.#hidden = data.hidden;
-      paragraph.#deleted = data.deleted;
-      paragraph.#outlineId = data.outlineId;
-      paragraph.#outlineRef = new WeakRef(outline);
+      paragraph._updatedAt = new Date(data.updatedAt);
+      paragraph._hidden = data.hidden;
+      paragraph._deleted = data.deleted;
+      paragraph._outlineId = data.outlineId;
+      paragraph._outlineRef = new WeakRef(outline);
       paragraph.quote = data.quote;
       paragraph.links = data.links;
       return paragraph;
@@ -76,10 +76,10 @@ export class Paragraph {
     );
 
     const ydoc = new Y.Doc();
-    paragraph.#ydoc = ydoc;
+    paragraph._ydoc = ydoc;
 
     ydoc.on("updateV2", (u) => {
-      paragraph.#pendingYUpdates.push(u);
+      paragraph._pendingYUpdates.push(u);
       Paragraph.#commands
         .insertPendingYUpdate(paragraph.id, uint8ArrayToBase64URL(u))
         .then(unwrap);
@@ -87,12 +87,12 @@ export class Paragraph {
 
     ydoc.transact(() => {
       const yMap = ydoc.getMap("potrin");
-      yMap.set("outlineId", paragraph.#outlineId);
-      yMap.set("fractionalIndex", paragraph.#fractionalIndex);
+      yMap.set("outlineId", paragraph._outlineId);
+      yMap.set("fractionalIndex", paragraph._fractionalIndex);
       yMap.set("doc", new Y.XmlFragment());
       yMap.set("links", new Y.Map());
-      yMap.set("hidden", paragraph.#hidden);
-      yMap.set("quote", paragraph.#quote);
+      yMap.set("hidden", paragraph._hidden);
+      yMap.set("quote", paragraph._quote);
       yMap.set("deleted", false);
     });
 
@@ -167,74 +167,74 @@ export class Paragraph {
 
   readonly id: string;
   readonly createdAt: Readonly<Date>;
-  #fractionalIndex = $state<string>() as string;
-  #doc = $state<JSONContent>() as JSONContent;
-  #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
-  #hidden = $state() as boolean;
-  #deleted = $state() as boolean;
-  #outlineId: string;
-  #outlineRef = $state<WeakRef<Outline> | undefined>(undefined);
-  readonly #path = $state<Path | undefined>(undefined); //allow update only through setter
-  readonly #quote = $state<Quote | null>(null); //allow update only through setter
-  readonly #links = $state<Readonly<Links>>() as Links; //allow update only through setter
-  #ydoc: Y.Doc | undefined;
-  #pendingYUpdates: Uint8Array[] = [];
+  private _fractionalIndex = $state<string>() as string;
+  private _doc = $state<JSONContent>() as JSONContent;
+  private _updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
+  private _hidden = $state() as boolean;
+  private _deleted = $state() as boolean;
+  private _outlineId: string;
+  private _outlineRef = $state<WeakRef<Outline> | undefined>();
+  private readonly _path = $state<Path | undefined>(); //allow update only through setter
+  private readonly _quote = $state<Quote | null>(null); //allow update only through setter
+  private readonly _links = $state<Readonly<Links>>() as Links; //allow update only through setter
+  private _ydoc: Y.Doc | undefined;
+  private _pendingYUpdates: Uint8Array[] = [];
 
   private constructor(data: RawParagraph, outline: Outline) {
     this.id = data.id;
     this.createdAt = new Date(data.createdAt);
-    this.#fractionalIndex = data.fractionalIndex;
+    this._fractionalIndex = data.fractionalIndex;
     this.doc = JSON.parse(data.doc);
-    this.#hidden = data.hidden;
-    this.#deleted = data.deleted;
-    this.#updatedAt = new Date(data.updatedAt);
-    this.#outlineId = data.outlineId;
-    this.#outlineRef = new WeakRef(outline);
+    this._hidden = data.hidden;
+    this._deleted = data.deleted;
+    this._updatedAt = new Date(data.updatedAt);
+    this._outlineId = data.outlineId;
+    this._outlineRef = new WeakRef(outline);
     this.quote = data.quote;
     this.links = data.links;
   }
 
   get fractionalIndex() {
-    return this.#fractionalIndex;
+    return this._fractionalIndex;
   }
 
   get doc(): JSONContent {
-    return this.#doc;
+    return this._doc;
   }
 
   get quote() {
-    return this.#quote;
+    return this._quote;
   }
 
   get updatedAt() {
-    return this.#updatedAt;
+    return this._updatedAt;
   }
 
   get links() {
-    return this.#links;
+    return this._links;
   }
 
   get hidden() {
-    return this.#hidden;
+    return this._hidden;
   }
 
   get deleted() {
-    return this.#deleted;
+    return this._deleted;
   }
 
   get outlineId() {
-    return this.#outlineId;
+    return this._outlineId;
   }
 
   get outline(): Outline | null {
-    return this.#outlineRef?.deref() ?? null;
+    return this._outlineRef?.deref() ?? null;
   }
 
   get path(): Promise<Path> {
-    if (this.#path) {
-      return Promise.resolve(this.#path);
+    if (this._path) {
+      return Promise.resolve(this._path);
     } else {
-      return Paragraph.#commands.fetchPath(this.#outlineId).then((r) => {
+      return Paragraph.#commands.fetchPath(this._outlineId).then((r) => {
         const path = unwrap(r);
         this.path = path;
         return path;
@@ -243,20 +243,20 @@ export class Paragraph {
   }
 
   set doc(value: JSONContent) {
-    this.#doc = value;
+    this._doc = value;
 
     Paragraph.#updateQuote(this.id, value);
   }
 
   private set links(value: Links) {
     // @ts-expect-error allow update only thorugh setter
-    this.#links = value;
-    Outline.reversedLinkIndex.set(this.id, this.#links);
+    this._links = value;
+    Outline.reversedLinkIndex.set(this.id, this._links);
   }
 
   private set path(value: Path | null) {
     // @ts-expect-error allow update only through this setter
-    this.#path = value;
+    this._path = value;
 
     if (value) {
       Outline.descendantsIndex.set(this.id, value);
@@ -265,22 +265,22 @@ export class Paragraph {
 
   private set quote(value: Quote | null) {
     // @ts-expect-error allow update only through this setter
-    this.#quote = value;
+    this._quote = value;
     Paragraph.#reversedQuoteIndex.set(this.id, value);
   }
 
   updatePath(text: string, depth: number) {
-    if (!this.#path) return;
+    if (!this._path) return;
 
-    const link = this.#path[depth];
+    const link = this._path[depth];
     if (link) link.text = text;
   }
 
   async ydoc() {
-    if (!this.#ydoc) {
-      this.#ydoc = new Y.Doc();
-      this.#ydoc.on("updateV2", (u) => {
-        this.#pendingYUpdates.push(u);
+    if (!this._ydoc) {
+      this._ydoc = new Y.Doc();
+      this._ydoc.on("updateV2", (u) => {
+        this._pendingYUpdates.push(u);
         void Paragraph.#commands.insertPendingYUpdate(
           this.id,
           uint8ArrayToBase64URL(u),
@@ -291,18 +291,18 @@ export class Paragraph {
     const updates = await Paragraph.#commands.fetchYUpdatesByDocId(this.id);
 
     for (const u of unwrap(updates)) {
-      Y.applyUpdateV2(this.#ydoc, base64URLToUint8Array(u));
+      Y.applyUpdateV2(this._ydoc, base64URLToUint8Array(u));
     }
 
-    return this.#ydoc;
+    return this._ydoc;
   }
 
   async save() {
-    if (this.#pendingYUpdates.length) {
+    if (this._pendingYUpdates.length) {
       await this.outline?.save();
       await Paragraph.#commands.upsertParagraph(
         this.toJSON(),
-        this.#pendingYUpdates.map((u) => uint8ArrayToBase64URL(u)),
+        this._pendingYUpdates.map((u) => uint8ArrayToBase64URL(u)),
       );
     }
   }
@@ -310,15 +310,15 @@ export class Paragraph {
   async moveTo(target: Outline, index: number | "last") {
     const ydoc = await this.ydoc();
 
-    if (this.#outlineId !== target.id) {
+    if (this._outlineId !== target.id) {
       this.outline?.removeParagraph(this);
 
-      this.#outlineId = target.id;
-      this.#outlineRef = new WeakRef(target);
+      this._outlineId = target.id;
+      this._outlineRef = new WeakRef(target);
 
       const yParentId = ydoc.getText("outlineId");
       yParentId.delete(0, yParentId.length);
-      if (this.#outlineId) yParentId.insert(0, this.#outlineId);
+      if (this._outlineId) yParentId.insert(0, this._outlineId);
     }
 
     const prev =
@@ -328,11 +328,11 @@ export class Paragraph {
       index === "last"
         ? null
         : (target.paragraphs[index]?.fractionalIndex ?? null);
-    this.#fractionalIndex = generateKeyBetween(prev, next);
+    this._fractionalIndex = generateKeyBetween(prev, next);
 
     const yFractionalIndex = ydoc.getText("fractionalIndex");
     yFractionalIndex.delete(0, yFractionalIndex.length);
-    yFractionalIndex.insert(0, this.#fractionalIndex);
+    yFractionalIndex.insert(0, this._fractionalIndex);
 
     target.insertParagraph(this);
   }
@@ -340,15 +340,15 @@ export class Paragraph {
   toJSON(): RawParagraph {
     return {
       id: this.id,
-      outlineId: this.#outlineId,
-      fractionalIndex: this.#fractionalIndex,
-      doc: JSON.stringify(this.#doc),
-      links: this.#links,
-      hidden: this.#hidden,
-      deleted: this.#deleted,
-      quote: this.#quote,
+      outlineId: this._outlineId,
+      fractionalIndex: this._fractionalIndex,
+      doc: JSON.stringify(this._doc),
+      links: this._links,
+      hidden: this._hidden,
+      deleted: this._deleted,
+      quote: this._quote,
       createdAt: this.createdAt.getUTCMilliseconds(),
-      updatedAt: this.#updatedAt.getUTCMilliseconds(),
+      updatedAt: this._updatedAt.getUTCMilliseconds(),
     };
   }
 }

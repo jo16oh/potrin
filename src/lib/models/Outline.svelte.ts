@@ -48,15 +48,15 @@ export class Outline {
     const outline = this.buffer.get(data.id);
 
     if (outline) {
-      outline.#fractionalIndex = data.fractionalIndex;
+      outline._fractionalIndex = data.fractionalIndex;
       outline.doc = JSON.parse(data.doc);
       outline.text = data.text;
       outline.links = data.links;
-      outline.#hidden = data.hidden;
-      outline.#collapsed = data.collapsed;
-      outline.#deleted = data.deleted;
-      outline.#updatedAt = new Date(data.updatedAt);
-      outline.#parentId = data.parentId;
+      outline._hidden = data.hidden;
+      outline._collapsed = data.collapsed;
+      outline._deleted = data.deleted;
+      outline._updatedAt = new Date(data.updatedAt);
+      outline._parentId = data.parentId;
       if (parent) outline.parentRef = new WeakRef(parent);
       if (data.path) outline.path = data.path;
       return outline;
@@ -72,8 +72,8 @@ export class Outline {
 
     const linkToThis = { id: id, text: "", hidden: false };
     const path = parent
-      ? parent.#path
-        ? [...parent.#path, linkToThis]
+      ? parent._path
+        ? [...parent._path, linkToThis]
         : [...(await commands.fetchPath(parent.id).then(unwrap)), linkToThis]
       : [linkToThis];
 
@@ -96,10 +96,10 @@ export class Outline {
     );
 
     const ydoc = new Y.Doc();
-    outline.#ydoc = ydoc;
+    outline._ydoc = ydoc;
 
     ydoc.on("updateV2", (u) => {
-      outline.#pendingYUpdates.push(u);
+      outline._pendingYUpdates.push(u);
       Outline.#commands
         .insertPendingYUpdate(outline.id, uint8ArrayToBase64URL(u))
         .then(unwrap);
@@ -107,11 +107,11 @@ export class Outline {
 
     ydoc.transact(() => {
       const yMap = ydoc.getMap("potrin");
-      yMap.set("fractionalIndex", outline.#fractionalIndex);
+      yMap.set("fractionalIndex", outline._fractionalIndex);
       yMap.set("doc", new Y.XmlFragment());
       yMap.set("links", new Y.Map());
-      yMap.set("hidden", outline.#hidden);
-      yMap.set("collapsed", outline.#collapsed);
+      yMap.set("hidden", outline._hidden);
+      yMap.set("collapsed", outline._collapsed);
       yMap.set("deleted", false);
     });
 
@@ -145,7 +145,7 @@ export class Outline {
       if (paragraphs) {
         paragraphs.push(e);
       } else {
-        paragraphsMap.set(e.id, []);
+        paragraphsMap.set(e.outlineId, [e]);
       }
     }
 
@@ -154,22 +154,22 @@ export class Outline {
   }
 
   private static createTree(
-    root: RawOutline,
+    parentData: RawOutline,
     childrenMap: Map<string, RawOutline[]>,
     paragraphsMap: Map<string, RawParagraph[]>,
-    parent_ref?: Outline,
+    parentRef?: Outline,
   ): Outline {
-    const parent = Outline.from(root, parent_ref);
+    const parent = Outline.from(parentData, parentRef);
 
-    parent.#children =
+    parent._children =
       childrenMap
-        .get(root.id)
+        .get(parentData.id)
         ?.map((c) => this.createTree(c, childrenMap, paragraphsMap, parent))
         .sort(byFractionalIndex) ?? [];
 
-    parent.#paragraphs =
+    parent._paragraphs =
       paragraphsMap
-        .get(root.id)
+        .get(parentData.id)
         ?.map((c) => Paragraph.from(c, parent))
         .sort(byFractionalIndex) ?? [];
 
@@ -274,102 +274,102 @@ export class Outline {
 
   readonly id: string;
   readonly createdAt: Readonly<Date>;
-  #fractionalIndex: string;
+  private _fractionalIndex: string;
   doc = $state<JSONContent>();
-  readonly #text: string = $state("");
-  #updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
-  #children = $state.raw<Outline[]>() as Outline[];
-  #paragraphs = $state.raw<Paragraph[]>([]);
-  #parentId = $state<string | null>(null);
-  readonly #parentRef = $state.raw<WeakRef<Outline> | undefined>(); // allow update only through setter
-  readonly #path = $state<Path | null>(null); // allow update only through setter
-  readonly #links = $state<Readonly<Links>>() as Links; // allow update only through setter
-  #hidden = $state() as boolean;
-  #collapsed = $state() as boolean;
-  #deleted = $state() as boolean;
-  #ydoc: Y.Doc | undefined;
-  #pendingYUpdates: Uint8Array[] = [];
+  private readonly _text: string = $state("");
+  private _updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
+  private _children = $state.raw<Outline[]>() as Outline[];
+  private _paragraphs = $state.raw<Paragraph[]>([]);
+  private _parentId = $state<string | null>(null);
+  readonly _parentRef = $state.raw<WeakRef<Outline> | undefined>(); // allow update only through setter
+  readonly _path = $state<Path | null>(null); // allow update only through setter
+  readonly _links = $state<Readonly<Links>>() as Links; // allow update only through setter
+  private _hidden = $state() as boolean;
+  private _collapsed = $state() as boolean;
+  private _deleted = $state() as boolean;
+  private _ydoc: Y.Doc | undefined;
+  private _pendingYUpdates: Uint8Array[] = [];
   readonly #conflictChecker: ConflictChecker;
 
   private constructor(data: RawOutline, parent?: Outline) {
     this.id = data.id;
-    this.#fractionalIndex = data.fractionalIndex;
+    this._fractionalIndex = data.fractionalIndex;
     this.doc = JSON.parse(data.doc);
     // setting path before setting text because the setter of text depends on path
     this.path = data.path;
     this.text = data.text;
     this.createdAt = new Date(data.createdAt);
-    this.#updatedAt = new Date(data.updatedAt);
+    this._updatedAt = new Date(data.updatedAt);
     this.links = data.links;
-    this.#hidden = data.hidden;
-    this.#collapsed = data.collapsed;
-    this.#deleted = data.deleted;
-    this.#parentId = data.parentId;
+    this._hidden = data.hidden;
+    this._collapsed = data.collapsed;
+    this._deleted = data.deleted;
+    this._parentId = data.parentId;
     this.parentRef = parent ? new WeakRef(parent) : undefined;
     this.#conflictChecker = ConflictChecker.get(this.id);
   }
 
   get fractionalIndex() {
-    return this.#fractionalIndex;
+    return this._fractionalIndex;
   }
 
   get text() {
-    return this.#text;
+    return this._text;
   }
 
   get updatedAt() {
-    return this.#updatedAt;
+    return this._updatedAt;
   }
 
   get links(): Readonly<Links> {
-    return this.#links;
+    return this._links;
   }
 
   get hidden() {
-    return this.#hidden;
+    return this._hidden;
   }
 
   get collapsed() {
-    return this.#collapsed;
+    return this._collapsed;
   }
 
   get deleted() {
-    return this.#deleted;
+    return this._deleted;
   }
 
   get parentId() {
-    return this.#parentId;
+    return this._parentId;
   }
 
   get parent(): Outline | null {
-    return this.#parentRef?.deref() ?? null;
+    return this._parentRef?.deref() ?? null;
   }
 
   get children(): Readonly<Outline[]> {
-    return this.#children;
+    return this._children;
   }
 
   get paragraphs(): Readonly<Paragraph[]> {
-    return this.#paragraphs;
+    return this._paragraphs;
   }
 
   get conflict(): boolean {
-    if (this.#text.length === 0) {
+    if (this._text.length === 0) {
       return false;
     } else if (this.parent) {
-      return this.parent.#conflictChecker.check(this.#text);
+      return this.parent.#conflictChecker.check(this._text);
     } else if (this.parentId) {
       const checker = ConflictChecker.get(this.parentId);
-      return checker.check(this.#text);
+      return checker.check(this._text);
     } else {
       const checker = ConflictChecker.get(ConflictChecker.root);
-      return checker.check(this.#text);
+      return checker.check(this._text);
     }
   }
 
   get path(): Promise<Path> {
-    if (this.#path) {
-      return Promise.resolve(this.#path);
+    if (this._path) {
+      return Promise.resolve(this._path);
     } else {
       return Outline.#commands.fetchPath(this.id).then((r) => {
         const path = unwrap(r);
@@ -381,25 +381,25 @@ export class Outline {
 
   set text(value: string) {
     // @ts-expect-error allow update only through this setter
-    this.#text = value;
+    this._text = value;
 
     (async () => {
       const path = await this.path;
       path.at(-1)!.text = value;
-      Outline.#updatePath(this.id, this.#text, path.length - 1);
+      Outline.#updatePath(this.id, this._text, path.length - 1);
       Outline.#updateLinks(this.id, path);
     })();
   }
 
   private set parentRef(value: WeakRef<Outline> | undefined) {
     // @ts-expect-error allow update only through this setter
-    this.#parentRef = value;
+    this._parentRef = value;
     this.#registarTextToConflictChecker();
   }
 
   private set path(value: Path | null) {
     // @ts-expect-error allow update only through this setter
-    this.#path = value;
+    this._path = value;
 
     if (value) {
       Outline.descendantsIndex.set(this.id, value);
@@ -408,26 +408,26 @@ export class Outline {
 
   private set links(value: Links) {
     // @ts-expect-error allow update only through this setter
-    this.#links = value;
+    this._links = value;
     Outline.reversedLinkIndex.set(this.id, value);
   }
 
   updatePath(text: string, depth: number) {
-    if (!this.#path) return;
+    if (!this._path) return;
 
-    const link = this.#path[depth];
+    const link = this._path[depth];
     if (link) link.text = text;
   }
 
   #registarTextToConflictChecker() {
     if (this.parent) {
-      this.parent.#conflictChecker.set(this.id, this.#text);
+      this.parent.#conflictChecker.set(this.id, this._text);
     } else if (this.parentId) {
       const checker = ConflictChecker.get(this.parentId);
-      checker.set(this.id, this.#text);
-      if (this.#text) {
+      checker.set(this.id, this._text);
+      if (this._text) {
         Outline.#commands
-          .fetchConflictingOutlineIds(this.id, this.parentId, this.#text)
+          .fetchConflictingOutlineIds(this.id, this.parentId, this._text)
           .then(unwrap)
           .then((r) => {
             for (const [id, text] of r) {
@@ -438,10 +438,10 @@ export class Outline {
       }
     } else {
       const checker = ConflictChecker.get(ConflictChecker.root);
-      checker.set(this.id, this.#text);
-      if (this.#text) {
+      checker.set(this.id, this._text);
+      if (this._text) {
         void Outline.#commands
-          .fetchConflictingOutlineIds(this.id, this.parentId, this.#text)
+          .fetchConflictingOutlineIds(this.id, this.parentId, this._text)
           .then((r) => {
             const result = unwrap(r);
             for (const [id, text] of result) {
@@ -454,10 +454,10 @@ export class Outline {
   }
 
   async ydoc() {
-    if (!this.#ydoc) {
-      this.#ydoc = new Y.Doc();
-      this.#ydoc.on("updateV2", (u) => {
-        this.#pendingYUpdates.push(u);
+    if (!this._ydoc) {
+      this._ydoc = new Y.Doc();
+      this._ydoc.on("updateV2", (u) => {
+        this._pendingYUpdates.push(u);
         Outline.#commands
           .insertPendingYUpdate(this.id, uint8ArrayToBase64URL(u))
           .then(unwrap);
@@ -469,16 +469,16 @@ export class Outline {
       .then(unwrap);
 
     for (const u of updates) {
-      Y.applyUpdateV2(this.#ydoc, base64URLToUint8Array(u));
+      Y.applyUpdateV2(this._ydoc, base64URLToUint8Array(u));
     }
 
-    return this.#ydoc;
+    return this._ydoc;
   }
 
   async save() {
-    if (this.#pendingYUpdates.length) {
-      const updates = this.#pendingYUpdates.map(uint8ArrayToBase64URL);
-      this.#pendingYUpdates.length = 0;
+    if (this._pendingYUpdates.length) {
+      const updates = this._pendingYUpdates.map(uint8ArrayToBase64URL);
+      this._pendingYUpdates.length = 0;
       await Outline.#commands
         .upsertOutline(this.toJSON(), updates)
         .then(unwrap);
@@ -486,11 +486,11 @@ export class Outline {
   }
 
   sortChildren() {
-    this.#children = [...this.#children.sort(byFractionalIndex)];
+    this._children = [...this._children.sort(byFractionalIndex)];
   }
 
   sortParagraphs() {
-    this.#paragraphs = [...this.#paragraphs.sort(byFractionalIndex)];
+    this._paragraphs = [...this._paragraphs.sort(byFractionalIndex)];
   }
 
   async moveTo(target: Outline | "root", index: number | "last") {
@@ -499,7 +499,7 @@ export class Outline {
     if (target !== "root" && this.parentId !== target.id) {
       this.parent?.removeChild(this);
 
-      this.#parentId = target.id;
+      this._parentId = target.id;
       this.parentRef = new WeakRef(target);
 
       const yParentId = ydoc.getText("parentId");
@@ -508,7 +508,7 @@ export class Outline {
     } else if (target === "root") {
       this.parent?.removeChild(this);
 
-      this.#parentId = null;
+      this._parentId = null;
       this.parentRef = undefined;
 
       const yParentId = ydoc.getText("parentId");
@@ -518,61 +518,61 @@ export class Outline {
     }
 
     const prev =
-      target.#children[index === "last" ? target.#children.length - 1 : index]
+      target._children[index === "last" ? target._children.length - 1 : index]
         ?.fractionalIndex ?? null;
     const next =
       index === "last"
         ? null
-        : (target.#children[index]?.fractionalIndex ?? null);
-    this.#fractionalIndex = generateKeyBetween(prev, next);
+        : (target._children[index]?.fractionalIndex ?? null);
+    this._fractionalIndex = generateKeyBetween(prev, next);
 
     const yFractionalIndex = ydoc.getText("fractionalIndex");
     yFractionalIndex.delete(0, yFractionalIndex.length);
-    yFractionalIndex.insert(0, this.#fractionalIndex);
+    yFractionalIndex.insert(0, this._fractionalIndex);
 
     target.insertChild(this);
   }
 
   insertChild(child: Outline) {
-    this.#children = [...insertToFractionalIndexedArray(this.#children, child)];
-    this.#conflictChecker.reconcile(this.#children.map((c) => c.id));
+    this._children = [...insertToFractionalIndexedArray(this._children, child)];
+    this.#conflictChecker.reconcile(this._children.map((c) => c.id));
   }
 
   insertParagraph(paragraph: Paragraph) {
-    this.#paragraphs = [
-      ...insertToFractionalIndexedArray(this.#paragraphs, paragraph),
+    this._paragraphs = [
+      ...insertToFractionalIndexedArray(this._paragraphs, paragraph),
     ];
   }
 
   removeChild(child: Outline) {
-    const idx = this.#children.findIndex((c) => c.id === child.id);
-    this.#children = this.#children.toSpliced(idx, 1);
-    this.#conflictChecker.reconcile(this.#children.map((c) => c.id));
+    const idx = this._children.findIndex((c) => c.id === child.id);
+    this._children = this._children.toSpliced(idx, 1);
+    this.#conflictChecker.reconcile(this._children.map((c) => c.id));
   }
 
   removeParagraph(paragraph: Paragraph) {
-    const idx = this.#paragraphs.findIndex((c) => c.id === paragraph.id);
-    this.#paragraphs = this.#paragraphs.toSpliced(idx, 1);
+    const idx = this._paragraphs.findIndex((c) => c.id === paragraph.id);
+    this._paragraphs = this._paragraphs.toSpliced(idx, 1);
   }
 
   flatten(): Outline[] {
-    return [this, ...this.#children.map((c) => c.flatten()).flat()];
+    return [this, ...this._children.map((c) => c.flatten()).flat()];
   }
 
   toJSON(): RawOutline {
     return {
       id: this.id,
       parentId: this.parentId,
-      fractionalIndex: this.#fractionalIndex,
+      fractionalIndex: this._fractionalIndex,
       doc: JSON.stringify(this.doc),
-      text: this.#text,
-      path: this.#path ? this.#path : null,
+      text: this._text,
+      path: this._path ? this._path : null,
       links: this.links,
-      hidden: this.#hidden,
-      collapsed: this.#collapsed,
-      deleted: this.#deleted,
+      hidden: this._hidden,
+      collapsed: this._collapsed,
+      deleted: this._deleted,
       createdAt: this.createdAt.getUTCMilliseconds(),
-      updatedAt: this.#updatedAt.getUTCMilliseconds(),
+      updatedAt: this._updatedAt.getUTCMilliseconds(),
     };
   }
 }
