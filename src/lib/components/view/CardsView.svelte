@@ -4,7 +4,7 @@
   import DialogClose from "../common/DialogClose.svelte";
   import { buttonStyle } from "../common/Button.svelte";
   import OutlineEditor from "../editor/OutlineEditor.svelte";
-  import { commands } from "../../../generated/tauri-commands";
+  import { commands, type ViewState } from "../../../generated/tauri-commands";
   import { unwrap } from "$lib/utils";
   import { Outline } from "$lib/models/Outline.svelte";
   import { Paragraph } from "$lib/models/Paragraph.svelte";
@@ -12,13 +12,20 @@
   import ScrollArea from "../common/ScrollArea.svelte";
   import ParagraphEditor from "../editor/ParagraphEditor.svelte";
   import type { FocusPosition } from "../editor/utils";
+  import { onDestroy } from "svelte";
 
-  let { outlineId = $bindable() }: { outlineId?: string } = $props();
+  type CardsViewState = Extract<ViewState, { type: "cards" }>;
+  type Props = { viewState: CardsViewState };
+
+  let { viewState = $bindable() }: Props = $props();
 
   let focusPosition: FocusPosition = $state.raw({ id: null, position: null });
 
+  let cleanup = () => {};
+
   const promise = (async () => {
-    return outlineId
+    const outlineId = viewState.id;
+    const outline = outlineId
       ? await commands
           .fetchTree(outlineId, 2)
           .then(unwrap)
@@ -32,7 +39,20 @@
           focusPosition = { id: paragraph.id, position: "start" };
           return outline;
         })();
+
+    cleanup();
+
+    cleanup = $effect.root(() => {
+      $effect(() => {
+        viewState.id = outline.id;
+        viewState.title = outline.text;
+      });
+    });
+
+    return outline;
   })();
+
+  onDestroy(cleanup);
 </script>
 
 <div class={viewContainer}>

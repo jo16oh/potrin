@@ -4,6 +4,16 @@
   import CardsView from "../view/CardsView.svelte";
   import Button from "../common/Button.svelte";
   import { css } from "styled-system/css";
+  import type { ViewState } from "../../../generated/tauri-commands";
+
+  type CardsViewState = Extract<ViewState, { type: "cards" }>;
+  let viewState: CardsViewState = $state({
+    type: "cards",
+    id: null,
+    title: "",
+    pinned: false,
+    flexGrow: 1,
+  });
 </script>
 
 <Dialog
@@ -14,7 +24,7 @@
     <PencilLine class={floatingButtonIconStyle} />
   {/snippet}
   {#snippet content()}
-    <CardsView />
+    <CardsView bind:viewState />
     <div class={rightSideButtonContainer}>
       <Button style={rightSideButtonStyle}>
         <Maximize2 class={iconInsideRightSideButton} />
