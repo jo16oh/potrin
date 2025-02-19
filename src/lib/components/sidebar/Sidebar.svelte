@@ -27,23 +27,24 @@
   const [getWorkspaceState, updateWorkspaceState] = Workspace.state();
 
   const workspaceState = $derived.by(getWorkspaceState);
+  const focus = $derived(workspaceState.focus);
   const tabs = $derived(workspaceState.tabs);
 
-  updateWorkspaceState((state) => {
-    state.tabs = Array(19).fill({
-      views: [
-        {
-          id: crypto.randomUUID(),
-          title: "吾輩は猫である",
-          flexGrow: 1,
-          viewType: "outline",
-        },
-      ],
-      focusedViewIdx: 0,
-    });
-
-    return state;
-  });
+  // updateWorkspaceState((state) => {
+  //   state.tabs = Array(19).fill({
+  //     views: [
+  //       {
+  //         id: crypto.randomUUID(),
+  //         title: "吾輩は猫である",
+  //         flexGrow: 1,
+  //         viewType: "outline",
+  //       },
+  //     ],
+  //     focusedViewIdx: 0,
+  //   });
+  //
+  //   return state;
+  // });
 
   // svelte-ignore state_referenced_locally
   let width = $state(workspaceState.sidebar.width);
@@ -196,12 +197,12 @@
           {#each tabs as tab, idx}
             <Button
               class={tabItemStyle + " group"}
-              data-selected={"tabs" in workspaceState.focus
-                ? workspaceState.focus.tabs.index === idx
+              data-selected={focus
+                ? focus.area === "tabs" && focus.index === idx
                 : false}
               onclick={() =>
                 updateWorkspaceState((state) => {
-                  state.focus = { tabs: { index: idx } };
+                  state.focus = { area: "tabs", index: idx };
                   return state;
                 })}
             >

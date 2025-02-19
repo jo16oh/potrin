@@ -25,7 +25,7 @@ pub struct UserState {
 pub struct WorkspaceState {
     pub pot: Pot,
     pub tabs: Vec<TabState>,
-    pub focus: FocusState,
+    pub focus: Option<FocusState>,
     pub sidebar: SidebarState,
 }
 
@@ -34,7 +34,7 @@ impl WorkspaceState {
         Self {
             pot: pot.clone(),
             tabs: Vec::new(),
-            focus: FocusState::Timeline {},
+            focus: None,
             sidebar: SidebarState {
                 is_float: false,
                 width: 20.0,
@@ -61,10 +61,16 @@ impl Default for SidebarState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub enum FocusState {
-    Timeline {},
-    Search {},
-    Tabs { index: u32 },
+pub enum SidebarFocusArea {
+    Pinned,
+    Tabs,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FocusState {
+    pub area: SidebarFocusArea,
+    pub index: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
@@ -76,17 +82,48 @@ pub struct TabState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ViewState {
-    pub id: UUIDv7Base64URL,
-    pub view_type: ViewType,
-    pub title: String,
-    pub flex_grow: f64,
+#[serde(tag = "type")]
+pub enum ViewState {
+    Cards {
+        id: UUIDv7Base64URL,
+        title: String,
+        flex_grow: f64,
+        pinned: bool,
+    },
+    Outline {
+        id: UUIDv7Base64URL,
+        title: String,
+        flex_grow: f64,
+        pinned: bool,
+    },
+    Document {
+        id: UUIDv7Base64URL,
+        title: String,
+        flex_grow: f64,
+        pinned: bool,
+    },
+    Timeline {
+        flex_grow: f64,
+        pinned: bool,
+    },
+    Relation {
+        id: UUIDv7Base64URL,
+        title: String,
+        direction: RelationDirection,
+        flex_grow: f64,
+        pinned: bool,
+    },
+    Search {
+        query: String,
+        scope: Option<UUIDv7Base64URL>,
+        flex_grow: f64,
+        pinned: bool,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub enum ViewType {
-    Outline,
-    Relation,
-    Search,
+pub enum RelationDirection {
+    Back,
+    Forward,
 }
