@@ -84,28 +84,30 @@ pub struct TabState {
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum ViewState {
+    #[serde(rename_all = "camelCase")]
     Cards {
         id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
         pinned: bool,
     },
+    #[serde(rename_all = "camelCase")]
     Outline {
         id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
         pinned: bool,
     },
+    #[serde(rename_all = "camelCase")]
     Document {
         id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
         pinned: bool,
     },
-    Timeline {
-        flex_grow: f64,
-        pinned: bool,
-    },
+    #[serde(rename_all = "camelCase")]
+    Timeline { flex_grow: f64, pinned: bool },
+    #[serde(rename_all = "camelCase")]
     Relation {
         id: UUIDv7Base64URL,
         title: String,
@@ -113,6 +115,7 @@ pub enum ViewState {
         flex_grow: f64,
         pinned: bool,
     },
+    #[serde(rename_all = "camelCase")]
     Search {
         query: String,
         scope: Option<UUIDv7Base64URL>,

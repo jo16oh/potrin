@@ -255,7 +255,7 @@ export type SidebarState = { isFloat: boolean; width: number }
 export type TabState = { views: ViewState[]; focusedViewIdx: number }
 export type UUIDv7Base64URL = string
 export type UserState = { id: UUIDv7Base64URL; name: string }
-export type ViewState = { type: "cards"; id: UUIDv7Base64URL | null; title: string; flex_grow: number; pinned: boolean } | { type: "outline"; id: UUIDv7Base64URL | null; title: string; flex_grow: number; pinned: boolean } | { type: "document"; id: UUIDv7Base64URL | null; title: string; flex_grow: number; pinned: boolean } | { type: "timeline"; flex_grow: number; pinned: boolean } | { type: "relation"; id: UUIDv7Base64URL; title: string; direction: RelationDirection; flex_grow: number; pinned: boolean } | { type: "search"; query: string; scope: UUIDv7Base64URL | null; flex_grow: number; pinned: boolean }
+export type ViewState = { type: "cards"; id: UUIDv7Base64URL | null; title: string; flexGrow: number; pinned: boolean } | { type: "outline"; id: UUIDv7Base64URL | null; title: string; flexGrow: number; pinned: boolean } | { type: "document"; id: UUIDv7Base64URL | null; title: string; flexGrow: number; pinned: boolean } | { type: "timeline"; flexGrow: number; pinned: boolean } | { type: "relation"; id: UUIDv7Base64URL; title: string; direction: RelationDirection; flexGrow: number; pinned: boolean } | { type: "search"; query: string; scope: UUIDv7Base64URL | null; flexGrow: number; pinned: boolean }
 export type WorkspaceState = { pot: Pot; tabs: TabState[]; focus: FocusState | null; sidebar: SidebarState }
 export type WorkspaceStateChange = { patch: string }
 
