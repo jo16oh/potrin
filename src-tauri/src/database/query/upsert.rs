@@ -32,6 +32,7 @@ where
                 parent_id = excluded.parent_id,
                 fractional_index = excluded.fractional_index,
                 doc = excluded.doc,
+                text = excluded.text,
                 hidden = excluded.hidden,
                 collapsed = excluded.collapsed,
                 deleted = excluded.deleted,
