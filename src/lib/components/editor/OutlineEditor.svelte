@@ -57,7 +57,10 @@
         },
       },
       onTransaction: () => {
-        outline.text = editor!.getText();
+        if (editor) {
+          outline.text = editor.getText();
+          outline.doc = editor.getJSON();
+        }
       },
       onBlur: () => {
         setTimeout(() => {

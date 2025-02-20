@@ -71,6 +71,11 @@
           }
         });
       },
+      onTransaction: () => {
+        if (editor) {
+          paragraph.doc = editor.getJSON();
+        }
+      },
       onDestroy: () => {
         if (editor) {
           paragraph.doc = editor.getJSON();
