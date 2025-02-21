@@ -19,6 +19,10 @@ import * as Y from "yjs";
 import { generateKeyBetween } from "fractional-indexing-jittered";
 import { DescendantsIndex, ReversedLinkIndex, WeakRefMap } from "./utils";
 import type { JSONContent } from "@tiptap/core";
+import type { AnyYMapValue } from "./utilTypes";
+import { getOutlineSchema } from "$lib/components/editor/schema";
+import { yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
+import type { Schema } from "@tiptap/pm/model";
 
 export type { RawOutline };
 
@@ -49,7 +53,7 @@ export class Outline {
 
     if (outline) {
       outline._fractionalIndex = data.fractionalIndex;
-      outline.doc = JSON.parse(data.doc);
+      outline._doc = JSON.parse(data.doc);
       outline.text = data.text;
       outline.links = data.links;
       outline._hidden = data.hidden;
@@ -95,25 +99,7 @@ export class Outline {
       parent,
     );
 
-    const ydoc = new Y.Doc();
-    outline._ydoc = ydoc;
-
-    ydoc.on("updateV2", (u) => {
-      outline._pendingYUpdates.push(u);
-      Outline.#commands
-        .insertPendingYUpdate(outline.id, uint8ArrayToBase64URL(u))
-        .then(unwrap);
-    });
-
-    ydoc.transact(() => {
-      const yMap = ydoc.getMap("potrin");
-      yMap.set("fractionalIndex", outline._fractionalIndex);
-      yMap.set("doc", new Y.XmlFragment());
-      yMap.set("links", new Y.Map());
-      yMap.set("hidden", outline._hidden);
-      yMap.set("collapsed", outline._collapsed);
-      yMap.set("deleted", false);
-    });
+    Outline.YDocManager.init(outline);
 
     return outline;
   }
@@ -275,7 +261,7 @@ export class Outline {
   readonly id: string;
   readonly createdAt: Readonly<Date>;
   private _fractionalIndex: string;
-  doc = $state<JSONContent>();
+  private _doc = $state<JSONContent>();
   private readonly _text: string = $state("");
   private _updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   private _children = $state.raw<Outline[]>() as Outline[];
@@ -287,14 +273,13 @@ export class Outline {
   private _hidden = $state() as boolean;
   private _collapsed = $state() as boolean;
   private _deleted = $state() as boolean;
-  private _ydoc: Y.Doc | undefined;
-  private _pendingYUpdates: Uint8Array[] = [];
+  private _yDocManager: InstanceType<typeof Outline.YDocManager> | undefined;
   readonly #conflictChecker: ConflictChecker;
 
   private constructor(data: RawOutline, parent?: Outline) {
     this.id = data.id;
     this._fractionalIndex = data.fractionalIndex;
-    this.doc = JSON.parse(data.doc);
+    this._doc = JSON.parse(data.doc);
     // setting path before setting text because the setter of text depends on path
     this.path = data.path;
     this.text = data.text;
@@ -311,6 +296,10 @@ export class Outline {
 
   get fractionalIndex() {
     return this._fractionalIndex;
+  }
+
+  get doc() {
+    return this._doc;
   }
 
   get text() {
@@ -453,35 +442,37 @@ export class Outline {
     }
   }
 
-  async ydoc() {
-    if (!this._ydoc) {
-      this._ydoc = new Y.Doc();
-      this._ydoc.on("updateV2", (u) => {
-        this._pendingYUpdates.push(u);
-        Outline.#commands
-          .insertPendingYUpdate(this.id, uint8ArrayToBase64URL(u))
-          .then(unwrap);
-      });
+  async yDocManager() {
+    if (!this._yDocManager) {
+      this._yDocManager = new Outline.YDocManager(this);
+
+      const updates = await Outline.#commands
+        .fetchYUpdatesByDocId(this.id)
+        .then(unwrap);
+
+      for (const u of updates) {
+        Y.applyUpdateV2(
+          this._yDocManager.yDoc,
+          base64URLToUint8Array(u),
+          "database",
+        );
+      }
     }
 
-    const updates = await Outline.#commands
-      .fetchYUpdatesByDocId(this.id)
-      .then(unwrap);
-
-    for (const u of updates) {
-      Y.applyUpdateV2(this._ydoc, base64URLToUint8Array(u));
-    }
-
-    return this._ydoc;
+    return this._yDocManager;
   }
 
   async save() {
-    if (this._pendingYUpdates.length) {
-      const updates = this._pendingYUpdates.map(uint8ArrayToBase64URL);
-      this._pendingYUpdates.length = 0;
-      await Outline.#commands
-        .upsertOutline(this.toJSON(), updates)
-        .then(unwrap);
+    const yDocManager = this._yDocManager;
+    if (yDocManager) {
+      const length = yDocManager.pendingYUpdates.length;
+      if (length) {
+        const updates = yDocManager.pendingYUpdates.map(uint8ArrayToBase64URL);
+        await Outline.#commands
+          .upsertOutline(this.toJSON(), updates)
+          .then(unwrap)
+          .then(() => updates.splice(0, length));
+      }
     }
   }
 
@@ -493,45 +484,45 @@ export class Outline {
     this._paragraphs = [...this._paragraphs.sort(byFractionalIndex)];
   }
 
-  async moveTo(target: Outline | "root", index: number | "last") {
-    const ydoc = await this.ydoc();
-
-    if (target !== "root" && this.parentId !== target.id) {
-      this.parent?.removeChild(this);
-
-      this._parentId = target.id;
-      this.parentRef = new WeakRef(target);
-
-      const yParentId = ydoc.getText("parentId");
-      yParentId.delete(0, yParentId.length);
-      if (this.parentId) yParentId.insert(0, this.parentId);
-    } else if (target === "root") {
-      this.parent?.removeChild(this);
-
-      this._parentId = null;
-      this.parentRef = undefined;
-
-      const yParentId = ydoc.getText("parentId");
-      yParentId.delete(0, yParentId.length);
-
-      return;
-    }
-
-    const prev =
-      target._children[index === "last" ? target._children.length - 1 : index]
-        ?.fractionalIndex ?? null;
-    const next =
-      index === "last"
-        ? null
-        : (target._children[index]?.fractionalIndex ?? null);
-    this._fractionalIndex = generateKeyBetween(prev, next);
-
-    const yFractionalIndex = ydoc.getText("fractionalIndex");
-    yFractionalIndex.delete(0, yFractionalIndex.length);
-    yFractionalIndex.insert(0, this._fractionalIndex);
-
-    target.insertChild(this);
-  }
+  // async moveTo(target: Outline | "root", index: number | "last") {
+  //   const ydoc = await this.ydoc();
+  //
+  //   if (target !== "root" && this.parentId !== target.id) {
+  //     this.parent?.removeChild(this);
+  //
+  //     this._parentId = target.id;
+  //     this.parentRef = new WeakRef(target);
+  //
+  //     const yParentId = ydoc.getText("parentId");
+  //     yParentId.delete(0, yParentId.length);
+  //     if (this.parentId) yParentId.insert(0, this.parentId);
+  //   } else if (target === "root") {
+  //     this.parent?.removeChild(this);
+  //
+  //     this._parentId = null;
+  //     this.parentRef = undefined;
+  //
+  //     const yParentId = ydoc.getText("parentId");
+  //     yParentId.delete(0, yParentId.length);
+  //
+  //     return;
+  //   }
+  //
+  //   const prev =
+  //     target._children[index === "last" ? target._children.length - 1 : index]
+  //       ?.fractionalIndex ?? null;
+  //   const next =
+  //     index === "last"
+  //       ? null
+  //       : (target._children[index]?.fractionalIndex ?? null);
+  //   this._fractionalIndex = generateKeyBetween(prev, next);
+  //
+  //   const yFractionalIndex = ydoc.getText("fractionalIndex");
+  //   yFractionalIndex.delete(0, yFractionalIndex.length);
+  //   yFractionalIndex.insert(0, this._fractionalIndex);
+  //
+  //   target.insertChild(this);
+  // }
 
   insertChild(child: Outline) {
     this._children = [...insertToFractionalIndexedArray(this._children, child)];
@@ -564,7 +555,7 @@ export class Outline {
       id: this.id,
       parentId: this.parentId,
       fractionalIndex: this._fractionalIndex,
-      doc: JSON.stringify(this.doc),
+      doc: JSON.stringify(this._doc),
       text: this._text,
       path: this._path ? this._path : null,
       links: this.links,
@@ -575,6 +566,109 @@ export class Outline {
       updatedAt: this._updatedAt.getUTCMilliseconds(),
     };
   }
+
+  private static YDocManager = class {
+    readonly yDoc: Y.Doc;
+    readonly yMap: Y.Map<AnyYMapValue>;
+    readonly pendingYUpdates: Uint8Array[] = [];
+    readonly #outlineRef: WeakRef<Outline>;
+    readonly #schema: Schema;
+
+    static init(outline: Outline) {
+      const yDocManager = new Outline.YDocManager(outline);
+      outline._yDocManager = yDocManager;
+
+      yDocManager.yDoc.transact(() => {
+        yDocManager.yMap.set("parentId", outline._parentId);
+        yDocManager.yMap.set("fractionalIndex", outline._fractionalIndex);
+        yDocManager.yMap.set("doc", new Y.XmlFragment());
+        yDocManager.yMap.set("text", outline._text);
+        yDocManager.yMap.set("links", new Y.Map());
+        yDocManager.yMap.set("hidden", outline._hidden);
+        yDocManager.yMap.set("collapsed", outline._collapsed);
+        yDocManager.yMap.set("deleted", outline._deleted);
+      });
+    }
+
+    constructor(outline: Outline) {
+      this.yDoc = new Y.Doc();
+      this.yMap = this.yDoc.getMap<AnyYMapValue>("potrin");
+      this.#outlineRef = new WeakRef(outline);
+      this.#schema = getOutlineSchema();
+
+      this.yDoc.on("updateV2", async (u, origin) => {
+        if (origin === "database") return;
+        if (!this.outline) return;
+
+        this.pendingYUpdates.push(u);
+        Outline.#commands
+          .insertPendingYUpdate(this.outline.id, uint8ArrayToBase64URL(u))
+          .then(unwrap);
+
+        const node = yXmlFragmentToProseMirrorRootNode(this.doc, this.#schema);
+
+        this.outline._doc = node.toJSON();
+        this.outline.text = node.textContent;
+      });
+    }
+
+    get outline() {
+      return this.#outlineRef.deref();
+    }
+
+    get doc(): Y.XmlFragment {
+      return this.yMap.get("doc") as Y.XmlFragment;
+    }
+
+    set parentId(value: string | null) {
+      this.yMap.set("parentId", value);
+      if (this.outline) {
+        this.outline._parentId = value;
+      }
+    }
+
+    set fractionalIndex(value: string) {
+      this.yMap.set("fractionalIndex", value);
+      if (this.outline) {
+        this.outline._fractionalIndex = value;
+      }
+    }
+
+    set text(value: string) {
+      this.yMap.set("text", value);
+      if (this.outline) {
+        this.outline.text = value;
+      }
+    }
+
+    set links(value: Links) {
+      this.yMap.set("links", value);
+      if (this.outline) {
+        this.outline.links = value;
+      }
+    }
+
+    set hidden(value: boolean) {
+      this.yMap.set("hidden", value);
+      if (this.outline) {
+        this.outline._hidden = value;
+      }
+    }
+
+    set collapsed(value: boolean) {
+      this.yMap.set("collapsed", value);
+      if (this.outline) {
+        this.outline._collapsed = value;
+      }
+    }
+
+    set deleted(value: boolean) {
+      this.yMap.set("deleted", value);
+      if (this.outline) {
+        this.outline._deleted = value;
+      }
+    }
+  };
 }
 
 class ConflictChecker {

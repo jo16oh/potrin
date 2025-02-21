@@ -5,7 +5,7 @@
   import type { Outline } from "$lib/models/Outline.svelte";
   import type { FocusPosition, EditorFocusPosition } from "./utils";
   import { watch } from "runed";
-  import { createOutlineSchema } from "./schema";
+  import { createOutlineExtensions } from "./schema";
 
   type EditorStyleVariant = "cardsViewTitle" | "cardsViewChildren";
 
@@ -49,18 +49,15 @@
     editor = new Editor({
       element: editorElement,
       extensions: [
-        ...(await createOutlineSchema(outline, (pos) => (focusPosition = pos))),
+        ...(await createOutlineExtensions(
+          outline,
+          (pos) => (focusPosition = pos),
+        )),
       ],
       editorProps: {
         attributes: {
           class: css(noRing),
         },
-      },
-      onTransaction: () => {
-        if (editor) {
-          outline.text = editor.getText();
-          outline.doc = editor.getJSON();
-        }
       },
       onBlur: () => {
         setTimeout(() => {
@@ -76,8 +73,6 @@
       },
       onDestroy: () => {
         if (editor) {
-          outline.doc = editor.getJSON();
-          outline.text = editor.getText();
           outline.save();
           editor = undefined;
         }

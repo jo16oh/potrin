@@ -15,7 +15,11 @@ import {
 import { Outline } from "./Outline.svelte";
 import * as Y from "yjs";
 import { ReversedQuoteIndex, WeakRefMap } from "./utils";
-import type { JSONContent } from "@tiptap/core";
+import { type JSONContent } from "@tiptap/core";
+import type { AnyYMapValue } from "./utilTypes";
+import { getParagraphSchema } from "$lib/components/editor/schema";
+import { yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
+import type { Schema } from "@tiptap/pm/model";
 
 export type { RawParagraph };
 
@@ -75,26 +79,7 @@ export class Paragraph {
       outline,
     );
 
-    const ydoc = new Y.Doc();
-    paragraph._ydoc = ydoc;
-
-    ydoc.on("updateV2", (u) => {
-      paragraph._pendingYUpdates.push(u);
-      Paragraph.#commands
-        .insertPendingYUpdate(paragraph.id, uint8ArrayToBase64URL(u))
-        .then(unwrap);
-    });
-
-    ydoc.transact(() => {
-      const yMap = ydoc.getMap("potrin");
-      yMap.set("outlineId", paragraph._outlineId);
-      yMap.set("fractionalIndex", paragraph._fractionalIndex);
-      yMap.set("doc", new Y.XmlFragment());
-      yMap.set("links", new Y.Map());
-      yMap.set("hidden", paragraph._hidden);
-      yMap.set("quote", paragraph._quote);
-      yMap.set("deleted", false);
-    });
+    Paragraph.YDocManager.init(paragraph);
 
     return paragraph;
   }
@@ -168,7 +153,7 @@ export class Paragraph {
   readonly id: string;
   readonly createdAt: Readonly<Date>;
   private _fractionalIndex = $state<string>() as string;
-  private _doc = $state<JSONContent>() as JSONContent;
+  private readonly _doc = $state<JSONContent>() as JSONContent;
   private _updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   private _hidden = $state() as boolean;
   private _deleted = $state() as boolean;
@@ -177,8 +162,7 @@ export class Paragraph {
   private readonly _path = $state<Path | undefined>(); //allow update only through setter
   private readonly _quote = $state<Quote | null>(null); //allow update only through setter
   private readonly _links = $state<Readonly<Links>>() as Links; //allow update only through setter
-  private _ydoc: Y.Doc | undefined;
-  private _pendingYUpdates: Uint8Array[] = [];
+  private _yDocManager: InstanceType<typeof Paragraph.YDocManager> | undefined;
 
   private constructor(data: RawParagraph, outline: Outline) {
     this.id = data.id;
@@ -242,9 +226,9 @@ export class Paragraph {
     }
   }
 
-  set doc(value: JSONContent) {
+  private set doc(value: JSONContent) {
+    // @ts-expect-error allow update only thorugh setter
     this._doc = value;
-
     Paragraph.#updateQuote(this.id, value);
   }
 
@@ -276,66 +260,70 @@ export class Paragraph {
     if (link) link.text = text;
   }
 
-  async ydoc() {
-    if (!this._ydoc) {
-      this._ydoc = new Y.Doc();
-      this._ydoc.on("updateV2", (u) => {
-        this._pendingYUpdates.push(u);
-        void Paragraph.#commands.insertPendingYUpdate(
-          this.id,
-          uint8ArrayToBase64URL(u),
+  async yDocManager() {
+    if (!this._yDocManager) {
+      this._yDocManager = new Paragraph.YDocManager(this);
+
+      const updates = await Paragraph.#commands
+        .fetchYUpdatesByDocId(this.id)
+        .then(unwrap);
+
+      for (const u of updates) {
+        Y.applyUpdateV2(
+          this._yDocManager.yDoc,
+          base64URLToUint8Array(u),
+          "database",
         );
-      });
+      }
     }
 
-    const updates = await Paragraph.#commands.fetchYUpdatesByDocId(this.id);
-
-    for (const u of unwrap(updates)) {
-      Y.applyUpdateV2(this._ydoc, base64URLToUint8Array(u));
-    }
-
-    return this._ydoc;
+    return this._yDocManager;
   }
 
   async save() {
-    if (this._pendingYUpdates.length) {
-      await this.outline?.save();
-      await Paragraph.#commands.upsertParagraph(
-        this.toJSON(),
-        this._pendingYUpdates.map((u) => uint8ArrayToBase64URL(u)),
-      );
+    const yDocManager = this._yDocManager;
+    if (yDocManager) {
+      const length = yDocManager.pendingYUpdates.length;
+      if (length) {
+        await this.outline?.save();
+        const updates = yDocManager.pendingYUpdates.map(uint8ArrayToBase64URL);
+        await Paragraph.#commands
+          .upsertParagraph(this.toJSON(), updates)
+          .then(unwrap)
+          .then(() => yDocManager.pendingYUpdates.splice(0, length));
+      }
     }
   }
 
-  async moveTo(target: Outline, index: number | "last") {
-    const ydoc = await this.ydoc();
-
-    if (this._outlineId !== target.id) {
-      this.outline?.removeParagraph(this);
-
-      this._outlineId = target.id;
-      this._outlineRef = new WeakRef(target);
-
-      const yParentId = ydoc.getText("outlineId");
-      yParentId.delete(0, yParentId.length);
-      if (this._outlineId) yParentId.insert(0, this._outlineId);
-    }
-
-    const prev =
-      target.paragraphs[index === "last" ? target.paragraphs.length - 1 : index]
-        ?.fractionalIndex ?? null;
-    const next =
-      index === "last"
-        ? null
-        : (target.paragraphs[index]?.fractionalIndex ?? null);
-    this._fractionalIndex = generateKeyBetween(prev, next);
-
-    const yFractionalIndex = ydoc.getText("fractionalIndex");
-    yFractionalIndex.delete(0, yFractionalIndex.length);
-    yFractionalIndex.insert(0, this._fractionalIndex);
-
-    target.insertParagraph(this);
-  }
+  // async moveTo(target: Outline, index: number | "last") {
+  //   const ydoc = await this.ydoc();
+  //
+  //   if (this._outlineId !== target.id) {
+  //     this.outline?.removeParagraph(this);
+  //
+  //     this._outlineId = target.id;
+  //     this._outlineRef = new WeakRef(target);
+  //
+  //     const yParentId = ydoc.getText("outlineId");
+  //     yParentId.delete(0, yParentId.length);
+  //     if (this._outlineId) yParentId.insert(0, this._outlineId);
+  //   }
+  //
+  //   const prev =
+  //     target.paragraphs[index === "last" ? target.paragraphs.length - 1 : index]
+  //       ?.fractionalIndex ?? null;
+  //   const next =
+  //     index === "last"
+  //       ? null
+  //       : (target.paragraphs[index]?.fractionalIndex ?? null);
+  //   this._fractionalIndex = generateKeyBetween(prev, next);
+  //
+  //   const yFractionalIndex = ydoc.getText("fractionalIndex");
+  //   yFractionalIndex.delete(0, yFractionalIndex.length);
+  //   yFractionalIndex.insert(0, this._fractionalIndex);
+  //
+  //   target.insertParagraph(this);
+  // }
 
   toJSON(): RawParagraph {
     return {
@@ -351,4 +339,99 @@ export class Paragraph {
       updatedAt: this._updatedAt.getUTCMilliseconds(),
     };
   }
+
+  private static YDocManager = class {
+    readonly yDoc: Y.Doc;
+    readonly yMap: Y.Map<AnyYMapValue>;
+    readonly pendingYUpdates: Uint8Array[] = [];
+    readonly #paragraphRef: WeakRef<Paragraph>;
+    readonly #schema: Schema;
+
+    static init(paragraph: Paragraph) {
+      const yDocManager = new Paragraph.YDocManager(paragraph);
+      paragraph._yDocManager = yDocManager;
+
+      yDocManager.yDoc.transact(() => {
+        yDocManager.yMap.set("outlineId", paragraph._outlineId);
+        yDocManager.yMap.set("fractionalIndex", paragraph._fractionalIndex);
+        yDocManager.yMap.set("doc", new Y.XmlFragment());
+        yDocManager.yMap.set("links", new Y.Map());
+        yDocManager.yMap.set("quote", paragraph._quote);
+        yDocManager.yMap.set("hidden", paragraph._hidden);
+        yDocManager.yMap.set("deleted", paragraph._deleted);
+      });
+    }
+
+    constructor(paragraph: Paragraph) {
+      this.yDoc = new Y.Doc();
+      this.yMap = this.yDoc.getMap<AnyYMapValue>("potrin");
+      this.#paragraphRef = new WeakRef(paragraph);
+      this.#schema = getParagraphSchema();
+
+      this.yDoc.on("updateV2", async (u, origin) => {
+        if (origin === "database") return;
+        if (!this.paragraph) return;
+
+        this.pendingYUpdates.push(u);
+        Paragraph.#commands
+          .insertPendingYUpdate(this.paragraph.id, uint8ArrayToBase64URL(u))
+          .then(unwrap);
+
+        this.paragraph.doc = yXmlFragmentToProseMirrorRootNode(
+          this.doc,
+          this.#schema,
+        ).toJSON();
+      });
+    }
+
+    get paragraph() {
+      return this.#paragraphRef.deref();
+    }
+
+    get doc(): Y.XmlFragment {
+      return this.yMap.get("doc") as Y.XmlFragment;
+    }
+
+    set outlineId(value: string) {
+      this.yMap.set("outlineId", value);
+      if (this.paragraph) {
+        this.paragraph._outlineId = value;
+      }
+    }
+
+    set fractionalIndex(value: string) {
+      this.yMap.set("fractionalIndex", value);
+      if (this.paragraph) {
+        this.paragraph._fractionalIndex = value;
+      }
+    }
+
+    set links(value: Links) {
+      this.yMap.set("links", value);
+      if (this.paragraph) {
+        this.paragraph.links = value;
+      }
+    }
+
+    set quote(value: Quote | null) {
+      this.yMap.set("quote", value);
+      if (this.paragraph) {
+        this.paragraph.quote = value;
+      }
+    }
+
+    set hidden(value: boolean) {
+      this.yMap.set("hidden", value);
+      if (this.paragraph) {
+        this.paragraph._hidden = value;
+      }
+    }
+
+    set deleted(value: boolean) {
+      this.yMap.set("deleted", value);
+      if (this.paragraph) {
+        this.paragraph._deleted = value;
+      }
+    }
+  };
 }

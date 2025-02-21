@@ -3,9 +3,9 @@
   import { onDestroy } from "svelte";
   import { css, type Styles } from "styled-system/css";
   import { Paragraph } from "$lib/models/Paragraph.svelte";
-  import { createParagraphSchema } from "./schema";
   import type { FocusPosition, EditorFocusPosition } from "./utils";
   import { watch } from "runed";
+  import { createParagraphExtensions } from "./schema";
 
   type EditorStyleVariant = "card";
 
@@ -49,7 +49,7 @@
     editor = new Editor({
       element: editorElement,
       extensions: [
-        ...(await createParagraphSchema(
+        ...(await createParagraphExtensions(
           paragraph,
           (pos) => (focusPosition = pos),
         )),
@@ -71,14 +71,8 @@
           }
         });
       },
-      onTransaction: () => {
-        if (editor) {
-          paragraph.doc = editor.getJSON();
-        }
-      },
       onDestroy: () => {
         if (editor) {
-          paragraph.doc = editor.getJSON();
           paragraph.save();
           editor = undefined;
         }

@@ -1,6 +1,6 @@
-import { Extension, Node } from "@tiptap/core";
+import { Extension, getSchema, Node } from "@tiptap/core";
 import { Document } from "@tiptap/extension-document";
-import { Paragraph as ParagraphSchema } from "@tiptap/extension-paragraph";
+import { Paragraph as TiptapParagraph } from "@tiptap/extension-paragraph";
 import { Text } from "@tiptap/extension-text";
 import Collabolation from "@tiptap/extension-collaboration";
 import {
@@ -14,7 +14,14 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Paragraph } from "$lib/models/Paragraph.svelte?";
 import type { Paragraph as ParagraphModel } from "$lib/models/Paragraph.svelte";
 import { generateKeyBetween } from "fractional-indexing-jittered";
-import * as Y from "yjs";
+
+export function getOutlineSchema() {
+  return getSchema([OutlineDocument, TiptapParagraph, Text]);
+}
+
+export function getParagraphSchema() {
+  return getSchema([Document, TiptapParagraph, Text]);
+}
 
 const OutlineDocument = Node.create({
   name: "doc",
@@ -22,22 +29,18 @@ const OutlineDocument = Node.create({
   content: "block",
 });
 
-export const OutlineSchema = [OutlineDocument, ParagraphSchema, Text];
-
-export const createParagraphSchema = async (
+export const createParagraphExtensions = async (
   paragraph: ParagraphModel,
   updateFocusPosition: (pos: FocusPosition) => void,
 ) => {
-  const yDoc = await paragraph.ydoc();
-  const yMap = yDoc.getMap("potrin");
-  const fragment = yMap.get("doc") as Y.XmlFragment;
+  const yDocManager = await paragraph.yDocManager();
 
   return [
     Document,
-    ParagraphSchema,
+    TiptapParagraph,
     Text,
     Collabolation.configure({
-      fragment: fragment,
+      fragment: yDocManager.doc,
     }),
     Extension.create({
       name: "KeydownHandler",
@@ -91,16 +94,12 @@ export const createParagraphSchema = async (
 
                   paragraph.outline?.insertParagraph(newParagraph);
 
-                  newParagraph.ydoc().then((ydoc) => {
-                    const fragment = ydoc
-                      .getMap("potrin")
-                      .get("doc") as Y.XmlFragment;
-
+                  newParagraph.yDocManager().then((manager) => {
                     insertJSONContentsToYXMLFragment(
                       content,
                       state.schema,
-                      fragment,
-                      ydoc,
+                      manager.doc,
+                      manager.yDoc,
                     );
 
                     updateFocusPosition({
@@ -122,13 +121,9 @@ export const createParagraphSchema = async (
                     const paragraphBefore =
                       paragraph.outline!.paragraphs[paragraphBeforeIndex];
 
-                    paragraphBefore?.ydoc().then((ydocBefore) => {
-                      const fragmentBefore = ydocBefore
-                        .getMap("potrin")
-                        .get("doc") as Y.XmlFragment;
-
+                    paragraphBefore?.yDocManager().then((manager) => {
                       const sizeOfFragmentBefore = sizeOfYXMLFragment(
-                        fragmentBefore,
+                        manager.doc,
                         state.schema,
                       );
 
@@ -137,15 +132,15 @@ export const createParagraphSchema = async (
                       insertJSONContentsToYXMLFragment(
                         content,
                         state.schema,
-                        fragmentBefore,
-                        ydocBefore,
+                        manager.doc,
+                        manager.yDoc,
                         false,
                       );
 
                       paragraph.outline?.removeParagraph(paragraph);
-                      yDoc.transact(() => {
-                        yMap.set("deleted", true);
-                        fragment.delete(1, fragment.length - 1);
+                      yDocManager.yDoc.transact(() => {
+                        yDocManager.deleted = true;
+                        yDocManager.doc.delete(1, yDocManager.doc.length - 1);
                       });
 
                       updateFocusPosition({
@@ -158,8 +153,8 @@ export const createParagraphSchema = async (
                       });
                     });
                   } else if (isDocEmpty) {
-                    yDoc.transact(() => {
-                      yMap.set("deleted", true);
+                    yDocManager.yDoc.transact(() => {
+                      yDocManager.deleted = true;
                     });
 
                     paragraph.outline?.removeParagraph(paragraph);
@@ -229,19 +224,18 @@ export const createParagraphSchema = async (
   ];
 };
 
-export const createOutlineSchema = async (
+export const createOutlineExtensions = async (
   outline: Outline,
   updateFocusPosition: (pos: FocusPosition) => void,
 ) => {
-  const ydoc = await outline.ydoc();
-  const fragment = ydoc.getMap("potrin").get("doc") as Y.XmlFragment;
+  const yDocManager = await outline.yDocManager();
 
   return [
     OutlineDocument,
-    ParagraphSchema,
+    TiptapParagraph,
     Text,
     Collabolation.configure({
-      fragment: fragment,
+      fragment: yDocManager.doc,
     }),
     Extension.create({
       name: "KeydownHandler",
