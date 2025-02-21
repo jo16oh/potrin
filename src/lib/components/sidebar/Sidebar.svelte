@@ -24,9 +24,9 @@
   const MIN_WIDTH_REM = 10;
   const REM = 16;
 
-  const [getWorkspaceState, updateWorkspaceState] = Workspace.state();
+  const workspaceState = Workspace.state();
 
-  const workspaceState = $derived.by(getWorkspaceState);
+  const sidebar = $derived(workspaceState.sidebar);
   const focus = $derived(workspaceState.focus);
   const tabs = $derived(workspaceState.tabs);
 
@@ -46,9 +46,7 @@
   //   return state;
   // });
 
-  // svelte-ignore state_referenced_locally
   let width = $state(workspaceState.sidebar.width);
-  // svelte-ignore state_referenced_locally
   let sidebarOpen = $state(!workspaceState.sidebar.isFloat);
   let dragging = $state(false);
 
@@ -58,7 +56,7 @@
   watch(
     () => potRenameDialogOpen,
     () => {
-      if (!potRenameDialogOpen && workspaceState.sidebar.isFloat) {
+      if (!potRenameDialogOpen && sidebar.isFloat) {
         potOperationsOpen = false;
         sidebarOpen = false;
       }
@@ -84,10 +82,7 @@
     };
 
     const cleanup = () => {
-      updateWorkspaceState((prev) => {
-        prev.sidebar.width = width;
-        return prev;
-      });
+      workspaceState.sidebar.width = width;
 
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup ", cleanup);
@@ -100,10 +95,7 @@
 
   function toggleFloat() {
     sidebarOpen = false;
-    updateWorkspaceState((state) => {
-      state.sidebar.isFloat = !state.sidebar.isFloat;
-      return state;
-    });
+    workspaceState.sidebar.isFloat = !sidebar.isFloat;
   }
 </script>
 
@@ -124,12 +116,12 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   data-visible={sidebarOpen}
-  data-float={workspaceState.sidebar.isFloat}
+  data-float={sidebar.isFloat}
   class={containerStyle}
-  style:width={`${workspaceState.sidebar.isFloat ? width + 1 : width}rem`}
+  style:width={`${sidebar.isFloat ? width + 1 : width}rem`}
   onmouseleave={(e) => {
     if (potRenameDialogOpen) return;
-    if (workspaceState.sidebar.isFloat) potOperationsOpen = false;
+    if (sidebar.isFloat) potOperationsOpen = false;
     if (!dragging && e.clientX > 16) sidebarOpen = false;
   }}
 >
@@ -171,7 +163,7 @@
       {/snippet}
     </Popover>
     <Button style={collapseButtonStyle} onclick={toggleFloat}>
-      {#if workspaceState.sidebar.isFloat}
+      {#if sidebar.isFloat}
         <PanelRight class={sidebarButtonIconStyle} />
       {:else}
         <PanelRightOpen class={sidebarButtonIconStyle} />
@@ -200,11 +192,9 @@
               data-selected={focus
                 ? focus.area === "tabs" && focus.index === idx
                 : false}
-              onclick={() =>
-                updateWorkspaceState((state) => {
-                  state.focus = { area: "tabs", index: idx };
-                  return state;
-                })}
+              onclick={() => {
+                workspaceState.focus = { area: "tabs", index: idx };
+              }}
             >
               {#each tab.views as view}
                 <div class={viewItemStyle}>
@@ -230,7 +220,7 @@
     aria-orientation="vertical"
     class={resizeHandlerStyle + " resize"}
     onmousedown={resize}
-    data-float={workspaceState.sidebar.isFloat}
+    data-float={sidebar.isFloat}
     data-dragging={dragging}
   ></div>
 </div>

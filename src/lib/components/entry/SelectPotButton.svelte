@@ -13,8 +13,7 @@
   import RenamePot from "./RenamePot.svelte";
   import { getCurrent } from "@tauri-apps/api/webviewWindow";
 
-  const [getAppState, updateAppState] = App.state();
-  const appState = $derived.by(getAppState);
+  const appState = App.state();
 
   let open = $state(false);
   let potsPromise = $state(commands.fetchPots());
@@ -41,10 +40,7 @@
   });
 
   async function openPot(id: string, name: string) {
-    updateAppState((state) => {
-      state.pots[id] = name;
-      return state;
-    });
+    appState.pots[id] = name;
 
     await commands.openPot(id).then(unwrap);
     getCurrent().close();
@@ -123,51 +119,40 @@
       <MoreHorizontal class={iconStyle} />
     {/snippet}
     {#snippet content()}
-      {@render renamePotDialog(pot)}
-      {@render deletePotDialog(pot)}
+      <RenamePot {pot} buttonStyle={renamePotButtonStyle} onSubmit={reloadPots}>
+        {#snippet button()}
+          <PencilLine class={iconStyle} />
+          Rename pot
+        {/snippet}
+      </RenamePot>
+      <Dialog
+        triggerStyle={deletePotButtonStyle}
+        contentStyle={deletePotDialogContainerStyle}
+      >
+        {#snippet trigger()}
+          <Trash class={iconStyle} />
+          Delete pot
+        {/snippet}
+        {#snippet content()}
+          <div class={deletePotDialogMessageStyle}>
+            This operation is irreversible. Are you sure?
+          </div>
+          <div class={alignRightContainer}>
+            <DialogClose
+              class={deletePotDialogCloseButton}
+              onclick={async () => {
+                await commands.deletePot(pot.id).then(unwrap);
+                delete appState.pots[pot.id];
+                await reloadPots();
+              }}
+            >
+              Delete
+            </DialogClose>
+          </div>
+        {/snippet}
+      </Dialog>
     {/snippet}
   </Popover>
-{/snippet}
-
-{#snippet renamePotDialog(pot: Pot)}
-  <RenamePot {pot} buttonStyle={renamePotButtonStyle} onSubmit={reloadPots}>
-    {#snippet button()}
-      <PencilLine class={iconStyle} />
-      Rename pot
-    {/snippet}
-  </RenamePot>
-{/snippet}
-
-{#snippet deletePotDialog(pot: Pot)}
-  <Dialog
-    triggerStyle={deletePotButtonStyle}
-    contentStyle={deletePotDialogContainerStyle}
-  >
-    {#snippet trigger()}
-      <Trash class={iconStyle} />
-      Delete pot
-    {/snippet}
-    {#snippet content()}
-      <div class={deletePotDialogMessageStyle}>
-        This operation is irreversible. Are you sure?
-      </div>
-      <div class={alignRightContainer}>
-        <DialogClose
-          class={deletePotDialogCloseButton}
-          onclick={async () => {
-            await commands.deletePot(pot.id).then(unwrap);
-            updateAppState((state) => {
-              delete state.pots[pot.id];
-              return state;
-            });
-            await reloadPots();
-          }}
-        >
-          Delete
-        </DialogClose>
-      </div>
-    {/snippet}
-  </Dialog>
 {/snippet}
 
 <script module>

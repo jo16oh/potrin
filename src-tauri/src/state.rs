@@ -101,10 +101,10 @@ pub async fn update_workspace_state<R: Runtime>(
     *workspace_state = current_workspace_state;
 
     WorkspaceStateChange::new(patch).emit_filter(app_handle, |target| match target {
-        EventTarget::WebviewWindow { label } => label == window.label(),
-        EventTarget::Webview { label } => label == window.label(),
-        EventTarget::Window { label } => label == window.label(),
-        _ => false,
+        EventTarget::WebviewWindow { label } => label != window.label(),
+        EventTarget::Webview { label } => label != window.label(),
+        EventTarget::Window { label } => label != window.label(),
+        _ => true,
     })?;
 
     Ok(())

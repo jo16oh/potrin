@@ -24,7 +24,7 @@
     open?: boolean;
   } = $props();
 
-  const [_, updateAppState] = App.state();
+  const appState = App.state();
 
   const minNameLength = 1;
   const maxNameLength = 50;
@@ -50,10 +50,7 @@
 
     await commands.updatePot(newPot).then(unwrap);
 
-    updateAppState((state) => {
-      state.pots[pot.id] = pot.name;
-      return state;
-    });
+    appState.pots[pot.id] = pot.name;
     onSubmit?.();
   }
 </script>
