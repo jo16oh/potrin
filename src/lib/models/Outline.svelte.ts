@@ -19,7 +19,7 @@ import * as Y from "yjs";
 import { generateKeyBetween } from "fractional-indexing-jittered";
 import { DescendantsIndex, ReversedLinkIndex, WeakRefMap } from "./utils";
 import type { JSONContent } from "@tiptap/core";
-import type { AnyYMapValue } from "./utilTypes";
+import type { AnyYMapValue } from "./utils";
 import { getOutlineSchema } from "$lib/components/editor/schema";
 import { yXmlFragmentToProseMirrorRootNode } from "y-prosemirror";
 import type { Schema } from "@tiptap/pm/model";

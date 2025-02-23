@@ -1,6 +1,7 @@
 import type { Links, Path, Quote } from "../../generated/tauri-commands";
 import type { Outline } from "./Outline.svelte";
 import type { Paragraph } from "./Paragraph.svelte";
+import * as Y from "yjs";
 
 export class WeakRefMap<K, T extends WeakKey> {
   readonly #map: Map<K, WeakRef<T>> = new Map();
@@ -239,3 +240,13 @@ export class ReversedQuoteIndex {
     );
   }
 }
+
+export type AnyYMapValue =
+  | null
+  | object
+  | boolean
+  | string
+  | number
+  | Uint8Array
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | Y.AbstractType<any>;
