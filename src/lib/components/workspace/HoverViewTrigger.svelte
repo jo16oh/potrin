@@ -79,7 +79,10 @@
   triggerStyle={floatingButtonStyle}
   contentStyle={hoverViewContainerStyle}
   triggerProps={{
-    onmousedown: (e) => e.preventDefault(),
+    onmousedown: (e) => {
+      e.preventDefault();
+      dialogOpen = true;
+    },
   }}
   overlayProps={{
     onmousedown: (e) => {

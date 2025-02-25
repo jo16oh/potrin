@@ -1,6 +1,6 @@
 <script lang="ts">
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
-  import CreateNewButton from "$lib/components/workspace/CreateNewButton.svelte";
+  import HoverViewTrigger from "$lib/components/workspace/HoverViewTrigger.svelte";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import { css } from "styled-system/css";
   import CardsView from "../view/CardsView.svelte";
@@ -41,7 +41,7 @@
     <div class={viewStyle}></div>
   {/if}
 
-  <CreateNewButton />
+  <HoverViewTrigger />
 </div>
 
 <script module>
