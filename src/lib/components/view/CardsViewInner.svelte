@@ -1,92 +1,108 @@
 <script lang="ts">
   import { X } from "lucide-svelte";
   import { css } from "styled-system/css";
-  import DialogClose from "../common/DialogClose.svelte";
-  import { buttonStyle } from "../common/Button.svelte";
+  // import DialogClose from "../common/DialogClose.svelte";
+  import Button, { buttonStyle } from "../common/Button.svelte";
   import OutlineEditor from "../editor/OutlineEditor.svelte";
   import { type ViewState } from "../../../generated/tauri-commands";
   import { Outline } from "$lib/models/Outline.svelte";
   import Asterisk from "../icon/Asterisk.svelte";
   import ScrollArea from "../common/ScrollArea.svelte";
   import ParagraphEditor from "../editor/ParagraphEditor.svelte";
-  import type { FocusPosition } from "../editor/utils";
+  import { debounce } from "es-toolkit";
+  import { watch } from "runed";
+  import { onMount } from "svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
+
   type Props = {
     outline: Outline;
-    focusPosition: FocusPosition;
     viewState: CardsViewState;
+    isFocused: boolean;
+    onCloseButtonClick: () => void;
   };
 
   let {
     outline,
-    focusPosition = $bindable(),
     viewState = $bindable(),
+    isFocused,
+    onCloseButtonClick,
   }: Props = $props();
 
-  $effect(() => {
-    viewState.id = outline.id;
-    viewState.title = outline.text;
+  let scrollAreaRef: ReturnType<typeof ScrollArea>;
+
+  watch(
+    () => outline.text,
+    debounce(() => (viewState.title = outline.text), 16),
+  );
+
+  onMount(() => {
+    scrollAreaRef.scrollTo(0, viewState.scrollPosition);
   });
+
+  const onscroll = debounce(() => {
+    viewState.scrollPosition = scrollAreaRef.getScrollTop();
+  }, 100);
 </script>
 
-<div class={viewContainer}>
-  <div class={headerStyle}>
-    <div class={headerLeftButtons}></div>
-    <div>{viewState.title}</div>
-    <div class={headerRightButtons}>
-      <DialogClose class={headerButtonStyle}>
-        <X class={headerIconStyle} />
-      </DialogClose>
-    </div>
+<div class={headerStyle}>
+  <div class={headerLeftButtons}></div>
+  <div class={headerRightButtons}>
+    <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
+      <X class={headerIconStyle} />
+    </Button>
   </div>
-
-  <ScrollArea orientation="vertical" type="auto" scrollbarMode="overlay">
-    <div class={contentContainerStyle}>
-      <div class={titleOutlineContainerStyle}>
-        <div class={titleOutlineBulletContainerStyle}>
-          <Asterisk
-            class={titleOutlineAsteriskStyle}
-            data-outline-empty={Boolean(outline.text.length)}
-          />
-          <div class={titleBulletBoxLine}></div>
-        </div>
-        <OutlineEditor
-          {outline}
-          bind:focusPosition
-          containerStyle={titleOutlineEditorContainer}
-          editorStyleVariant="cardsViewTitle"
-        />
-      </div>
-      <div class={paragraphContainerStyle}>
-        <div class={paragraphContainerLine}></div>
-        {#each outline.paragraphs as paragraph (paragraph.id)}
-          <div class={paragraphStyle}>
-            <ParagraphEditor
-              {paragraph}
-              bind:focusPosition
-              containerStyle={paragraphEditorContainer}
-              editorStyleVariant="card"
-            />
-          </div>
-        {/each}
-      </div>
-      <div class={contentBoxBottomSpace}>
-        <div class={contetBoxBottomLine}></div>
-        <div class={roundedLineEnd}></div>
-      </div>
-    </div>
-  </ScrollArea>
 </div>
 
-<script module>
-  const viewContainer = css({
-    w: "full",
-    h: "fit",
-  });
+<ScrollArea
+  bind:this={scrollAreaRef}
+  orientation="vertical"
+  type="auto"
+  scrollbarMode="overlay"
+  viewportProps={{
+    onscroll: onscroll,
+  }}
+>
+  <div class={contentContainerStyle}>
+    <div class={titleOutlineContainerStyle}>
+      <div class={titleOutlineBulletContainerStyle}>
+        <Asterisk
+          class={titleOutlineAsteriskStyle}
+          data-outline-empty={Boolean(outline.text.length)}
+        />
+        <div class={titleBulletBoxLine}></div>
+      </div>
+      <OutlineEditor
+        {outline}
+        isViewFocused={isFocused}
+        bind:focusPosition={viewState.focusPosition}
+        containerStyle={titleOutlineEditorContainer}
+        editorStyleVariant="cardsViewTitle"
+      />
+    </div>
+    <div class={paragraphContainerStyle}>
+      <div class={paragraphContainerLine}></div>
+      {#each outline.paragraphs as paragraph (paragraph.id)}
+        <div class={paragraphStyle}>
+          <ParagraphEditor
+            {paragraph}
+            isViewFocused={isFocused}
+            bind:focusPosition={viewState.focusPosition}
+            containerStyle={paragraphEditorContainer}
+            editorStyleVariant="card"
+          />
+        </div>
+      {/each}
+    </div>
+    <div class={contentBoxBottomSpace}>
+      <div class={contetBoxBottomLine}></div>
+      <div class={roundedLineEnd}></div>
+    </div>
+  </div>
+</ScrollArea>
 
+<script module>
   const headerStyle = css({
-    position: "absolute",
     zIndex: "local.header",
     flexDir: "row",
     justifyContent: "space-between",
@@ -131,9 +147,10 @@
   });
 
   const contentContainerStyle = css({
-    maxH: "[90vh]",
-    px: "3",
+    maxW: "[38.25rem]",
+    px: "2",
     pt: "32",
+    m: "auto",
   });
 
   const titleOutlineContainerStyle = css({

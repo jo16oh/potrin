@@ -6,12 +6,14 @@
   import type { FocusPosition, EditorFocusPosition } from "./utils";
   import { watch } from "runed";
   import { createOutlineExtensions } from "./schema";
+  import { Window } from "$lib/models/Window.svelte";
 
   type EditorStyleVariant = "cardsViewTitle" | "cardsViewChildren";
 
   type Props = {
     outline: Outline;
     focusPosition: FocusPosition;
+    isViewFocused: boolean;
     containerStyle?: Styles;
     editorStyleVariant: EditorStyleVariant;
   };
@@ -19,6 +21,7 @@
   let {
     outline,
     focusPosition = $bindable(),
+    isViewFocused,
     containerStyle,
     editorStyleVariant,
   }: Props = $props();
@@ -29,9 +32,9 @@
   let editorElement: HTMLDivElement = $state() as HTMLDivElement;
 
   watch(
-    () => focusPosition,
+    [() => focusPosition, () => isViewFocused, () => Window.hasFocus()],
     () => {
-      if (focusPosition && focusPosition.id === outline.id) {
+      if (isViewFocused && focusPosition.id === outline.id) {
         if (editor) {
           editor.commands.focus(focusPosition.position);
         } else {
@@ -41,6 +44,19 @@
         editor?.commands.blur();
       }
     },
+  );
+
+  watch(
+    () => editor,
+    () => {
+      setTimeout(() => {
+        if (!editor && isFocused && isViewFocused && Window.hasFocus()) {
+          focusPosition.id = null;
+          focusPosition.position = null;
+        }
+      });
+    },
+    { lazy: true },
   );
 
   async function createEditor(outline: Outline, pos: EditorFocusPosition) {
@@ -62,14 +78,13 @@
       onBlur: () => {
         setTimeout(() => {
           editor?.destroy();
-
-          if (focusPosition.id === outline.id) {
-            focusPosition = {
-              id: null,
-              position: null,
-            };
-          }
         });
+      },
+      onTransaction: () => {
+        if (isFocused) {
+          // property assignment doesn't trigger effect when using `watch`
+          focusPosition.position = editor!.state.selection.from;
+        }
       },
       onDestroy: () => {
         if (editor) {
@@ -78,7 +93,7 @@
         }
       },
       onFocus: () => {
-        if (focusPosition.id !== outline.id) {
+        if (!isFocused) {
           focusPosition = {
             id: outline.id,
             position: editor!.state.selection.from,

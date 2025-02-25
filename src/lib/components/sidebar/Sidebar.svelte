@@ -24,30 +24,15 @@
   const MIN_WIDTH_REM = 10;
   const REM = 16;
 
-  const workspaceState = Workspace.state();
+  const workspace = Workspace.current;
 
-  const sidebar = $derived(workspaceState.sidebar);
-  const focus = $derived(workspaceState.focus);
-  const tabs = $derived(workspaceState.tabs);
+  const pot = $derived(workspace.state.pot);
+  const sidebar = $derived(workspace.state.sidebar);
+  const focusedTabId = $derived(workspace.state.focusedTabId);
+  const tabs = $derived(workspace.state.tabs);
 
-  // updateWorkspaceState((state) => {
-  //   state.tabs = Array(19).fill({
-  //     views: [
-  //       {
-  //         id: crypto.randomUUID(),
-  //         title: "吾輩は猫である",
-  //         flexGrow: 1,
-  //         viewType: "outline",
-  //       },
-  //     ],
-  //     focusedViewIdx: 0,
-  //   });
-  //
-  //   return state;
-  // });
-
-  let width = $state(workspaceState.sidebar.width);
-  let sidebarOpen = $state(!workspaceState.sidebar.isFloat);
+  let width = $state(workspace.state.sidebar.width);
+  let sidebarOpen = $state(!workspace.state.sidebar.isFloat);
   let dragging = $state(false);
 
   let potOperationsOpen = $state(false);
@@ -69,6 +54,8 @@
       currentTarget: EventTarget & HTMLDivElement;
     },
   ) {
+    e.preventDefault();
+
     dragging = true;
     const prevWidth = width;
     const start = e.clientX;
@@ -82,7 +69,7 @@
     };
 
     const cleanup = () => {
-      workspaceState.sidebar.width = width;
+      sidebar.width = width;
 
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup ", cleanup);
@@ -95,11 +82,11 @@
 
   function toggleFloat() {
     sidebarOpen = false;
-    workspaceState.sidebar.isFloat = !sidebar.isFloat;
+    sidebar.isFloat = !sidebar.isFloat;
   }
 </script>
 
-{#if workspaceState.sidebar.isFloat && !sidebarOpen}
+{#if sidebar.isFloat && !sidebarOpen}
   <!-- eslint-ignore a11y_no_static_element_interactions  -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
@@ -136,7 +123,7 @@
     >
       {#snippet trigger()}
         <div class={potNameStyle}>
-          {workspaceState.pot.name}
+          {pot.name}
         </div>
         <div class={chevronDownContainerStyle}>
           <ChevronDown class={chevronDownStyle} />
@@ -144,7 +131,7 @@
       {/snippet}
       {#snippet content()}
         <RenamePot
-          pot={workspaceState.pot}
+          {pot}
           buttonStyle={potOperationsItemStyle}
           bind:open={potRenameDialogOpen}
         >
@@ -186,23 +173,33 @@
       <div class={tabsTitleStyle}>Tabs</div>
       <ScrollArea orientation="vertical" type="auto" scrollbarMode="inset">
         <div class={tabsContainerStyle}>
-          {#each tabs as tab, idx}
+          {#each tabs as tab, tabIdx (tab.id)}
             <Button
               class={tabItemStyle + " group"}
-              data-selected={focus
-                ? focus.area === "tabs" && focus.index === idx
-                : false}
-              onclick={() => {
-                workspaceState.focus = { area: "tabs", index: idx };
+              data-selected={focusedTabId === tab.id}
+              onclick={() => (workspace.state.focusedTabId = tab.id)}
+              onmousedown={(e: MouseEvent) => {
+                // this prevents editor from being blurred
+                e.preventDefault();
               }}
             >
-              {#each tab.views as view}
+              {#each tab.views as view, viewIdx (view.id)}
                 <div class={viewItemStyle}>
                   <div class={viewIconContainerStyle}>
-                    <CardStack class={viewIconStyle} />
+                    {#if view.type === "cards"}
+                      <CardStack class={viewIconStyle} />
+                    {/if}
                   </div>
-                  <div class={viewTitleStyle}>{view.title}</div>
-                  <Button class={viewCloseButtonStyle}>
+                  {#if view.type === "cards"}
+                    <div class={viewTitleStyle}>{view.title}</div>
+                  {/if}
+                  <Button
+                    class={viewCloseButtonStyle}
+                    onclick={(e: MouseEvent) => {
+                      e.stopPropagation();
+                      workspace.closeView(tab, tabIdx, view, viewIdx);
+                    }}
+                  >
                     <X class={viewIconStyle} />
                   </Button>
                 </div>
@@ -398,6 +395,7 @@
 
   const tabsContainerStyle = css({
     w: "full",
+    h: "full",
     flex: "auto",
     display: "flex",
     flexDir: "column",

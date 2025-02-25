@@ -25,7 +25,7 @@ pub struct UserState {
 pub struct WorkspaceState {
     pub pot: Pot,
     pub tabs: Vec<TabState>,
-    pub focus: Option<FocusState>,
+    pub focused_tab_id: Option<String>,
     pub sidebar: SidebarState,
 }
 
@@ -34,7 +34,7 @@ impl WorkspaceState {
         Self {
             pot: pot.clone(),
             tabs: Vec::new(),
-            focus: None,
+            focused_tab_id: None,
             sidebar: SidebarState {
                 is_float: false,
                 width: 20.0,
@@ -68,16 +68,10 @@ pub enum SidebarFocusArea {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct FocusState {
-    pub area: SidebarFocusArea,
-    pub index: u32,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
-#[serde(rename_all = "camelCase")]
 pub struct TabState {
+    pub id: String,
     pub views: Vec<ViewState>,
-    pub focused_view_idx: i64,
+    pub focused_view_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
@@ -86,42 +80,85 @@ pub struct TabState {
 pub enum ViewState {
     #[serde(rename_all = "camelCase")]
     Cards {
-        id: Option<UUIDv7Base64URL>,
+        id: String,
+        outline_id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
+        scroll_position: u32,
+        focus_position: FocusPosition,
         pinned: bool,
     },
     #[serde(rename_all = "camelCase")]
     Outline {
-        id: Option<UUIDv7Base64URL>,
+        id: String,
+        outline_id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
+        scroll_position: u32,
+        focus_position: FocusPosition,
         pinned: bool,
     },
     #[serde(rename_all = "camelCase")]
     Document {
-        id: Option<UUIDv7Base64URL>,
+        id: String,
+        outline_id: Option<UUIDv7Base64URL>,
         title: String,
         flex_grow: f64,
+        scroll_position: u32,
+        focus_position: FocusPosition,
         pinned: bool,
     },
     #[serde(rename_all = "camelCase")]
-    Timeline { flex_grow: f64, pinned: bool },
+    Timeline {
+        id: String,
+        flex_grow: f64,
+        scroll_position: u32,
+        pinned: bool,
+    },
     #[serde(rename_all = "camelCase")]
     Relation {
-        id: UUIDv7Base64URL,
+        id: String,
+        outline_id: UUIDv7Base64URL,
         title: String,
         direction: RelationDirection,
         flex_grow: f64,
+        scroll_position: u32,
         pinned: bool,
     },
     #[serde(rename_all = "camelCase")]
     Search {
+        id: String,
         query: String,
         scope: Option<UUIDv7Base64URL>,
         flex_grow: f64,
+        scroll_position: u32,
         pinned: bool,
     },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FocusPosition {
+    id: Option<String>,
+    position: EditorFocusPosition,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(untagged)]
+#[serde(rename_all = "camelCase")]
+pub enum EditorFocusPosition {
+    Number(f64),
+    Boolean(bool),
+    String(PositionString),
+    Null,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "lowercase")]
+pub enum PositionString {
+    All,
+    Start,
+    End,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]

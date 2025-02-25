@@ -2,21 +2,30 @@
   import { Columns2, Maximize2, PencilLine } from "lucide-svelte";
   import Dialog from "../common/Dialog.svelte";
   import CardsView from "../view/CardsView.svelte";
-  import Button from "../common/Button.svelte";
+  import Button, { buttonStyle } from "../common/Button.svelte";
   import { css } from "styled-system/css";
   import type { ViewState } from "../../../generated/tauri-commands";
+  import { Workspace } from "$lib/models/Workspace.svelte";
+  import DialogClose from "../common/DialogClose.svelte";
+
+  const workspace = Workspace.current.state;
+  let dialogOpen = $state<boolean>(false);
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
   let viewState: CardsViewState = $state({
+    id: crypto.randomUUID(),
     type: "cards",
-    id: null,
+    outlineId: null,
     title: "",
     pinned: false,
+    scrollPosition: 0,
+    focusPosition: { id: null, position: "start" },
     flexGrow: 1,
   });
 </script>
 
 <Dialog
+  bind:open={dialogOpen}
   triggerStyle={floatingButtonStyle}
   contentStyle={hoverViewContainerStyle}
 >
@@ -24,11 +33,36 @@
     <PencilLine class={floatingButtonIconStyle} />
   {/snippet}
   {#snippet content()}
-    <CardsView bind:viewState />
+    <CardsView
+      bind:viewState
+      isFocused={dialogOpen}
+      onCloseButtonClick={() => (dialogOpen = false)}
+    />
     <div class={rightSideButtonContainer}>
-      <Button style={rightSideButtonStyle}>
+      <DialogClose
+        class={css(rightSideButtonStyle)}
+        onclick={() => {
+          const newTabId = crypto.randomUUID();
+          workspace.tabs.unshift({
+            id: newTabId,
+            views: [$state.snapshot(viewState)],
+            focusedViewId: viewState.id,
+          });
+          workspace.focusedTabId = newTabId;
+          viewState = {
+            id: crypto.randomUUID(),
+            type: "cards",
+            outlineId: null,
+            title: "",
+            pinned: false,
+            scrollPosition: 0,
+            focusPosition: { id: null, position: "start" },
+            flexGrow: 1,
+          };
+        }}
+      >
         <Maximize2 class={iconInsideRightSideButton} />
-      </Button>
+      </DialogClose>
       <Button style={rightSideButtonStyle}>
         <Columns2 class={iconInsideRightSideButton} />
       </Button>
@@ -86,6 +120,7 @@
   });
 
   const rightSideButtonStyle = css.raw({
+    ...buttonStyle,
     p: "0",
     w: "8",
     h: "8",

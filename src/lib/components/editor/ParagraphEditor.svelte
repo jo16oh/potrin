@@ -6,12 +6,14 @@
   import type { FocusPosition, EditorFocusPosition } from "./utils";
   import { watch } from "runed";
   import { createParagraphExtensions } from "./schema";
+  import { Window } from "$lib/models/Window.svelte";
 
   type EditorStyleVariant = "card";
 
   type Props = {
     paragraph: Paragraph;
     focusPosition: FocusPosition;
+    isViewFocused: boolean;
     containerStyle?: Styles;
     editorStyleVariant: EditorStyleVariant;
   };
@@ -19,6 +21,7 @@
   let {
     paragraph,
     focusPosition = $bindable(),
+    isViewFocused,
     containerStyle,
     editorStyleVariant,
   }: Props = $props();
@@ -29,9 +32,9 @@
   let editorElement: HTMLDivElement = $state() as HTMLDivElement;
 
   watch(
-    () => focusPosition,
+    [() => focusPosition, () => isViewFocused, () => Window.hasFocus()],
     () => {
-      if (focusPosition && focusPosition.id === paragraph.id) {
+      if (isViewFocused && focusPosition.id === paragraph.id) {
         if (editor) {
           editor.commands.focus(focusPosition.position);
         } else {
@@ -41,6 +44,19 @@
         editor?.commands.blur();
       }
     },
+  );
+
+  watch(
+    () => editor,
+    () => {
+      setTimeout(() => {
+        if (!editor && isFocused && isViewFocused && Window.hasFocus()) {
+          focusPosition.id = null;
+          focusPosition.position = null;
+        }
+      });
+    },
+    { lazy: true },
   );
 
   async function createEditor(paragraph: Paragraph, pos: EditorFocusPosition) {
@@ -62,14 +78,13 @@
       onBlur: () => {
         setTimeout(() => {
           editor?.destroy();
-
-          if (focusPosition.id === paragraph.id) {
-            focusPosition = {
-              id: null,
-              position: null,
-            };
-          }
         });
+      },
+      onTransaction: () => {
+        if (focusPosition.id === paragraph.id) {
+          // property assignment doesn't trigger effect when using `watch`
+          focusPosition.position = editor!.state.selection.from;
+        }
       },
       onDestroy: () => {
         if (editor) {
