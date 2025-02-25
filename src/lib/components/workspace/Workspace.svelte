@@ -17,7 +17,11 @@
     {#if workspace.isTabLoaded(tab.id)}
       <div class={tabStyle} data-disabled={focusedTabId !== tab.id}>
         {#each tab.views as view, viewIdx (view.id)}
-          <div class={viewStyle}>
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class={viewStyle}
+            onmousedown={() => (tab.focusedViewId = view.id)}
+          >
             {#if view.type === "cards"}
               <CardsView
                 isFocused={tab.id === focusedTabId &&

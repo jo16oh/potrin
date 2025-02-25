@@ -88,6 +88,13 @@ export class Workspace {
     return this.#focusHistory.has(tabId);
   }
 
+  currentTab() {
+    return this.#state.focusedTabId
+      ? (this.#state.tabs.find((t) => t.id === this.#state.focusedTabId) ??
+          null)
+      : null;
+  }
+
   closeView(tab: TabState, tabIdx: number, view: ViewState, viewIdx: number) {
     const tabs = this.state.tabs;
 

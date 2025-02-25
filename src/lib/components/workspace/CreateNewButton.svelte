@@ -4,12 +4,35 @@
   import CardsView from "../view/CardsView.svelte";
   import Button, { buttonStyle } from "../common/Button.svelte";
   import { css } from "styled-system/css";
-  import type { ViewState } from "../../../generated/tauri-commands";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import DialogClose from "../common/DialogClose.svelte";
+  import type { ViewState } from "../../../generated/tauri-commands";
+  import { watch } from "runed";
 
-  const workspace = Workspace.current.state;
+  const workspace = Workspace.current;
+  const workspaceState = Workspace.current.state;
   let dialogOpen = $state<boolean>(false);
+
+  let lastFocusedViewId: string | null = null;
+
+  watch(
+    () => dialogOpen,
+    () => {
+      if (dialogOpen) {
+        const currentTab = workspace.currentTab();
+        if (currentTab) {
+          lastFocusedViewId = currentTab.focusedViewId;
+          currentTab.focusedViewId = null;
+        }
+      } else {
+        const currentTab = workspace.currentTab();
+        if (currentTab) {
+          currentTab.focusedViewId = lastFocusedViewId;
+        }
+      }
+    },
+    { lazy: true },
+  );
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
   let viewState: CardsViewState = $state({
@@ -22,12 +45,48 @@
     focusPosition: { id: null, position: "start" },
     flexGrow: 1,
   });
+
+  function handleClickMaximize(e: MouseEvent) {
+    // prevents editor from being blurred
+    e.preventDefault();
+    dialogOpen = false;
+
+    // wait until the view is saved
+    setTimeout(() => {
+      const newTabId = crypto.randomUUID();
+      workspaceState.focusedTabId = newTabId;
+      workspaceState.tabs.unshift({
+        id: newTabId,
+        views: [$state.snapshot(viewState)],
+        focusedViewId: viewState.id,
+      });
+      viewState = {
+        id: crypto.randomUUID(),
+        type: "cards",
+        outlineId: null,
+        title: "",
+        pinned: false,
+        scrollPosition: 0,
+        focusPosition: { id: null, position: "start" },
+        flexGrow: 1,
+      };
+    }, 50);
+  }
 </script>
 
 <Dialog
   bind:open={dialogOpen}
   triggerStyle={floatingButtonStyle}
   contentStyle={hoverViewContainerStyle}
+  triggerProps={{
+    onmousedown: (e) => e.preventDefault(),
+  }}
+  overlayProps={{
+    onmousedown: (e) => {
+      e.preventDefault();
+      dialogOpen = false;
+    },
+  }}
 >
   {#snippet trigger()}
     <PencilLine class={floatingButtonIconStyle} />
@@ -41,25 +100,8 @@
     <div class={rightSideButtonContainer}>
       <DialogClose
         class={css(rightSideButtonStyle)}
-        onclick={() => {
-          const newTabId = crypto.randomUUID();
-          workspace.tabs.unshift({
-            id: newTabId,
-            views: [$state.snapshot(viewState)],
-            focusedViewId: viewState.id,
-          });
-          workspace.focusedTabId = newTabId;
-          viewState = {
-            id: crypto.randomUUID(),
-            type: "cards",
-            outlineId: null,
-            title: "",
-            pinned: false,
-            scrollPosition: 0,
-            focusPosition: { id: null, position: "start" },
-            flexGrow: 1,
-          };
-        }}
+        onmousedown={(e) => e.preventDefault()}
+        onclick={handleClickMaximize}
       >
         <Maximize2 class={iconInsideRightSideButton} />
       </DialogClose>
