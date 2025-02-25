@@ -2,7 +2,6 @@
   import { ScrollArea, type WithoutChild } from "bits-ui";
   import { css, type Styles } from "styled-system/css";
   import { onMount } from "svelte";
-  import { debounce } from "es-toolkit";
 
   type RootProps = Omit<ScrollArea.RootProps, "style">;
   type Props = RootProps & {
@@ -24,23 +23,20 @@
   }: Props = $props();
 
   let viewportRef = $state<HTMLDivElement | null>(null);
-
-  let clientHeight = $state<number | undefined>();
-  let scrollHeight = $state<number | undefined>();
-  let clientWidth = $state<number | undefined>();
-  let scrollWidth = $state<number | undefined>();
+  let viewportHeight = $state<number | undefined>();
+  let viewportWidth = $state<number | undefined>();
+  let contentWidth = $state<number | undefined>();
+  let contentHeight = $state<number | undefined>();
 
   onMount(() => {
-    const resizeObserver = new ResizeObserver(
-      debounce(() => {
+    const resizeObserver = new ResizeObserver(() => {
+      window.requestAnimationFrame(() => {
         if (viewportRef) {
-          clientHeight = viewportRef.clientHeight;
-          scrollHeight = viewportRef.scrollHeight;
-          clientWidth = viewportRef.clientWidth;
-          clientHeight = viewportRef.clientHeight;
+          viewportHeight = viewportRef.clientHeight;
+          viewportWidth = viewportRef.clientWidth;
         }
-      }, 8),
-    );
+      });
+    });
 
     if (viewportRef) resizeObserver.observe(viewportRef);
 
@@ -48,12 +44,28 @@
   });
 
   const overflowVertical = $derived(
-    scrollHeight && clientHeight ? scrollHeight > clientHeight : false,
+    viewportHeight !== undefined && contentHeight !== undefined
+      ? viewportHeight < contentHeight
+      : false,
   );
 
   const overflowHorizontal = $derived(
-    scrollWidth && clientWidth ? scrollWidth > clientWidth : false,
+    viewportWidth !== undefined && contentWidth !== undefined
+      ? viewportWidth < contentWidth
+      : false,
   );
+
+  export function scrollTo(...args: Parameters<typeof window.scrollTo>) {
+    viewportRef?.scrollTo(...args);
+  }
+
+  export function getScrollTop() {
+    return viewportRef!.scrollTop;
+  }
+
+  export function getScrollLeft() {
+    return viewportRef!.scrollLeft;
+  }
 </script>
 
 {#snippet Scrollbar({
@@ -79,7 +91,13 @@
     class={css(defaultViewportStyle, viewportStyle)}
     {...viewportProps}
   >
-    {@render children?.()}
+    <div
+      bind:clientWidth={contentWidth}
+      bind:clientHeight={contentHeight}
+      class={contentContainerSytle}
+    >
+      {@render children?.()}
+    </div>
   </ScrollArea.Viewport>
   {#if orientation === "vertical" || orientation === "both"}
     {@render Scrollbar({ orientation: "vertical" })}
@@ -95,7 +113,7 @@
     w: "full",
     h: "full",
     flex: "auto",
-    overflow: "hidden",
+    overflow: "auto",
     "&[data-scrollbar-mode=inset][data-orientation=vertical][data-overflow-vertical=true]":
       {
         pr: "3",
@@ -104,7 +122,7 @@
       {
         pb: "3",
       },
-    "&[data-scrollbar-mode=insert][data-orientation=both]": {
+    "&[data-scrollbar-mode=inset][data-orientation=both]": {
       "&[data-overflow-vertical]": {
         pl: "3",
       },
@@ -117,6 +135,21 @@
   const defaultViewportStyle = css.raw({
     w: "full",
     h: "full",
+  });
+
+  const contentContainerSytle = css({
+    "&[data-orientation=vertical]": {
+      w: "full",
+      h: "fit",
+    },
+    "&[data-orientation=horizontal]": {
+      w: "fit",
+      h: "full",
+    },
+    "&[data-orientation=both]": {
+      w: "fit",
+      h: "fit",
+    },
   });
 
   const scrollbarStyle = css({
