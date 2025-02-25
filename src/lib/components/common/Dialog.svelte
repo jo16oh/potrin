@@ -7,20 +7,24 @@
   type Props = Dialog.RootProps & {
     trigger: Snippet;
     content: Snippet;
+    overlayContent?: Snippet;
     triggerProps?: WithoutChild<Dialog.TriggerProps>;
     triggerStyle?: Styles;
     contentProps?: WithoutChild<Dialog.ContentProps>;
     contentStyle?: Styles;
+    overlayProps?: WithoutChild<Dialog.OverlayProps>;
   };
 
   let {
     open = $bindable(false),
     trigger,
     content,
+    overlayContent,
     triggerStyle,
     triggerProps,
     contentStyle,
     contentProps,
+    overlayProps,
     ...restProps
   }: Props = $props();
 </script>
@@ -30,13 +34,15 @@
     {@render trigger()}
   </Dialog.Trigger>
   <Dialog.Portal>
-    <Dialog.Overlay class={overlayStyle}>
+    <Dialog.Overlay class={overlayStyle} {...overlayProps}>
       <TitleBarHandler />
+      {@render overlayContent?.()}
     </Dialog.Overlay>
     <Dialog.Content
       class={css(defaultContentStyle, contentStyle)}
       onInteractOutside={(e) => {
         const start = performance.now();
+        // const start = performance.now();
         if (e.clientY <= 28) {
           e.preventDefault();
 
