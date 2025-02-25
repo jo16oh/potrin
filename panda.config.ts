@@ -220,8 +220,8 @@ export default defineConfig({
       zIndex: {
         global: {
           float: { value: "0" },
-          sidebar: { value: "10" },
-          overlay: { value: "100" },
+          sidebar: { value: "1000" },
+          overlay: { value: "2000" },
           titlebar: { value: "9999" },
         },
         local: {
