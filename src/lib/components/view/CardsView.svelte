@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { commands, type ViewState } from "../../../generated/tauri-commands";
-  import { unwrap } from "$lib/utils";
+  import { type ViewState } from "../../../generated/tauri-commands";
   import { Outline } from "$lib/models/Outline.svelte";
   import { Paragraph } from "$lib/models/Paragraph.svelte";
   import CardsViewInner from "./CardsViewInner.svelte";
   import { css } from "styled-system/css";
+  import { fetchTree } from "$lib/commands";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
   type Props = {
@@ -22,12 +22,7 @@
   const promise = (async () => {
     const outlineId = viewState.outlineId;
     const outline = outlineId
-      ? await commands
-          .fetchTree(outlineId, 2)
-          .then(unwrap)
-          .then(([outlines, paragraphs]) =>
-            Outline.tree(outlines, paragraphs, outlineId),
-          )
+      ? await fetchTree(outlineId, 2)
       : await (async () => {
           const outline = await Outline.new();
           const paragraph = Paragraph.new(outline);

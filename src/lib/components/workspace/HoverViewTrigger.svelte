@@ -8,6 +8,8 @@
   import DialogClose from "../common/DialogClose.svelte";
   import type { ViewState } from "../../../generated/tauri-commands";
   import { watch } from "runed";
+  import { Outline } from "$lib/models/Outline.svelte";
+  import { Paragraph } from "$lib/models/Paragraph.svelte";
 
   const workspace = Workspace.current;
   const workspaceState = Workspace.current.state;
@@ -46,12 +48,16 @@
     flexGrow: 1,
   });
 
-  function handleClickMaximize(e: MouseEvent) {
+  async function handleClickMaximize(e: MouseEvent) {
     // prevents editor from being blurred
     e.preventDefault();
     dialogOpen = false;
 
-    // wait until the view is saved
+    if (viewState.focusPosition.id) {
+      await Outline.buffer.get(viewState.focusPosition.id)?.save();
+      await Paragraph.buffer.get(viewState.focusPosition.id)?.save();
+    }
+
     setTimeout(() => {
       const newTabId = crypto.randomUUID();
       workspaceState.focusedTabId = newTabId;
@@ -70,7 +76,7 @@
         focusPosition: { id: null, position: "start" },
         flexGrow: 1,
       };
-    }, 50);
+    });
   }
 </script>
 
