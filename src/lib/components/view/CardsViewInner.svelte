@@ -1,7 +1,6 @@
 <script lang="ts">
   import { X } from "lucide-svelte";
   import { css } from "styled-system/css";
-  // import DialogClose from "../common/DialogClose.svelte";
   import Button, { buttonStyle } from "../common/Button.svelte";
   import OutlineEditor from "../editor/OutlineEditor.svelte";
   import { type ViewState } from "../../../generated/tauri-commands";
