@@ -44,6 +44,7 @@
 
 <script module>
   const viewContainer = css({
+    position: "relative",
     w: "full",
     h: "full",
     bg: "view.bg",

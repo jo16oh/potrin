@@ -66,6 +66,14 @@
   export function getScrollLeft() {
     return viewportRef!.scrollLeft;
   }
+
+  export function isOverflowing(direction: "horizontal" | "vertical") {
+    if (direction === "horizontal") {
+      return overflowHorizontal;
+    } else {
+      return overflowVertical;
+    }
+  }
 </script>
 
 {#snippet Scrollbar({

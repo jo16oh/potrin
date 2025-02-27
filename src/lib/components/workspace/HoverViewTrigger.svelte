@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Columns2, Maximize2, PencilLine } from "lucide-svelte";
+  import { Columns2, Link, Maximize2, PencilLine } from "lucide-svelte";
   import Dialog from "../common/Dialog.svelte";
   import CardsView from "../view/CardsView.svelte";
   import Button from "../common/Button.svelte";
@@ -109,19 +109,26 @@
       onCloseButtonClick={() => (dialogOpen = false)}
     />
     <div class={rightSideButtonContainer}>
-      <DialogClose
-        class={rightSideButtonStyle}
-        onmousedown={(e) => e.preventDefault()}
-        onclick={handleClickMaximize}
-      >
-        <Maximize2 class={iconInsideRightSideButton} />
-      </DialogClose>
-      <Button class={rightSideButtonStyle}>
-        <Columns2 class={iconInsideRightSideButton} />
-      </Button>
-      <Button class={rightSideButtonStyle}>
-        <PencilLine class={iconInsideRightSideButton} />
-      </Button>
+      <div class={rightSideButtonGroup}>
+        <DialogClose
+          class={rightSideButtonStyle}
+          onmousedown={(e) => e.preventDefault()}
+          onclick={handleClickMaximize}
+        >
+          <Maximize2 class={iconInsideRightSideButton} />
+        </DialogClose>
+        <Button class={rightSideButtonStyle}>
+          <Columns2 class={iconInsideRightSideButton} />
+        </Button>
+        <Button class={rightSideButtonStyle}>
+          <Link class={iconInsideRightSideButton} />
+        </Button>
+      </div>
+      <div class={rightSideButtonGroup}>
+        <Button class={rightSideButtonStyle}>
+          <PencilLine class={iconInsideRightSideButton} />
+        </Button>
+      </div>
     </div>
   {/snippet}
 </Dialog>
@@ -130,7 +137,7 @@
   const floatingButtonStyle = css.raw({
     zIndex: "global.float",
     position: "fixed",
-    right: "[16px]",
+    right: "[20px]",
     bottom: "[16px]",
     display: "flex",
     justifyContent: "center",
@@ -163,13 +170,19 @@
   const rightSideButtonContainer = css({
     display: "flex",
     flexDir: "column",
-    gap: "4",
-    p: "0",
+    justifyContent: "space-between",
+    py: "4",
     position: "absolute",
-    top: "4",
-    left: "[calc(100% + 0.75rem)]",
+    top: "0",
+    right: "-11",
     w: "fit",
-    h: "fit",
+    h: "full",
+  });
+
+  const rightSideButtonGroup = css({
+    display: "flex",
+    flexDir: "column",
+    gap: "4",
   });
 
   const rightSideButtonStyle = css({

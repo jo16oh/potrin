@@ -29,7 +29,7 @@
     onCloseButtonClick,
   }: Props = $props();
 
-  let scrollAreaRef: ReturnType<typeof ScrollArea>;
+  let scrollAreaRef = $state<ReturnType<typeof ScrollArea> | undefined>();
 
   watch(
     () => outline.text,
@@ -37,11 +37,11 @@
   );
 
   onMount(() => {
-    scrollAreaRef.scrollTo(0, viewState.scrollPosition);
+    scrollAreaRef?.scrollTo(0, viewState.scrollPosition);
   });
 
   const onscroll = debounce(() => {
-    viewState.scrollPosition = scrollAreaRef.getScrollTop();
+    if (scrollAreaRef) viewState.scrollPosition = scrollAreaRef?.getScrollTop();
   }, 100);
 </script>
 
@@ -69,7 +69,10 @@
       {/if}
     </div>
   </div>
-  <div class={headerRightButtons}>
+  <div
+    class={headerRightButtons}
+    data-overflowing={scrollAreaRef?.isOverflowing("vertical")}
+  >
     <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
       <X class={headerIconStyle} />
     </Button>
@@ -85,7 +88,10 @@
     onscroll: onscroll,
   }}
 >
-  <div class={contentContainerStyle}>
+  <div
+    class={contentContainerStyle}
+    data-overflowing={scrollAreaRef?.isOverflowing("vertical")}
+  >
     <div class={titleOutlineContainerStyle}>
       <div class={titleOutlineBulletContainerStyle}>
         <Asterisk
@@ -125,6 +131,8 @@
 
 <script module>
   const headerStyle = css({
+    position: "absolute",
+    top: "0",
     zIndex: "local.header",
     display: "grid",
     gridTemplateColumns: "[1fr auto 1fr]",
@@ -157,6 +165,9 @@
     flexDir: "row",
     justifyContent: "end",
     gap: "2",
+    "&[data-overflowing=true]": {
+      pr: "1",
+    },
   });
 
   const headerButtonStyle = css({
@@ -236,7 +247,11 @@
 
   const contentContainerStyle = css({
     maxW: "[38.25rem]",
-    px: "2",
+    pl: "2",
+    pr: "2",
+    "&[data-overflowing=true]": {
+      pr: "2.5",
+    },
     pt: "32",
     m: "auto",
   });
