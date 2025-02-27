@@ -31,6 +31,7 @@
   const focusedTabId = $derived(workspace.state.focusedTabId);
   const tabs = $derived(workspace.state.tabs);
 
+  let sidebarElement = $state<HTMLDivElement>()!;
   let width = $state(workspace.state.sidebar.width);
   let sidebarOpen = $state(!workspace.state.sidebar.isFloat);
   let dragging = $state(false);
@@ -57,6 +58,8 @@
     e.preventDefault();
 
     dragging = true;
+    width = sidebarElement.clientWidth / REM;
+    sidebar.width = width;
     const prevWidth = width;
     const start = e.clientX;
 
@@ -102,6 +105,7 @@
 {/if}
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
+  bind:this={sidebarElement}
   data-visible={sidebarOpen}
   data-float={sidebar.isFloat}
   class={containerStyle}
@@ -149,7 +153,11 @@
         >
       {/snippet}
     </Popover>
-    <Button class={collapseButtonStyle} onclick={toggleFloat}>
+    <Button
+      class={collapseButtonStyle}
+      onmousedown={(e: MouseEvent) => e.preventDefault()}
+      onclick={toggleFloat}
+    >
       {#if sidebar.isFloat}
         <PanelRight class={sidebarButtonIconStyle} />
       {:else}
@@ -178,10 +186,7 @@
               class={tabItemStyle + " group"}
               data-selected={focusedTabId === tab.id}
               onclick={() => (workspace.state.focusedTabId = tab.id)}
-              onmousedown={(e: MouseEvent) => {
-                // this prevents editor from being blurred
-                e.preventDefault();
-              }}
+              onmousedown={(e: MouseEvent) => e.preventDefault()}
             >
               {#each tab.views as view, viewIdx (view.id)}
                 <div class={viewItemStyle}>
@@ -191,7 +196,16 @@
                     {/if}
                   </div>
                   {#if view.type === "cards"}
-                    <div class={viewTitleStyle}>{view.title}</div>
+                    <div
+                      class={viewTitleStyle}
+                      data-title-empty={view.title.length === 0}
+                    >
+                      {#if view.title.length === 0}
+                        Untitled
+                      {:else}
+                        {view.title}
+                      {/if}
+                    </div>
                   {/if}
                   <Button
                     class={viewCloseButtonStyle}
@@ -490,6 +504,9 @@
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
+    "&[data-title-empty=true]": {
+      color: "workspace.text-muted",
+    },
   });
 
   const viewCloseButtonStyle = css({
