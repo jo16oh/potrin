@@ -58,7 +58,7 @@
     e.preventDefault();
 
     dragging = true;
-    width = sidebarElement.clientWidth / REM;
+    width = sidebarElement.clientWidth / REM - (sidebar.isFloat ? 1 : 0);
     sidebar.width = width;
     const prevWidth = width;
     const start = e.clientX;
