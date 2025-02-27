@@ -251,7 +251,7 @@
       zIndex: "global.sidebar",
       maxW: "[90vw]",
       p: "2",
-      bg: "workspace.bg/95",
+      bg: "workspace.bg/90",
       position: "fixed",
       h: "[calc(100% - 28px)]",
       top: "[24px]",
@@ -259,6 +259,7 @@
       rounded: "md",
       shadow: "lg",
       animationStyle: "sidebar-slide-in",
+      backdropFilter: "[blur(4px)]",
       "&[data-visible=false]": {
         animationStyle: "sidebar-slide-out",
       },
