@@ -45,53 +45,39 @@
   }, 100);
 </script>
 
-<div class={headerStyle}>
-  <div class={headerLeftButtons}>
-    <Button class={headerButtonStyle} disabled={true}>
-      <ChevronLeft class={headerIconStyle} />
-    </Button>
-    <Button class={headerButtonStyle} disabled={true}>
-      <ChevronRight class={headerIconStyle} />
-    </Button>
-    <Button class={headerButtonStyle} disabled={true}>
-      <Search class={headerIconStyle} />
-    </Button>
-  </div>
-  <div class={headerTitleContainer}>
-    <Button class={headerTitleButtonStyle}>
-      <CardStack class={headerTitleIconStyle} />
-    </Button>
-    <div class={headerTitleTextStyle}>
-      {#if viewState.title.length === 0}
-        Untitled
-      {:else}
-        {viewState.title}
-      {/if}
+<ScrollArea bind:this={scrollAreaRef} orientation="vertical" {onscroll}>
+  <div class={headerStyle}>
+    <div class={headerLeftButtons}>
+      <Button class={headerButtonStyle} disabled={true}>
+        <ChevronLeft class={headerIconStyle} />
+      </Button>
+      <Button class={headerButtonStyle} disabled={true}>
+        <ChevronRight class={headerIconStyle} />
+      </Button>
+      <Button class={headerButtonStyle} disabled={true}>
+        <Search class={headerIconStyle} />
+      </Button>
+    </div>
+    <div class={headerTitleContainer}>
+      <Button class={headerTitleButtonStyle}>
+        <CardStack class={headerTitleIconStyle} />
+      </Button>
+      <div class={headerTitleTextStyle}>
+        {#if viewState.title.length === 0}
+          Untitled
+        {:else}
+          {viewState.title}
+        {/if}
+      </div>
+    </div>
+    <div class={headerRightButtons}>
+      <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
+        <X class={headerIconStyle} />
+      </Button>
     </div>
   </div>
-  <div
-    class={headerRightButtons}
-    data-overflowing={scrollAreaRef?.isOverflowing("vertical")}
-  >
-    <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
-      <X class={headerIconStyle} />
-    </Button>
-  </div>
-</div>
 
-<ScrollArea
-  bind:this={scrollAreaRef}
-  orientation="vertical"
-  type="auto"
-  scrollbarMode="overlay"
-  viewportProps={{
-    onscroll: onscroll,
-  }}
->
-  <div
-    class={contentContainerStyle}
-    data-overflowing={scrollAreaRef?.isOverflowing("vertical")}
-  >
+  <div class={contentContainerStyle}>
     <div class={titleOutlineContainerStyle}>
       <div class={titleOutlineBulletContainerStyle}>
         <Asterisk
@@ -131,7 +117,7 @@
 
 <script module>
   const headerStyle = css({
-    position: "absolute",
+    position: "sticky",
     top: "0",
     zIndex: "local.header",
     display: "grid",
@@ -142,10 +128,10 @@
     w: "full",
     overflow: "hidden",
     h: "8",
-    px: "1",
-    py: "1",
+    p: "1",
     bg: "view.bg/90",
     roundedTop: "md",
+    backdropFilter: "[blur(4px)]",
   });
 
   const headerLeftButtons = css({
@@ -165,9 +151,6 @@
     flexDir: "row",
     justifyContent: "end",
     gap: "2",
-    "&[data-overflowing=true]": {
-      pr: "1",
-    },
   });
 
   const headerButtonStyle = css({
@@ -208,7 +191,6 @@
     justifyContent: "center",
     alignItems: "center",
     h: "full",
-    bg: "view.bg",
     minW: "0",
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -247,11 +229,7 @@
 
   const contentContainerStyle = css({
     maxW: "[38.25rem]",
-    pl: "2",
-    pr: "2",
-    "&[data-overflowing=true]": {
-      pr: "2.5",
-    },
+    px: "2",
     pt: "32",
     m: "auto",
   });

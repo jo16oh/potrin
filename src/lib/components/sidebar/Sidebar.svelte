@@ -179,7 +179,7 @@
 
     <div class={tabsContainerStyle}>
       <div class={tabsTitleStyle}>Tabs</div>
-      <ScrollArea orientation="vertical" type="auto" scrollbarMode="inset">
+      <ScrollArea orientation="vertical">
         <div class={tabsContainerStyle}>
           {#each tabs as tab, tabIdx (tab.id)}
             <Button
@@ -419,12 +419,13 @@
 
   const tabsContainerStyle = css({
     w: "full",
-    h: "full",
+    h: "fit",
     flex: "auto",
     display: "flex",
     flexDir: "column",
     gap: "1",
     overflow: "hidden",
+    pr: "0.5",
     pb: "2",
   });
 

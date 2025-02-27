@@ -67,7 +67,7 @@
         </DialogClose>
       </div>
       <div>
-        <ScrollArea orientation="vertical" type="auto" scrollbarMode="inset">
+        <ScrollArea orientation="vertical">
           <div class={potsContainerStyle}>
             {#each pots as pot}
               <button
