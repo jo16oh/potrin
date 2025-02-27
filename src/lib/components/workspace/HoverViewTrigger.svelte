@@ -108,27 +108,34 @@
       isFocused={dialogOpen}
       onCloseButtonClick={() => (dialogOpen = false)}
     />
-    <div class={rightSideButtonContainer}>
-      <div class={rightSideButtonGroup}>
-        <DialogClose
-          class={rightSideButtonStyle}
-          onmousedown={(e) => e.preventDefault()}
-          onclick={handleClickMaximize}
-        >
-          <Maximize2 class={iconInsideRightSideButton} />
-        </DialogClose>
-        <Button class={rightSideButtonStyle}>
-          <Columns2 class={iconInsideRightSideButton} />
-        </Button>
-        <Button class={rightSideButtonStyle}>
-          <Link class={iconInsideRightSideButton} />
-        </Button>
-      </div>
-      <div class={rightSideButtonGroup}>
-        <Button class={rightSideButtonStyle}>
-          <PencilLine class={iconInsideRightSideButton} />
-        </Button>
-      </div>
+    <div class={rightsideTopButtons}>
+      <DialogClose
+        class={rightSideButtonStyle}
+        onmousedown={(e) => e.preventDefault()}
+        onclick={handleClickMaximize}
+      >
+        <Maximize2 class={iconInsideRightSideButton} />
+      </DialogClose>
+      <Button
+        class={rightSideButtonStyle}
+        onmousedown={(e: MouseEvent) => e.preventDefault()}
+      >
+        <Columns2 class={iconInsideRightSideButton} />
+      </Button>
+      <Button
+        class={rightSideButtonStyle}
+        onmousedown={(e: MouseEvent) => e.preventDefault()}
+      >
+        <Link class={iconInsideRightSideButton} />
+      </Button>
+    </div>
+    <div class={rightsideBottomButtons}>
+      <Button
+        class={rightSideButtonStyle}
+        onmousedown={(e: MouseEvent) => e.preventDefault()}
+      >
+        <PencilLine class={iconInsideRightSideButton} />
+      </Button>
     </div>
   {/snippet}
 </Dialog>
@@ -167,21 +174,23 @@
     p: "0",
   });
 
-  const rightSideButtonContainer = css({
+  const rightsideTopButtons = css({
     display: "flex",
     flexDir: "column",
-    justifyContent: "space-between",
-    py: "4",
     position: "absolute",
-    top: "0",
+    top: "4",
     right: "-11",
     w: "fit",
-    h: "full",
+    gap: "4",
   });
 
-  const rightSideButtonGroup = css({
+  const rightsideBottomButtons = css({
     display: "flex",
     flexDir: "column",
+    position: "absolute",
+    bottom: "4",
+    right: "-11",
+    w: "fit",
     gap: "4",
   });
 
