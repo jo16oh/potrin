@@ -53,5 +53,6 @@
     justifyContent: "center",
     alignItems: "center",
     shadow: "md.around",
+    overflow: "hidden",
   });
 </script>

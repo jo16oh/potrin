@@ -36,11 +36,9 @@
       </div>
     {/if}
   {/each}
-
   {#if focusedTabId === null}
     <div class={viewStyle}></div>
   {/if}
-
   <HoverViewTrigger />
 </div>
 
@@ -50,29 +48,30 @@
     flexDir: "row",
     gap: "2",
     bg: "workspace.bg",
-    w: "screen",
-    h: "screen",
+    w: "full",
+    h: "[100vh]",
     pt: "[28px]",
     pb: "[8px]",
     px: "[8px]",
+    overflow: "hidden",
   });
 
   const tabStyle = css({
+    flex: "auto",
     display: "flex",
     flexDir: "row",
     gap: "2",
-    w: "full",
-    h: "full",
     "&[data-disabled=true]": {
       display: "none",
     },
   });
 
   const viewStyle = css({
+    flex: "1",
     bg: "view.bg",
-    w: "full",
     h: "full",
     rounded: "md",
     shadow: "md.around",
+    overflow: "hidden",
   });
 </script>

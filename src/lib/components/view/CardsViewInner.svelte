@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X } from "lucide-svelte";
+  import { ChevronLeft, ChevronRight, Search, X } from "lucide-svelte";
   import { css } from "styled-system/css";
   import Button from "../common/Button.svelte";
   import OutlineEditor from "../editor/OutlineEditor.svelte";
@@ -11,6 +11,7 @@
   import { debounce } from "es-toolkit";
   import { watch } from "runed";
   import { onMount } from "svelte";
+  import CardStack from "../icon/CardStack.svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
 
@@ -45,7 +46,29 @@
 </script>
 
 <div class={headerStyle}>
-  <div class={headerLeftButtons}></div>
+  <div class={headerLeftButtons}>
+    <Button class={headerButtonStyle} disabled={true}>
+      <ChevronLeft class={headerIconStyle} />
+    </Button>
+    <Button class={headerButtonStyle} disabled={true}>
+      <ChevronRight class={headerIconStyle} />
+    </Button>
+    <Button class={headerButtonStyle} disabled={true}>
+      <Search class={headerIconStyle} />
+    </Button>
+  </div>
+  <div class={headerTitleContainer}>
+    <Button class={headerTitleButtonStyle}>
+      <CardStack class={headerTitleIconStyle} />
+    </Button>
+    <div class={headerTitleTextStyle}>
+      {#if viewState.title.length === 0}
+        Untitled
+      {:else}
+        {viewState.title}
+      {/if}
+    </div>
+  </div>
   <div class={headerRightButtons}>
     <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
       <X class={headerIconStyle} />
@@ -103,10 +126,13 @@
 <script module>
   const headerStyle = css({
     zIndex: "local.header",
-    flexDir: "row",
+    display: "grid",
+    gridTemplateColumns: "[1fr auto 1fr]",
+    gap: "4",
     justifyContent: "space-between",
     alignItems: "center",
     w: "full",
+    overflow: "hidden",
     h: "8",
     px: "1",
     py: "1",
@@ -115,18 +141,26 @@
   });
 
   const headerLeftButtons = css({
+    flexBasis: "[auto]",
+    flexGrow: "0",
+    flexShrink: "0",
     display: "flex",
     flexDir: "row",
-    justifyContent: "flex-start",
+    gap: "2",
   });
 
   const headerRightButtons = css({
+    flexBasis: "[auto]",
+    flexGrow: "0",
+    flexShrink: "0",
     display: "flex",
     flexDir: "row",
-    justifyContent: "flex-end",
+    justifyContent: "end",
+    gap: "2",
   });
 
   const headerButtonStyle = css({
+    justifySelf: "end",
     display: "flex",
     flexDirection: "row",
     justifyContent: "center",
@@ -138,6 +172,11 @@
     rounded: "circle",
     shadow: "[none]",
     bg: "transparent",
+    _disabled: {
+      _hover: {
+        bg: "transparent",
+      },
+    },
     _hover: {
       bg: "view.bg-selected",
     },
@@ -147,6 +186,52 @@
     w: "4",
     h: "4",
     color: "view.text-muted",
+  });
+
+  const headerTitleContainer = css({
+    justifySelf: "center",
+    w: "full",
+    flex: "[0 1 auto]",
+    display: "flex",
+    flexDir: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    h: "full",
+    bg: "view.bg",
+    minW: "0",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  });
+
+  const headerTitleButtonStyle = css({
+    flexShrink: "0",
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    transition: "colors",
+    p: "0",
+    w: "6",
+    h: "6",
+    rounded: "circle",
+    bg: "transparent",
+    _hover: {
+      bg: "view.bg-selected",
+    },
+  });
+
+  const headerTitleIconStyle = css({
+    w: "3",
+    h: "3",
+    color: "view.text-muted",
+  });
+
+  const headerTitleTextStyle = css({
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    color: "view.text-muted",
+    fontSize: "xs",
   });
 
   const contentContainerStyle = css({
