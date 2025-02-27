@@ -1,7 +1,7 @@
 <script lang="ts">
   import { X } from "lucide-svelte";
   import { css } from "styled-system/css";
-  import Button, { buttonStyle } from "../common/Button.svelte";
+  import Button from "../common/Button.svelte";
   import OutlineEditor from "../editor/OutlineEditor.svelte";
   import { type ViewState } from "../../../generated/tauri-commands";
   import { Outline } from "$lib/models/Outline.svelte";
@@ -127,7 +127,11 @@
   });
 
   const headerButtonStyle = css({
-    ...buttonStyle,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    transition: "colors",
     p: "0",
     w: "6",
     h: "6",

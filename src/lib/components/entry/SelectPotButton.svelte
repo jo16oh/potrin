@@ -2,7 +2,7 @@
   import { css } from "styled-system/css";
   import { commands, type Pot } from "../../../generated/tauri-commands";
   import { unwrap } from "$lib/utils";
-  import Button, { buttonStyle } from "$lib/components/common/Button.svelte";
+  import Button from "$lib/components/common/Button.svelte";
   import Dialog from "$lib/components/common/Dialog.svelte";
   import { App } from "$lib/models/App.svelte";
   import ScrollArea from "$lib/components/common/ScrollArea.svelte";
@@ -48,13 +48,13 @@
 </script>
 
 {#await potsPromise}
-  <Button disabled={true} style={selectPotButtonStyle}>Open pot</Button>
+  <Button disabled={true} class={css(selectPotButtonStyle)}>Open pot</Button>
 {:then potsResult}
   {@const pots = unwrap(potsResult)}
   <Dialog
     bind:open
     triggerProps={{ disabled: pots.length === 0 }}
-    triggerStyle={{ ...buttonStyle, ...selectPotButtonStyle }}
+    triggerStyle={selectPotButtonStyle}
   >
     {#snippet trigger()}
       <div class={css({ _disabled: { color: "button.text" } })}>Open pot</div>
@@ -157,6 +157,20 @@
 
 <script module>
   const selectPotButtonStyle = css.raw({
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "2",
+    px: "4",
+    py: "2",
+    bg: "button.bg",
+    shadow: "sm",
+    rounded: "lg",
+    _hover: {
+      bg: "darken",
+    },
+    transition: "colors",
     w: "full",
     h: "9",
     color: "button.text",
@@ -250,10 +264,18 @@
   });
 
   const renamePotButtonStyle = css.raw({
-    ...buttonStyle,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: "2",
+    _hover: {
+      bg: "darken",
+    },
+    transition: "colors",
     justifyContent: "start",
     fontSize: "sm",
     w: "full",
+    h: "fit",
     p: "1",
     rounded: "[0.25rem]",
     bg: "transparent",
@@ -261,7 +283,15 @@
   });
 
   const deletePotButtonStyle = css.raw({
-    ...buttonStyle,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: "2",
+    h: "fit",
+    _hover: {
+      bg: "darken",
+    },
+    transition: "colors",
     color: "[red]",
     justifyContent: "start",
     fontSize: "sm",
@@ -283,7 +313,18 @@
   });
 
   const deletePotDialogCloseButton = css({
-    ...buttonStyle,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "2",
+    shadow: "sm",
+    width: "fit",
+    height: "fit",
+    _hover: {
+      bg: "darken",
+    },
+    transition: "colors",
     bg: "[red]",
     color: "[white]",
     p: "1",

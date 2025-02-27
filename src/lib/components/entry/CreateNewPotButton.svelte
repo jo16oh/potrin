@@ -1,7 +1,7 @@
 <script lang="ts">
   import { css } from "styled-system/css";
   import Dialog from "$lib/components/common/Dialog.svelte";
-  import Button, { buttonStyle } from "$lib/components/common/Button.svelte";
+  import Button from "$lib/components/common/Button.svelte";
   import { commands } from "../../../generated/tauri-commands";
   import { uuidv7, unwrap } from "$lib/utils";
   import { App } from "$lib/models/App.svelte";
@@ -89,14 +89,28 @@
           h: "2",
         })}
       ></div>
-      <Button bind:disabled={canSubmit} onclick={createPot}>Craete</Button>
+      <Button class={submitButtonStyle} disabled={canSubmit} onclick={createPot}
+        >Craete</Button
+      >
     </div>
   {/snippet}
 </Dialog>
 
 <script module>
   const createNewPotButtonStyle = css.raw({
-    ...buttonStyle,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    px: "4",
+    py: "2",
+    bg: "button.bg",
+    shadow: "sm",
+    rounded: "lg",
+    _hover: {
+      bg: "darken",
+    },
+    transition: "colors",
     w: "full",
     h: "9",
   });
@@ -127,5 +141,31 @@
     borderBottomWidth: "thin",
     borderColor: "view.text",
     ring: "none",
+  });
+
+  const submitButtonStyle = css({
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "2",
+    paddingX: "4",
+    paddingY: "2",
+    bg: "button.bg",
+    shadow: "sm",
+    rounded: "lg",
+    width: "fit",
+    height: "fit",
+    _hover: {
+      bg: "darken",
+    },
+    _disabled: {
+      color: "button.text-muted",
+      bg: "button.bg/20",
+      _hover: {
+        bg: "button.bg/20",
+      },
+    },
+    transition: "colors",
   });
 </script>

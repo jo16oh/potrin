@@ -76,7 +76,8 @@
     })}
   >
     <Button
-      style={css.raw({
+      class={css({
+        ...buttonStyle,
         w: "full",
         h: "9",
       })}
@@ -115,7 +116,8 @@
     <SelectPotButton />
 
     <Button
-      style={css.raw({
+      class={css({
+        ...buttonStyle,
         w: "full",
         h: "9",
       })}
@@ -125,7 +127,8 @@
     </Button>
   </div>
   <Button
-    style={css.raw({
+    class={css({
+      ...buttonStyle,
       position: "fixed",
       top: "4",
       right: "4",
@@ -157,3 +160,31 @@
     />
   </Button>
 </div>
+
+<script module>
+  const buttonStyle = css.raw({
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "2",
+    paddingX: "4",
+    paddingY: "2",
+    bg: "button.bg",
+    shadow: "sm",
+    rounded: "lg",
+    width: "fit",
+    height: "fit",
+    _hover: {
+      bg: "darken",
+    },
+    _disabled: {
+      color: "button.text-muted",
+      bg: "button.bg/20",
+      _hover: {
+        bg: "button.bg/20",
+      },
+    },
+    transition: "colors",
+  });
+</script>

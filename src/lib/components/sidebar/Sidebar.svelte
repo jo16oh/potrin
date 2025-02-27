@@ -1,6 +1,6 @@
 <script lang="ts">
   import { css } from "styled-system/css";
-  import Button, { buttonStyle } from "../common/Button.svelte";
+  import Button from "../common/Button.svelte";
   import {
     ChevronDown,
     ClockArrowDown,
@@ -149,7 +149,7 @@
         >
       {/snippet}
     </Popover>
-    <Button style={collapseButtonStyle} onclick={toggleFloat}>
+    <Button class={collapseButtonStyle} onclick={toggleFloat}>
       {#if sidebar.isFloat}
         <PanelRight class={sidebarButtonIconStyle} />
       {:else}
@@ -279,8 +279,7 @@
   });
 
   const potNameButtonStyle = css.raw({
-    ...buttonStyle,
-    bg: "transparent",
+    transition: "colors",
     _hover: {
       bg: "workspace.bg-selected",
     },
@@ -307,7 +306,11 @@
     minWidth: "0",
   });
 
-  const collapseButtonStyle = css.raw({
+  const collapseButtonStyle = css({
+    _hover: {
+      bg: "darken",
+    },
+    transition: "colors",
     bg: "transparent",
     shadow: "[none]",
     display: "flex",
@@ -352,7 +355,14 @@
   });
 
   const potOperationsItemStyle = css.raw({
-    ...buttonStyle,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: "2",
+    _hover: {
+      bg: "darken",
+    },
+    transition: "colors",
     justifyContent: "start",
     fontSize: "sm",
     p: "1",
@@ -401,6 +411,7 @@
     flexDir: "column",
     gap: "1",
     overflow: "hidden",
+    pb: "2",
   });
 
   const tabsTitleStyle = css({

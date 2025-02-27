@@ -2,7 +2,7 @@
   import { Columns2, Maximize2, PencilLine } from "lucide-svelte";
   import Dialog from "../common/Dialog.svelte";
   import CardsView from "../view/CardsView.svelte";
-  import Button, { buttonStyle } from "../common/Button.svelte";
+  import Button from "../common/Button.svelte";
   import { css } from "styled-system/css";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import DialogClose from "../common/DialogClose.svelte";
@@ -108,16 +108,16 @@
     />
     <div class={rightSideButtonContainer}>
       <DialogClose
-        class={css(rightSideButtonStyle)}
+        class={rightSideButtonStyle}
         onmousedown={(e) => e.preventDefault()}
         onclick={handleClickMaximize}
       >
         <Maximize2 class={iconInsideRightSideButton} />
       </DialogClose>
-      <Button style={rightSideButtonStyle}>
+      <Button class={rightSideButtonStyle}>
         <Columns2 class={iconInsideRightSideButton} />
       </Button>
-      <Button style={rightSideButtonStyle}>
+      <Button class={rightSideButtonStyle}>
         <PencilLine class={iconInsideRightSideButton} />
       </Button>
     </div>
@@ -170,8 +170,14 @@
     h: "fit",
   });
 
-  const rightSideButtonStyle = css.raw({
-    ...buttonStyle,
+  const rightSideButtonStyle = css({
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "2",
+    shadow: "sm",
+    transition: "colors",
     p: "0",
     w: "8",
     h: "8",

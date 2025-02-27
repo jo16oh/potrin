@@ -8,7 +8,6 @@
   import CloseButton from "./CloseButton.svelte";
   import DialogClose from "$lib/components/common/DialogClose.svelte";
   import PopoverClose from "$lib/components/common/PopoverClose.svelte";
-  import { buttonStyle as buttonComponentStyle } from "$lib/components/common/Button.svelte";
 
   let {
     pot,
@@ -98,7 +97,7 @@
         })}
       ></div>
       <PopoverClose
-        class={css(buttonComponentStyle)}
+        class={closeButtonStyle}
         disabled={canSubmit}
         onclick={updatePot}
       >
@@ -136,5 +135,31 @@
     borderBottomWidth: "thin",
     borderColor: "view.text",
     ring: "none",
+  });
+
+  const closeButtonStyle = css({
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "2",
+    paddingX: "4",
+    paddingY: "2",
+    bg: "button.bg",
+    shadow: "sm",
+    rounded: "lg",
+    width: "fit",
+    height: "fit",
+    _hover: {
+      bg: "darken",
+    },
+    _disabled: {
+      color: "button.text-muted",
+      bg: "button.bg/20",
+      _hover: {
+        bg: "button.bg/20",
+      },
+    },
+    transition: "colors",
   });
 </script>
