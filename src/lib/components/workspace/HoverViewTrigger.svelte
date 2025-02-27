@@ -93,7 +93,9 @@
   overlayProps={{
     onmousedown: (e) => {
       e.preventDefault();
-      dialogOpen = false;
+      if (28 < e.clientY) {
+        dialogOpen = false;
+      }
     },
   }}
 >
