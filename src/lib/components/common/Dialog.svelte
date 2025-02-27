@@ -41,20 +41,17 @@
     <Dialog.Content
       class={css(defaultContentStyle, contentStyle)}
       onInteractOutside={(e) => {
-        const start = performance.now();
         // const start = performance.now();
         if (e.clientY <= 28) {
           e.preventDefault();
-
-          const handleMouseUp = () => {
-            if (performance.now() - start < 250) {
-              open = false;
-            }
-
-            window.removeEventListener("mouseup", handleMouseUp);
-          };
-
-          window.addEventListener("mouseup", handleMouseUp);
+          // const handleMouseUp = () => {
+          //   console.log(performance.now() - start);
+          //   if (performance.now() - start < 200) {
+          //     open = false;
+          //   }
+          //   window.removeEventListener("mouseup", handleMouseUp);
+          // };
+          // window.addEventListener("mouseup", handleMouseUp);
         }
       }}
       onOpenAutoFocus={(e) => {
