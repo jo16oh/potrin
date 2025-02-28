@@ -61,13 +61,6 @@ impl Default for SidebarState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub enum SidebarFocusArea {
-    Pinned,
-    Tabs,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
-#[serde(rename_all = "camelCase")]
 pub struct TabState {
     pub id: String,
     pub views: Vec<ViewState>,
