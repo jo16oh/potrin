@@ -170,6 +170,13 @@
     _hover: {
       bg: "darken",
     },
+    _disabled: {
+      color: "button.text-muted",
+      bg: "button.bg/20",
+      _hover: {
+        bg: "button.bg/20",
+      },
+    },
     transition: "colors",
     w: "full",
     h: "9",
