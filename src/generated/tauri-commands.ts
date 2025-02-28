@@ -243,6 +243,7 @@ export type OrderBy = { createdAt: Order } | { updatedAt: Order } | "relevance"
 export type Outline = { id: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path | null; links: Links; hidden: boolean; collapsed: boolean; deleted: boolean; createdAt: number; updatedAt: number }
 export type Paragraph = { id: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; links: Links; hidden: boolean; deleted: boolean; createdAt: number; updatedAt: number }
 export type Path = Link[]
+export type PinnedTabState = { id: string; views: ViewState[]; focusedViewId: string | null; pinnedViewIds: Partial<{ [key in string]: null }> }
 export type PositionString = "all" | "start" | "end"
 export type Pot = { id: UUIDv7Base64URL; name: string; owner: UUIDv7Base64URL | null; createdAt: number }
 export type PotrinError = { anyError: { rootCause: string; msg: string } }
@@ -256,8 +257,8 @@ export type SidebarState = { isFloat: boolean; width: number }
 export type TabState = { id: string; views: ViewState[]; focusedViewId: string | null }
 export type UUIDv7Base64URL = string
 export type UserState = { id: UUIDv7Base64URL; name: string }
-export type ViewState = { type: "cards"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition; pinned: boolean } | { type: "outline"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition; pinned: boolean } | { type: "document"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition; pinned: boolean } | { type: "timeline"; id: string; flexGrow: number; scrollPosition: number; pinned: boolean } | { type: "relation"; id: string; outlineId: UUIDv7Base64URL; title: string; direction: RelationDirection; flexGrow: number; scrollPosition: number; pinned: boolean } | { type: "search"; id: string; query: string; scope: UUIDv7Base64URL | null; flexGrow: number; scrollPosition: number; pinned: boolean }
-export type WorkspaceState = { pot: Pot; tabs: TabState[]; focusedTabId: string | null; sidebar: SidebarState }
+export type ViewState = { type: "cards"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "outline"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "document"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "timeline"; id: string; flexGrow: number } | { type: "relation"; id: string; outlineId: UUIDv7Base64URL; title: string; direction: RelationDirection; flexGrow: number; scrollPosition: number } | { type: "search"; id: string; query: string; scope: UUIDv7Base64URL | null; flexGrow: number; scrollPosition: number }
+export type WorkspaceState = { pot: Pot; pinnedTabs: PinnedTabState[]; tabs: TabState[]; focusedTabId: string | null; sidebar: SidebarState }
 export type WorkspaceStateChange = { patch: string }
 
 /** tauri-specta globals **/

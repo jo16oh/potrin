@@ -2,6 +2,7 @@ use super::model::Pot;
 use crate::types::{setting::AppSetting, util::UUIDv7Base64URL};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type, Default)]
 #[serde(rename_all = "camelCase")]
@@ -24,6 +25,7 @@ pub struct UserState {
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceState {
     pub pot: Pot,
+    pub pinned_tabs: Vec<PinnedTabState>,
     pub tabs: Vec<TabState>,
     pub focused_tab_id: Option<String>,
     pub sidebar: SidebarState,
@@ -31,8 +33,20 @@ pub struct WorkspaceState {
 
 impl WorkspaceState {
     pub fn new(pot: &Pot) -> Self {
+        let timeline_view_id = Uuid::new_v4().to_string();
+        let mut pinned_view_ids = HashMap::<String, ()>::new();
+        pinned_view_ids.insert(timeline_view_id.clone(), ());
         Self {
             pot: pot.clone(),
+            pinned_tabs: vec![PinnedTabState {
+                id: Uuid::new_v4().to_string(),
+                views: vec![ViewState::Timeline {
+                    id: timeline_view_id.clone(),
+                    flex_grow: 1.0,
+                }],
+                focused_view_id: None,
+                pinned_view_ids,
+            }],
             tabs: Vec::new(),
             focused_tab_id: None,
             sidebar: SidebarState {
@@ -69,6 +83,15 @@ pub struct TabState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
 #[serde(rename_all = "camelCase")]
+pub struct PinnedTabState {
+    pub id: String,
+    pub views: Vec<ViewState>,
+    pub focused_view_id: Option<String>,
+    pub pinned_view_ids: HashMap<String, ()>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum ViewState {
     #[serde(rename_all = "camelCase")]
@@ -79,7 +102,6 @@ pub enum ViewState {
         flex_grow: f64,
         scroll_position: u32,
         focus_position: FocusPosition,
-        pinned: bool,
     },
     #[serde(rename_all = "camelCase")]
     Outline {
@@ -89,7 +111,6 @@ pub enum ViewState {
         flex_grow: f64,
         scroll_position: u32,
         focus_position: FocusPosition,
-        pinned: bool,
     },
     #[serde(rename_all = "camelCase")]
     Document {
@@ -99,15 +120,9 @@ pub enum ViewState {
         flex_grow: f64,
         scroll_position: u32,
         focus_position: FocusPosition,
-        pinned: bool,
     },
     #[serde(rename_all = "camelCase")]
-    Timeline {
-        id: String,
-        flex_grow: f64,
-        scroll_position: u32,
-        pinned: bool,
-    },
+    Timeline { id: String, flex_grow: f64 },
     #[serde(rename_all = "camelCase")]
     Relation {
         id: String,
@@ -116,7 +131,6 @@ pub enum ViewState {
         direction: RelationDirection,
         flex_grow: f64,
         scroll_position: u32,
-        pinned: bool,
     },
     #[serde(rename_all = "camelCase")]
     Search {
@@ -125,7 +139,6 @@ pub enum ViewState {
         scope: Option<UUIDv7Base64URL>,
         flex_grow: f64,
         scroll_position: u32,
-        pinned: bool,
     },
 }
 
