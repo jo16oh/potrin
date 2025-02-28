@@ -8,8 +8,6 @@
   import DialogClose from "../common/DialogClose.svelte";
   import type { ViewState } from "../../../generated/tauri-commands";
   import { watch } from "runed";
-  import { Outline } from "$lib/models/Outline.svelte";
-  import { Paragraph } from "$lib/models/Paragraph.svelte";
 
   const workspace = Workspace.current;
   const workspaceState = Workspace.current.state;
@@ -53,10 +51,7 @@
     e.preventDefault();
     dialogOpen = false;
 
-    if (viewState.focusPosition.id) {
-      await Outline.buffer.get(viewState.focusPosition.id)?.save();
-      await Paragraph.buffer.get(viewState.focusPosition.id)?.save();
-    }
+    await View.save(viewState);
 
     setTimeout(() => {
       const newTabId = crypto.randomUUID();
@@ -84,10 +79,7 @@
     // prevents editor from being blurred
     e.preventDefault();
 
-    if (viewState.focusPosition.id) {
-      await Outline.buffer.get(viewState.focusPosition.id)?.save();
-      await Paragraph.buffer.get(viewState.focusPosition.id)?.save();
-    }
+    await View.save(viewState);
 
     setTimeout(() => {
       View.open(viewState, {

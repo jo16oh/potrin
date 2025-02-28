@@ -9,6 +9,8 @@ import {
 import { applyPatch, compare } from "fast-json-patch";
 import { getCurrent } from "@tauri-apps/api/webviewWindow";
 import { SvelteMap } from "svelte/reactivity";
+import { Outline } from "./Outline.svelte";
+import { Paragraph } from "./Paragraph.svelte";
 
 const KEY = Symbol();
 
@@ -406,6 +408,13 @@ class ViewMethods {
 
   hasNext(id: string) {
     return this.#history.hasNext(id);
+  }
+
+  async save(current: ViewState) {
+    if ("focusPosition" in current && current.focusPosition.id) {
+      await Outline.buffer.get(current.focusPosition.id)?.save();
+      await Paragraph.buffer.get(current.focusPosition.id)?.save();
+    }
   }
 }
 
