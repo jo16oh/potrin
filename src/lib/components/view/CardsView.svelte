@@ -12,12 +12,14 @@
   type Props = {
     viewState: CardsViewState;
     isFocused: boolean;
+    pinned?: boolean;
     onCloseButtonClick: () => void;
   };
 
   let {
     viewState: view = $bindable(),
     isFocused,
+    pinned = false,
     onCloseButtonClick,
   }: Props = $props();
 
@@ -71,6 +73,7 @@
       {outline}
       bind:viewState={view}
       {isFocused}
+      {pinned}
       {onCloseButtonClick}
     />
   {/await}

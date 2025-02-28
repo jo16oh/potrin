@@ -20,6 +20,7 @@
     outline: Outline;
     viewState: CardsViewState;
     isFocused: boolean;
+    pinned: boolean;
     onCloseButtonClick: () => void;
   };
 
@@ -27,6 +28,7 @@
     outline,
     viewState = $bindable(),
     isFocused,
+    pinned,
     onCloseButtonClick,
   }: Props = $props();
 
@@ -94,9 +96,11 @@
       </div>
     </div>
     <div class={headerRightButtons}>
-      <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
-        <X class={headerIconStyle} />
-      </Button>
+      {#if !pinned}
+        <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
+          <X class={headerIconStyle} />
+        </Button>
+      {/if}
     </div>
   </div>
 
