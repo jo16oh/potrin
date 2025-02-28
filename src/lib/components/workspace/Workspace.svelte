@@ -4,14 +4,34 @@
   import { Workspace } from "$lib/models/Workspace.svelte";
   import { css } from "styled-system/css";
   import CardsView from "../view/CardsView.svelte";
+  import TimelineView from "../view/TimelineView.svelte";
 
   const workspace = Workspace.current;
+  const pinnedTabs = $derived(workspace.state.pinnedTabs);
   const tabs = $derived(workspace.state.tabs);
   const focusedTabId = $derived(workspace.state.focusedTabId);
 </script>
 
 <div class={containerStyle}>
   <Sidebar />
+
+  {#each pinnedTabs as tab}
+    {#if workspace.isTabLoaded(tab.id)}
+      <div class={tabStyle} data-disabled={focusedTabId !== tab.id}>
+        {#each tab.views as view (view.id)}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class={viewStyle}
+            onmousedown={() => (tab.focusedViewId = view.id)}
+          >
+            {#if view.type === "timeline"}
+              <TimelineView {view} pinned={view.id in tab.pinnedViewIds} />
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {/if}
+  {/each}
 
   {#each tabs as tab, tabIdx}
     {#if workspace.isTabLoaded(tab.id)}
