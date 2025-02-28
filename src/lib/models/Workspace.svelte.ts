@@ -395,11 +395,27 @@ class ViewMethods {
   back(current: ViewState) {
     const prev = this.#history.getPrev(current);
     if (prev) Object.assign(current, prev);
+
+    // workaround for keep focus position
+    if ("focusPosition" in current) {
+      const focusPos = { ...current.focusPosition };
+      setTimeout(() => {
+        current.focusPosition = focusPos;
+      }, 16);
+    }
   }
 
   forward(current: ViewState) {
     const next = this.#history.getNext(current);
     if (next) Object.assign(current, next);
+
+    // workaround for keep focus position
+    if ("focusPosition" in current) {
+      const focusPos = { ...current.focusPosition };
+      setTimeout(() => {
+        current.focusPosition = focusPos;
+      }, 16);
+    }
   }
 
   hasPrev(id: string) {

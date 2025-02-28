@@ -52,7 +52,11 @@
       <Button
         class={headerButtonStyle}
         disabled={!View.hasPrev(viewState.id)}
-        onclick={() => View.back(viewState)}
+        onmousedown={(e: MouseEvent) => e.preventDefault()}
+        onclick={(e: MouseEvent) => {
+          e.preventDefault();
+          View.back(viewState);
+        }}
       >
         <ChevronLeft
           class={headerIconStyle}
@@ -62,7 +66,11 @@
       <Button
         class={headerButtonStyle}
         disabled={!View.hasNext(viewState.id)}
-        onclick={() => View.forward(viewState)}
+        onmousedown={(e: MouseEvent) => e.preventDefault()}
+        onclick={(e: MouseEvent) => {
+          e.preventDefault();
+          View.forward(viewState);
+        }}
       >
         <ChevronRight
           class={headerIconStyle}

@@ -55,11 +55,12 @@
 
     setTimeout(() => {
       const newTabId = crypto.randomUUID();
+      const newViewId = crypto.randomUUID();
       workspaceState.focusedTabId = newTabId;
       workspaceState.tabs.unshift({
         id: newTabId,
-        views: [{ ...$state.snapshot(viewState), id: crypto.randomUUID() }],
-        focusedViewId: viewState.id,
+        views: [{ ...$state.snapshot(viewState), id: newViewId }],
+        focusedViewId: newViewId,
       });
 
       View.open(viewState, {

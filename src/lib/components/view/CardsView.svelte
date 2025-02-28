@@ -6,6 +6,7 @@
   import { css } from "styled-system/css";
   import { fetchTree } from "$lib/commands";
   import { watch } from "runed";
+  import { View } from "$lib/models/Workspace.svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
   type Props = {
@@ -21,14 +22,21 @@
   }: Props = $props();
 
   let promise = $state(
-    view.outlineId ? fetchTree(view.outlineId, 2) : createNewOutline(),
+    view.outlineId
+      ? fetchTree(view.outlineId, 2)
+      : createNewOutline().then((o) => {
+          view.focusPosition.id = o.id;
+          return o;
+        }),
   );
 
   watch(
     () => view.outlineId,
     () => {
       if (view.outlineId) {
-        promise.then((o) => {
+        promise.then(async (o) => {
+          await View.save(view);
+
           if (view.outlineId && o.id !== view.outlineId) {
             fetchTree(view.outlineId, 2).then((o) => {
               promise = Promise.resolve(o);
@@ -36,10 +44,14 @@
           }
         });
       } else {
-        createNewOutline().then((o) => {
-          promise = Promise.resolve(o);
-          view.outlineId = o.id;
-        });
+        (async () => {
+          await View.save(view);
+
+          createNewOutline().then((o) => {
+            view.outlineId = o.id;
+            promise = Promise.resolve(o);
+          });
+        })();
       }
     },
   );
