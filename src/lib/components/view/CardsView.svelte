@@ -5,6 +5,7 @@
   import CardsViewInner from "./CardsViewInner.svelte";
   import { css } from "styled-system/css";
   import { fetchTree } from "$lib/commands";
+  import { watch } from "runed";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
   type Props = {
@@ -14,31 +15,52 @@
   };
 
   let {
-    viewState = $bindable(),
+    viewState: view = $bindable(),
     isFocused,
     onCloseButtonClick,
   }: Props = $props();
 
-  const promise = (async () => {
-    const outlineId = viewState.outlineId;
-    const outline = outlineId
-      ? await fetchTree(outlineId, 2)
-      : await (async () => {
-          const outline = await Outline.new();
-          const paragraph = Paragraph.new(outline);
-          outline.insertParagraph(paragraph);
-          viewState.outlineId = outline.id;
-          viewState.focusPosition = { id: paragraph.id, position: "start" };
-          return outline;
-        })();
+  let promise = $state(
+    view.outlineId ? fetchTree(view.outlineId, 2) : createNewOutline(),
+  );
 
+  watch(
+    () => view.outlineId,
+    () => {
+      if (view.outlineId) {
+        promise.then((o) => {
+          if (view.outlineId && o.id !== view.outlineId) {
+            fetchTree(view.outlineId, 2).then((o) => {
+              promise = Promise.resolve(o);
+            });
+          }
+        });
+      } else {
+        createNewOutline().then((o) => {
+          promise = Promise.resolve(o);
+          view.outlineId = o.id;
+        });
+      }
+    },
+  );
+
+  async function createNewOutline() {
+    const outline = await Outline.new();
+    const paragraph = Paragraph.new(outline);
+    outline.insertParagraph(paragraph);
+    view.focusPosition = { id: paragraph.id, position: "start" };
     return outline;
-  })();
+  }
 </script>
 
 <div class={viewContainer}>
   {#await promise then outline}
-    <CardsViewInner {outline} bind:viewState {isFocused} {onCloseButtonClick} />
+    <CardsViewInner
+      {outline}
+      bind:viewState={view}
+      {isFocused}
+      {onCloseButtonClick}
+    />
   {/await}
 </div>
 

@@ -314,3 +314,100 @@ export class CloseHistory {
     return this.#history.pop();
   }
 }
+
+type ViewHistoryItem = {
+  prev: ViewState[];
+  next: ViewState[];
+};
+
+export class ViewHistory {
+  #limit = 100;
+  #map = new SvelteMap<string, ViewHistoryItem>();
+
+  constructor(limit?: number) {
+    if (limit) this.#limit = limit;
+  }
+
+  addPrev(prevState: ViewState) {
+    const history = this.#map.get(prevState.id);
+    if (history) {
+      if (this.#limit <= history.prev.length) {
+        history.prev.shift();
+      }
+      history.prev.push($state.snapshot(prevState));
+      history.next.length = 0;
+      this.#map.set(prevState.id, { ...history });
+    } else {
+      const h = { prev: [$state.snapshot(prevState)], next: [] };
+      this.#map.set(prevState.id, h);
+    }
+  }
+
+  getPrev(currentState: ViewState) {
+    const history = this.#map.get(currentState.id);
+    if (history) {
+      history?.next.unshift($state.snapshot(currentState));
+      const prev = history.prev.pop();
+      this.#map.set(currentState.id, { ...history });
+      return prev;
+    } else {
+      return undefined;
+    }
+  }
+
+  getNext(currentState: ViewState) {
+    const history = this.#map.get(currentState.id);
+    if (history) {
+      history?.prev.push($state.snapshot(currentState));
+      const next = history.next.shift();
+      this.#map.set(currentState.id, { ...history });
+      return next;
+    } else {
+      return undefined;
+    }
+  }
+
+  remove(id: string) {
+    this.#map.delete(id);
+  }
+
+  hasPrev(id: string) {
+    const prev = this.#map.get(id)?.prev;
+    return prev ? prev.length !== 0 : false;
+  }
+
+  hasNext(id: string) {
+    const next = this.#map.get(id)?.next;
+    return next ? next.length !== 0 : false;
+  }
+}
+
+class ViewMethods {
+  #history = $state(new ViewHistory(100));
+
+  open(current: ViewState, next: ViewState) {
+    this.#history.addPrev(current);
+    Object.assign(current, next);
+  }
+
+  back(current: ViewState) {
+    const prev = this.#history.getPrev(current);
+    if (prev) Object.assign(current, prev);
+  }
+
+  forward(current: ViewState) {
+    const next = this.#history.getNext(current);
+    if (next) Object.assign(current, next);
+  }
+
+  hasPrev(id: string) {
+    return this.#history.hasPrev(id);
+  }
+
+  hasNext(id: string) {
+    return this.#history.hasNext(id);
+  }
+}
+
+export type View = ViewState;
+export const View = new ViewMethods();

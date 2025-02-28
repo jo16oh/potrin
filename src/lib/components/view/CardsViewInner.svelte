@@ -12,6 +12,7 @@
   import { watch } from "runed";
   import { onMount } from "svelte";
   import CardStack from "../icon/CardStack.svelte";
+  import { View } from "$lib/models/Workspace.svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
 
@@ -48,13 +49,27 @@
 <ScrollArea bind:this={scrollAreaRef} orientation="vertical" {onscroll}>
   <div class={headerStyle}>
     <div class={headerLeftButtons}>
-      <Button class={headerButtonStyle} disabled={true}>
-        <ChevronLeft class={headerIconStyle} />
+      <Button
+        class={headerButtonStyle}
+        disabled={!View.hasPrev(viewState.id)}
+        onclick={() => View.back(viewState)}
+      >
+        <ChevronLeft
+          class={headerIconStyle}
+          data-disabled={!View.hasPrev(viewState.id)}
+        />
       </Button>
-      <Button class={headerButtonStyle} disabled={true}>
-        <ChevronRight class={headerIconStyle} />
+      <Button
+        class={headerButtonStyle}
+        disabled={!View.hasNext(viewState.id)}
+        onclick={() => View.forward(viewState)}
+      >
+        <ChevronRight
+          class={headerIconStyle}
+          data-disabled={!View.hasNext(viewState.id)}
+        />
       </Button>
-      <Button class={headerButtonStyle} disabled={true}>
+      <Button class={headerButtonStyle}>
         <Search class={headerIconStyle} />
       </Button>
     </div>
@@ -180,6 +195,9 @@
     w: "4",
     h: "4",
     color: "view.text-muted",
+    "&[data-disabled=true]": {
+      color: "view.text-muted/50",
+    },
   });
 
   const headerTitleContainer = css({
@@ -225,6 +243,7 @@
     textOverflow: "ellipsis",
     color: "view.text-muted",
     fontSize: "xs",
+    cursor: "default",
   });
 
   const contentContainerStyle = css({
