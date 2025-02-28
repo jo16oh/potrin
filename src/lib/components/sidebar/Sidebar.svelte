@@ -29,6 +29,7 @@
   const pot = $derived(workspace.state.pot);
   const sidebar = $derived(workspace.state.sidebar);
   const focusedTabId = $derived(workspace.state.focusedTabId);
+  const pinnedTabs = $derived(workspace.state.pinnedTabs);
   const tabs = $derived(workspace.state.tabs);
 
   let sidebarElement = $state<HTMLDivElement>()!;
@@ -166,15 +167,41 @@
     </Button>
   </div>
   <div class={contentContainerStyle}>
-    <div class={fixedTabsContainerStyle}>
-      <Button class={tabItemStyle + " group"}>
-        <div class={viewItemStyle}>
-          <div class={viewIconContainerStyle}>
-            <ClockArrowDown class={viewIconStyle} />
-          </div>
-          <div class={viewTitleStyle}>Timeline</div>
-        </div>
-      </Button>
+    <div class={pinnedTabsContainerStyle}>
+      {#each pinnedTabs as tab (tab.id)}
+        <Button
+          class={tabItemStyle + " group"}
+          data-selected={focusedTabId === tab.id}
+          onclick={() => (workspace.state.focusedTabId = tab.id)}
+          onmousedown={(e: MouseEvent) => e.preventDefault()}
+        >
+          {#each tab.views as view (view.id)}
+            <div class={viewItemStyle}>
+              <div class={viewIconContainerStyle}>
+                {#if view.type === "cards"}
+                  <CardStack class={viewIconStyle} />
+                {:else if view.type === "timeline"}
+                  <ClockArrowDown class={viewIconStyle} />
+                {/if}
+              </div>
+              {#if view.type === "cards"}
+                <div
+                  class={viewTitleStyle}
+                  data-title-empty={view.title.length === 0}
+                >
+                  {#if view.title.length === 0}
+                    Untitled
+                  {:else}
+                    {view.title}
+                  {/if}
+                </div>
+              {:else if view.type === "timeline"}
+                <div class={viewTitleStyle}>Timeline</div>
+              {/if}
+            </div>
+          {/each}
+        </Button>
+      {/each}
     </div>
 
     <div class={tabsContainerStyle}>
@@ -408,7 +435,7 @@
     rounded: "md",
   });
 
-  const fixedTabsContainerStyle = css({
+  const pinnedTabsContainerStyle = css({
     display: "flex",
     flexDir: "column",
     justifyContent: "start",
