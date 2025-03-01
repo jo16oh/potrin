@@ -32,7 +32,7 @@
     onCloseButtonClick,
   }: Props = $props();
 
-  let scrollAreaRef = $state<ReturnType<typeof ScrollArea> | undefined>();
+  let scrollAreaRef = $state<HTMLDivElement>();
 
   watch(
     () => outline.text,
@@ -44,11 +44,11 @@
   });
 
   const onscroll = debounce(() => {
-    if (scrollAreaRef) viewState.scrollPosition = scrollAreaRef?.getScrollTop();
+    if (scrollAreaRef) viewState.scrollPosition = scrollAreaRef?.scrollTop ?? 0;
   }, 100);
 </script>
 
-<ScrollArea bind:this={scrollAreaRef} orientation="vertical" {onscroll}>
+<ScrollArea bind:ref={scrollAreaRef} orientation="vertical" {onscroll}>
   <div class={headerStyle}>
     <div class={headerLeftButtons}>
       <Button

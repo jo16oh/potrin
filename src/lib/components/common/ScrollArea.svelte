@@ -4,37 +4,32 @@
   import type { SvelteHTMLElements } from "svelte/elements";
 
   type Props = SvelteHTMLElements["div"] & {
-    orientation: "vertical" | "horizontal" | "both";
+    ref?: HTMLDivElement | undefined;
+    orientation?: "vertical" | "horizontal" | "both";
+    type?: "auto" | "always";
     scrollAreaStyle?: Styles;
     children?: Snippet;
   };
 
   let {
+    ref = $bindable(),
     orientation = "vertical",
+    type = "auto",
     scrollAreaStyle,
+    onscroll,
     children,
     ...restProps
   }: Props = $props();
-
-  let scrollAreaRef = $state<HTMLDivElement>()!;
-
-  export function getScrollTop() {
-    return scrollAreaRef.scrollTop;
-  }
-
-  export function getScrollLeft() {
-    return scrollAreaRef.scrollLeft;
-  }
-
-  export function scrollTo(...args: Parameters<typeof window.scrollTo>) {
-    scrollAreaRef.scrollTo(...args);
-  }
 </script>
 
 <div
-  bind:this={scrollAreaRef}
+  bind:this={ref}
   data-orientation={orientation}
+  data-scroll-type={type}
   class={css(defaultScrollAreaStyle, scrollAreaStyle)}
+  onscroll={(e) => {
+    onscroll?.(e);
+  }}
   {...restProps}
 >
   {@render children?.()}
@@ -45,14 +40,30 @@
     w: "full",
     h: "full",
     "&[data-orientation=horizontal]": {
-      overflowX: "auto",
+      "&[data-scroll-type=auto]": {
+        overflowX: "auto",
+      },
+      "&[data-scroll-type=always]": {
+        overflowX: "scroll",
+      },
     },
     "&[data-orientation=vertical]": {
-      overflowY: "auto",
+      "&[data-scroll-type=auto]": {
+        overflowY: "auto",
+      },
+      "&[data-scroll-type=always]": {
+        overflowY: "scroll",
+      },
     },
     "&[data-orientation=both]": {
-      overflowX: "auto",
-      overflowY: "auto",
+      "&[data-scroll-type=auto]": {
+        overflowX: "auto",
+        overflowY: "auto",
+      },
+      "&[data-scroll-type=always]": {
+        overflowX: "scroll",
+        overflowY: "scroll",
+      },
     },
     overscrollBehavior: "none",
     _scrollbar: {
