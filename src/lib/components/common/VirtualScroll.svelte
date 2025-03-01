@@ -2,62 +2,58 @@
   import { tick } from "svelte";
   import { onMount } from "svelte";
   import type { Snippet } from "svelte";
+  import ScrollArea from "./ScrollArea.svelte";
+  import { css } from "styled-system/css";
 
   type Props = {
+    ref?: HTMLDivElement | undefined;
     items: T[];
     maxLength: number;
-    class: string;
-    item: Snippet<[T]>;
     onReachTop?: (
-      doUpdate: (exec: () => void) => Promise<void>,
+      doUpdate: (fn: () => void) => Promise<void>,
     ) => Promise<void> | void;
     onReachBottom?: (
-      doUpdate: (exec: () => void) => void,
+      doUpdate: (fn: () => void) => void,
     ) => Promise<void> | void;
     loading?: Snippet;
-    header?: Snippet;
-    footer?: Snippet;
+    children?: Snippet;
   };
 
   let {
+    ref = $bindable(),
     items = $bindable(),
     maxLength,
     onReachTop,
     onReachBottom,
-    class: className,
-    item,
     loading,
-    header,
-    footer,
+    children,
   }: Props = $props();
 
-  let elem: HTMLElement;
-
-  export function resetScroll() {
-    elem.scrollTo({ top: 0, behavior: "instant" });
-  }
+  let loadingTop: boolean = $state(false);
+  let loadingBottom: boolean = $state(false);
 
   async function updateArrayHead(updateArray: () => void) {
     await tick();
-    const scrollTopBefore = elem.scrollTop;
-    const scrollHeightBefore = elem.scrollHeight;
+    const scrollTopBefore = ref?.scrollTop ?? 0;
+    const scrollHeightBefore = ref?.scrollHeight ?? 0;
 
     updateArray();
     await tick();
 
-    const scrollHeightAfter = elem.scrollHeight;
+    const scrollHeightAfter = ref?.scrollHeight ?? 0;
 
-    elem.scrollTo({
+    ref?.scrollTo({
       top: scrollTopBefore + (scrollHeightAfter - scrollHeightBefore),
       behavior: "instant",
     });
   }
 
-  let loadingTop: boolean = $state(false);
-  let loadingBottom: boolean = $state(false);
-
   async function onscroll() {
-    if (elem.scrollTop === 0) {
+    const scrollTop = ref?.scrollTop ?? 0;
+    const scrollHeight = ref?.scrollHeight ?? 0;
+    const clientHeight = ref?.clientHeight ?? 0;
+
+    if (scrollTop === 0) {
       if (!loadingTop) {
         loadingTop = true;
 
@@ -75,7 +71,7 @@
 
         loadingTop = false;
       }
-    } else if (elem.scrollHeight - elem.scrollTop <= elem.clientHeight) {
+    } else if (scrollHeight - scrollTop <= clientHeight) {
       if (!loadingBottom) {
         loadingBottom = true;
 
@@ -103,40 +99,30 @@
   });
 </script>
 
-<div style:position="relative">
-  <div style="position: absolute; top: 0;">
-    {#if loadingTop && loading}
-      {@render loading()}
-    {/if}
-  </div>
-  <div class={"scrollable-list " + className} bind:this={elem} {onscroll}>
-    {#if header}
-      {@render header()}
-    {/if}
-    {#each items as i, idx (idx)}
-      {@render item(i)}
-    {/each}
-    {#if footer}
-      {@render footer()}
-    {/if}
-  </div>
-  <div style="position: absolute; bottom: 0;">
-    {#if loadingBottom && loading}
-      {@render loading()}
-    {/if}
-  </div>
-</div>
+<ScrollArea bind:ref type="always" {scrollAreaStyle} {onscroll}>
+  {#if loadingTop}
+    <div class={loadingTopStyle}>
+      {@render loading?.()}
+    </div>
+  {/if}
+  {@render children?.()}
+  {#if loadingBottom}
+    <div class={loadingBottomStyle}>
+      {@render loading?.()}
+    </div>
+  {/if}
+</ScrollArea>
 
-<style>
-  .scrollable-list {
-    overflow-y: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-    scroll-behavior: smooth;
-    overscroll-behavior: none;
-  }
-  .scrollable-list::-webkit-scrollbar {
-    display: none;
-  }
-</style>
+<script module>
+  const scrollAreaStyle = css.raw({ position: "relative" });
+
+  const loadingTopStyle = css({
+    position: "sticky",
+    top: "0",
+  });
+
+  const loadingBottomStyle = css({
+    position: "sticky",
+    bottom: "0",
+  });
+</script>
