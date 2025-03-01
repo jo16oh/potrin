@@ -24,7 +24,7 @@ export function uuidv7() {
 }
 
 export function insertToFractionalIndexedArray<
-  T extends { fractionalIndex: string },
+  T extends { id: string; fractionalIndex: string },
 >(arr: T[], item: T): T[] {
   if (arr.length === 0) {
     arr.push(item);
@@ -36,6 +36,21 @@ export function insertToFractionalIndexedArray<
       const mid = (low + high) >>> 1;
       if (arr[mid]!.fractionalIndex < item.fractionalIndex) low = mid + 1;
       else high = mid;
+    }
+
+    if (
+      low < arr.length &&
+      arr[low]?.fractionalIndex === item.fractionalIndex
+    ) {
+      if (arr[low]?.id === item.id) {
+        return arr;
+      }
+    }
+
+    if (low > 0 && arr[low - 1]?.fractionalIndex === item.fractionalIndex) {
+      if (arr[low - 1]?.id === item.id) {
+        return arr;
+      }
     }
 
     arr.splice(low, 0, item);
