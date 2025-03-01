@@ -381,6 +381,8 @@ export class Paragraph {
           this.doc,
           this.#schema,
         ).toJSON();
+
+        this.paragraph._updatedAt = new Date();
       });
     }
 

@@ -609,6 +609,7 @@ export class Outline {
 
         this.outline._doc = node.toJSON();
         this.outline.text = node.textContent;
+        this.outline._updatedAt = new Date();
       });
     }
 
