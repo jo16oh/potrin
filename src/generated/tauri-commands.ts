@@ -85,7 +85,7 @@ async fetchTree(id: UUIDv7Base64URL, depth: number | null) : Promise<Result<[Out
     else return { status: "error", error: e  as any };
 }
 },
-async fetchTimeline(from: string) : Promise<Result<[Outline[], Paragraph[]], PotrinError>> {
+async fetchTimeline(from: number) : Promise<Result<[Outline[], Paragraph[]], PotrinError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("fetch_timeline", { from }) };
 } catch (e) {

@@ -2,7 +2,8 @@ use crate::database::query::fetch;
 use crate::types::model::{Outline, Paragraph};
 use crate::types::util::UUIDv7Base64URL;
 use crate::utils::get_state;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration};
+use eyre::OptionExt;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime};
 
@@ -12,8 +13,9 @@ use tauri::{AppHandle, Runtime};
 #[macros::log_err]
 pub async fn fetch_timeline<R: Runtime>(
     app_handle: AppHandle<R>,
-    from: DateTime<Utc>,
+    from: i64,
 ) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>)> {
+    let from = DateTime::from_timestamp_millis(from).ok_or_eyre("invalid timestamp")?;
     let to = from + Duration::days(1);
 
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
