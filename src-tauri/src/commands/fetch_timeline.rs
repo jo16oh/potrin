@@ -27,80 +27,41 @@ pub async fn fetch_timeline<R: Runtime>(
     eyre::Ok((outlines, paragraphs))
 }
 
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//     use crate::database::test::create_mock_user_and_pot;
-//     use crate::database::test::create_tree;
-//     use crate::test::run_in_mock_app;
-//     use chrono::Duration;
-//     use tauri::test::MockRuntime;
-//
-//     #[test]
-//     fn test_fetch_timeline() {
-//         run_in_mock_app!(|app_handle: &AppHandle<MockRuntime>| async {
-//             let (_, pot) = create_mock_user_and_pot(app_handle.clone()).await;
-//             create_tree(app_handle, pot.id, None, 2, 0).await;
-//             let pool = get_state::<MockRuntime, SqlitePool>(app_handle).unwrap();
-//
-//             let time = (Utc::now() + Duration::days(3)).timestamp_millis();
-//             sqlx::query!(
-//                 r#"
-//                 UPDATE outlines
-//                 SET updated_at = ?;
-//             "#,
-//                 time
-//             )
-//             .execute(pool)
-//             .await
-//             .unwrap();
-//
-//             let time = (Utc::now() + Duration::days(3)).timestamp_millis();
-//             sqlx::query!(
-//                 r#"
-//                 UPDATE paragraphs
-//                 SET updated_at = ?;
-//             "#,
-//                 time
-//             )
-//             .execute(pool)
-//             .await
-//             .unwrap();
-//
-//             let time = (Utc::now() + Duration::days(3)).timestamp_millis();
-//             sqlx::query!(
-//                 r#"
-//                 UPDATE y_docs
-//                 SET created_at = ?;
-//             "#,
-//                 time
-//             )
-//             .execute(pool)
-//             .await
-//             .unwrap();
-//
-//             let time = (Utc::now() + Duration::days(3)).timestamp_millis();
-//             sqlx::query!(
-//                 r#"
-//                 UPDATE y_docs
-//                 SET created_at = ?;
-//                     "#,
-//                 time
-//             )
-//             .execute(pool)
-//             .await
-//             .unwrap();
-//
-//             let (outlines, paragraphs) = fetch_timeline(
-//                 app_handle.clone(),
-//                 Utc::now() - Duration::minutes(1),
-//                 // TlOption::CreatedAt,
-//             )
-//             .await
-//             .unwrap();
-//
-//             assert_eq!(outlines.len(), 0);
-//             assert_eq!(paragraphs.len(), 0);
-//         });
-//     }
-// }
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::database::test::create_mock_pot;
+    use crate::database::test::create_tree;
+    use crate::test::run_in_mock_app;
+    use chrono::Local;
+    use tauri::test::MockRuntime;
+
+    #[test]
+    fn test() {
+        run_in_mock_app!(test_impl);
+    }
+
+    async fn test_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
+        let pot = create_mock_pot(app_handle).await;
+
+        create_tree(app_handle, pot.id, None, 2, 0).await;
+
+        let start_of_day = Local::now()
+            .date_naive()
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_local_timezone(Local)
+            .unwrap()
+            .to_utc()
+            .timestamp_millis();
+
+        let (outlines, paragraphs) = fetch_timeline(app_handle.clone(), start_of_day)
+            .await
+            .unwrap();
+
+        assert_eq!(outlines.len(), 3);
+        assert_eq!(paragraphs.len(), 3);
+
+        Ok(())
+    }
+}
