@@ -43,10 +43,8 @@ export async function fetchTimeline(from: number): Promise<Outline[]> {
 
       // Sort the outlines along with the paragraphs
       // because the paragraphs are already sorted by createdAt by the sql.
-      return new Set(paragraphs.map((p) => p.outlineId))
-        .keys()
+      return Array.from(new Set(paragraphs.map((p) => p.outlineId)))
         .map((id) => outlineMap.get(id))
-        .filter((o) => o !== undefined)
-        .toArray();
+        .filter((o) => o !== undefined);
     });
 }
