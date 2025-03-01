@@ -324,9 +324,9 @@ pub async fn paragraphs_by_created_at(
         LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
         LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
         LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-        WHERE ? <= created_at AND created_at < ? AND paragraphs.deleted = false
-        ORDER BY created_at DESC
-        GROUP BY paragraphs.id;
+        WHERE ? <= paragraphs.created_at AND paragraphs.created_at < ? AND paragraphs.deleted = false
+        GROUP BY paragraphs.id
+        ORDER BY paragraphs.created_at DESC;
     "#;
 
     let mut query_builder = sqlx::query_as::<_, RawParagraph>(query);
