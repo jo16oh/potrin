@@ -23,28 +23,25 @@
     onCloseButtonClick,
   }: Props = $props();
 
-  let promise = $state(
-    view.outlineId
-      ? fetchTree(view.outlineId, 2)
-      : createNewOutline().then((o) => {
-          view.focusPosition.id = o.id;
-          return o;
-        }),
-  );
+  let promise = $state<Promise<Outline>>();
 
   watch(
     () => view.outlineId,
     () => {
       if (view.outlineId) {
-        promise.then(async (o) => {
-          await View.save(view);
+        if (promise) {
+          promise.then(async (o) => {
+            await View.save(view);
 
-          if (view.outlineId && o.id !== view.outlineId) {
-            fetchTree(view.outlineId, 2).then((o) => {
-              promise = Promise.resolve(o);
-            });
-          }
-        });
+            if (view.outlineId && o.id !== view.outlineId) {
+              fetchTree(view.outlineId, 2).then((o) => {
+                promise = Promise.resolve(o);
+              });
+            }
+          });
+        } else {
+          promise = fetchTree(view.outlineId, 2);
+        }
       } else {
         (async () => {
           await View.save(view);
@@ -68,15 +65,17 @@
 </script>
 
 <div class={viewContainer}>
-  {#await promise then outline}
-    <CardsViewInner
-      {outline}
-      bind:viewState={view}
-      {isFocused}
-      {pinned}
-      {onCloseButtonClick}
-    />
-  {/await}
+  {#if promise}
+    {#await promise then outline}
+      <CardsViewInner
+        {outline}
+        bind:viewState={view}
+        {isFocused}
+        {pinned}
+        {onCloseButtonClick}
+      />
+    {/await}
+  {/if}
 </div>
 
 <script module>
