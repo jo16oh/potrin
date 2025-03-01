@@ -73,8 +73,8 @@ export class Paragraph {
         hidden: false,
         deleted: false,
         quote: null,
-        createdAt: new Date().getUTCMilliseconds(),
-        updatedAt: new Date().getUTCMilliseconds(),
+        createdAt: new Date().getTime(),
+        updatedAt: new Date().getTime(),
       },
       outline,
     );
@@ -335,8 +335,8 @@ export class Paragraph {
       hidden: this._hidden,
       deleted: this._deleted,
       quote: this._quote,
-      createdAt: this.createdAt.getUTCMilliseconds(),
-      updatedAt: this._updatedAt.getUTCMilliseconds(),
+      createdAt: this.createdAt.getTime(),
+      updatedAt: this._updatedAt.getTime(),
     };
   }
 

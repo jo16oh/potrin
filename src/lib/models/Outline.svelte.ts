@@ -93,8 +93,8 @@ export class Outline {
         hidden: false,
         collapsed: false,
         deleted: false,
-        createdAt: new Date().getUTCMilliseconds(),
-        updatedAt: new Date().getUTCMilliseconds(),
+        createdAt: new Date().getTime(),
+        updatedAt: new Date().getTime(),
       },
       parent,
     );
@@ -562,8 +562,8 @@ export class Outline {
       hidden: this._hidden,
       collapsed: this._collapsed,
       deleted: this._deleted,
-      createdAt: this.createdAt.getUTCMilliseconds(),
-      updatedAt: this._updatedAt.getUTCMilliseconds(),
+      createdAt: this.createdAt.getTime(),
+      updatedAt: this._updatedAt.getTime(),
     };
   }
 
