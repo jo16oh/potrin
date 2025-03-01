@@ -129,24 +129,24 @@
 <div
   class={css(containerStyle, editorStyleVariants[editorStyleVariant], noRing)}
   style:display={editor ? "none" : "block"}
-  onmouseenter={() => {
-    createEditor(paragraph, null);
-  }}
+  onmouseenter={() => createEditor(paragraph, null)}
 >
-  <div class="tiptap ProseMirror">
-    {#if paragraph.doc}
-      {#each paragraph.doc.content ?? [] as content}
-        {#if content.type === "paragraph"}
-          <p>
-            {#each content.content ?? [] as c}
-              {#if c.type === "text"}
-                {c.text}
-              {/if}
-            {/each}
-          </p>
-        {/if}
-      {/each}
-    {/if}
+  <div class="mock-editor">
+    <div contenteditable tabindex="-1" class="tiptap ProseMirror">
+      {#if paragraph.doc}
+        {#each paragraph.doc.content ?? [] as content}
+          {#if content.type === "paragraph"}
+            <p>
+              {#each content.content ?? [] as c}
+                {#if c.type === "text"}
+                  {c.text}
+                {/if}
+              {/each}
+            </p>
+          {/if}
+        {/each}
+      {/if}
+    </div>
   </div>
 </div>
 
@@ -166,3 +166,18 @@
     wordBreak: "break-word",
   });
 </script>
+
+<style>
+  .mock-editor {
+    position: relative;
+  }
+
+  .mock-editor::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+</style>
