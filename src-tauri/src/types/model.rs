@@ -424,6 +424,13 @@ impl<'r> Decode<'r, Sqlite> for Links {
     }
 }
 
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+pub struct TimelineDay {
+    pub day_start: i64,
+    pub paragraphs: Vec<Paragraph>,
+    pub outlines: Vec<Outline>,
+}
+
 #[allow(dead_code)]
 #[derive(FromRow)]
 pub struct Oplog {

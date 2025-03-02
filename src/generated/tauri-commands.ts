@@ -85,9 +85,9 @@ async fetchTree(id: UUIDv7Base64URL, depth: number | null) : Promise<Result<[Out
     else return { status: "error", error: e  as any };
 }
 },
-async fetchTimeline(from: number) : Promise<Result<[Outline[], Paragraph[]], PotrinError>> {
+async fetchTimeline(option: FetchTimelineOption) : Promise<Result<TimelineDay | null, PotrinError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("fetch_timeline", { from }) };
+    return { status: "ok", data: await TAURI_INVOKE("fetch_timeline", { option }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -233,6 +233,7 @@ export type AppStateChange = { patch: string }
 export type BytesBase64URL = string
 export type Direction = "back" | "forward"
 export type EditorFocusPosition = number | boolean | PositionString | null
+export type FetchTimelineOption = "Latest" | { At: number } | { Before: number } | { After: number }
 export type FocusPosition = { id: string | null; position: EditorFocusPosition }
 export type IncludeChildrenOption = { includeParagraphs: boolean }
 export type Link = { id: UUIDv7Base64URL; text: string; hidden: boolean }
@@ -255,6 +256,7 @@ export type SearchResult = { id: UUIDv7Base64URL; doc_type: string }
 export type SearchSetting = { fuzziness: SearchFuzziness }
 export type SidebarState = { isFloat: boolean; width: number }
 export type TabState = { id: string; views: ViewState[]; focusedViewId: string | null }
+export type TimelineDay = { day_start: number; paragraphs: Paragraph[]; outlines: Outline[] }
 export type UUIDv7Base64URL = string
 export type UserState = { id: UUIDv7Base64URL; name: string }
 export type ViewState = { type: "cards"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "outline"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "document"; id: string; outlineId: UUIDv7Base64URL | null; title: string; flexGrow: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "timeline"; id: string; flexGrow: number } | { type: "relation"; id: string; outlineId: UUIDv7Base64URL; title: string; direction: RelationDirection; flexGrow: number; scrollPosition: number } | { type: "search"; id: string; query: string; scope: UUIDv7Base64URL | null; flexGrow: number; scrollPosition: number }
