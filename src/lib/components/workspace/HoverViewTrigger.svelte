@@ -160,7 +160,7 @@
   const floatingButtonStyle = css.raw({
     zIndex: "global.float",
     position: "fixed",
-    right: "[20px]",
+    right: "[24px]",
     bottom: "[16px]",
     display: "flex",
     justifyContent: "center",
@@ -169,7 +169,7 @@
     w: "14",
     h: "14",
     bg: "workspace.bg/90",
-    rounded: "[100%]",
+    rounded: "circle",
     transition: "colors",
     _hover: {
       bg: "workspace.bg-selected",
