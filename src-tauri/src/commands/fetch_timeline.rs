@@ -8,6 +8,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime};
 
 #[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
 pub enum FetchTimelineOption {
     Latest,
     At(i64),
