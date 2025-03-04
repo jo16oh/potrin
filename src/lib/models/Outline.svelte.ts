@@ -261,7 +261,7 @@ export class Outline {
   readonly id: string;
   readonly createdAt: Readonly<Date>;
   private _fractionalIndex: string;
-  private _doc = $state<JSONContent>();
+  private _doc = $state<JSONContent>() as JSONContent;
   private readonly _text: string = $state("");
   private _updatedAt = $state<Readonly<Date>>() as Readonly<Date>;
   private _children = $state.raw<Outline[]>() as Outline[];
@@ -298,7 +298,7 @@ export class Outline {
     return this._fractionalIndex;
   }
 
-  get doc() {
+  get doc(): JSONContent {
     return this._doc;
   }
 
