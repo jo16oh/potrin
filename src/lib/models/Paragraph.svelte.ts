@@ -226,6 +226,10 @@ export class Paragraph {
     }
   }
 
+  get isEmpty() {
+    return !this.doc.content?.length;
+  }
+
   private set doc(value: JSONContent) {
     // @ts-expect-error allow update only thorugh setter
     this._doc = value;
