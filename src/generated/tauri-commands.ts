@@ -215,9 +215,13 @@ async deletePot(potId: UUIDv7Base64URL) : Promise<Result<null, PotrinError>> {
 
 export const events = __makeEvents__<{
 appStateChange: AppStateChange,
+outlineChange: OutlineChange,
+paragraphChange: ParagraphChange,
 workspaceStateChange: WorkspaceStateChange
 }>({
 appStateChange: "app-state-change",
+outlineChange: "outline-change",
+paragraphChange: "paragraph-change",
 workspaceStateChange: "workspace-state-change"
 })
 
@@ -239,10 +243,16 @@ export type IncludeChildrenOption = { includeParagraphs: boolean }
 export type Link = { id: UUIDv7Base64URL; text: string; hidden: boolean }
 export type LinkCount = { id: UUIDv7Base64URL; back: number; forward: number }
 export type Links = Partial<{ [key in string]: Path }>
+export type Operation<T> = { kind: "insert"; targets: Target<T>[] } | { kind: "update"; targets: Target<T>[] } | { kind: "delete"; target_ids: UUIDv7Base64URL[] }
 export type Order = "desc" | "asc"
 export type OrderBy = { createdAt: Order } | { updatedAt: Order } | "relevance"
+export type Origin = "init" | "remote" | { local: { window_label: string } }
 export type Outline = { id: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path | null; links: Links; hidden: boolean; collapsed: boolean; deleted: boolean; createdAt: number; updatedAt: number }
+export type OutlineChange = { operation: Operation<OutlineForIndex>; origin: Origin }
+export type OutlineForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; parentId: UUIDv7Base64URL | null; fractionalIndex: string; doc: string; text: string; path: Path; links: Links; hidden: boolean; collapsed: boolean; deleted: boolean; createdAt: number; updatedAt: number }
 export type Paragraph = { id: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; links: Links; hidden: boolean; deleted: boolean; createdAt: number; updatedAt: number }
+export type ParagraphChange = { operation: Operation<ParagraphForIndex>; origin: Origin }
+export type ParagraphForIndex = { id: UUIDv7Base64URL; potId: UUIDv7Base64URL; outlineId: UUIDv7Base64URL; fractionalIndex: string; doc: string; quote: Quote | null; path: Path; links: Links; hidden: boolean; deleted: boolean; createdAt: number; updatedAt: number }
 export type Path = Link[]
 export type PinnedTabState = { id: string; views: ViewState[]; focusedViewId: string | null; pinnedViewIds: Partial<{ [key in string]: null }> }
 export type PositionString = "all" | "start" | "end"
@@ -256,6 +266,7 @@ export type SearchResult = { id: UUIDv7Base64URL; doc_type: string }
 export type SearchSetting = { fuzziness: SearchFuzziness }
 export type SidebarState = { isFloat: boolean; width: number }
 export type TabState = { id: string; views: ViewState[]; focusedViewId: string | null }
+export type Target<T> = { currentValue: T; relatedYUpdates: BytesBase64URL[] }
 export type TimelineDay = { dayStart: number; paragraphs: Paragraph[]; outlines: Outline[] }
 export type UUIDv7Base64URL = string
 export type UserState = { id: UUIDv7Base64URL; name: string }

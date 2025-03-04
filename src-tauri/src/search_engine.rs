@@ -245,7 +245,7 @@ async fn process_targets(
 
 pub async fn remove_index<R: Runtime>(
     app_handle: &AppHandle<R>,
-    targets: Vec<DeleteTarget>,
+    targets: &[DeleteTarget],
 ) -> eyre::Result<()> {
     let windows = app_handle.webview_windows();
     let targets_map = targets.into_iter().into_group_map_by(|t| t.pot_id);
@@ -260,7 +260,7 @@ pub async fn remove_index<R: Runtime>(
         };
     }
 
-    async fn process_targets(targets: Vec<DeleteTarget>, index: &SearchIndex) -> eyre::Result<()> {
+    async fn process_targets(targets: Vec<&DeleteTarget>, index: &SearchIndex) -> eyre::Result<()> {
         let mut writer = index.writer.lock().await;
 
         for DeleteTarget { id, .. } in targets {
