@@ -528,8 +528,8 @@ BEGIN
   INSERT INTO operation_logs (primary_key, tablename, operation, updated_at, status)
   VALUES (
     NEW.id,
-    "update",
     "paragraphs",
+    "update",
     NEW.updated_at,
     jsonb_object(
       'deleted',
