@@ -295,7 +295,7 @@ async fn process_outline_changes<R: Runtime>(
                 }
 
                 if !deleted_ids.is_empty() {
-                    let delete_targets = fetch::outline_delete_targets(pool, &deleted_ids).await?;
+                    let delete_targets = fetch::delete_targets(pool, &deleted_ids).await?;
                     upsert_path(pool, &deleted_ids).await?;
                     remove_index(app_handle, &delete_targets).await?;
 
@@ -490,8 +490,7 @@ async fn process_paragraph_changes<R: Runtime>(
                 }
 
                 if !deleted_ids.is_empty() {
-                    let delete_targets =
-                        fetch::paragraph_delete_targets(pool, &deleted_ids).await?;
+                    let delete_targets = fetch::delete_targets(pool, &deleted_ids).await?;
                     remove_index(app_handle, &delete_targets).await?;
 
                     let pot_id_target_ids_map = delete_targets

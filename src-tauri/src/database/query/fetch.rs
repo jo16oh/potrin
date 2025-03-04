@@ -341,35 +341,6 @@ pub async fn paragraphs_by_created_at(
         .context("database error")
 }
 
-pub async fn paragraph_delete_targets(
-    pool: &SqlitePool,
-    deleted_ids: &[UUIDv7Base64URL],
-) -> eyre::Result<Vec<DeleteTarget>> {
-    let query = format!(
-        r#"
-            SELECT id, pot_id
-            FROM paragraphs
-            WHERE id IN ({});
-        "#,
-        &deleted_ids
-            .iter()
-            .map(|_| "?")
-            .collect::<Vec<&str>>()
-            .join(", ")
-    );
-
-    let mut query_builder = sqlx::query_as::<_, DeleteTarget>(&query);
-
-    for id in deleted_ids.iter() {
-        query_builder = query_builder.bind(id);
-    }
-
-    query_builder
-        .fetch_all(pool)
-        .await
-        .context("database error")
-}
-
 pub async fn conflicting_outline_ids(
     pool: &SqlitePool,
     outline_id: UUIDv7Base64URL,
@@ -758,16 +729,15 @@ pub async fn outlines_for_index_by_id(
         .context("database error")
 }
 
-pub async fn outline_delete_targets(
+pub async fn delete_targets(
     pool: &SqlitePool,
     deleted_ids: &[UUIDv7Base64URL],
 ) -> eyre::Result<Vec<DeleteTarget>> {
     let query = format!(
         r#"
-            SELECT outlines.id, y_docs.pot_id
-            FROM outlines
-            INNER JOIN y_docs ON outlines.id = y_docs.id
-            WHERE outlines.id IN ({});
+            SELECT id, pot_id
+            FROM y_docs
+            WHERE id IN ({});
         "#,
         &deleted_ids
             .iter()
