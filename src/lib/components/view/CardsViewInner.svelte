@@ -117,22 +117,18 @@
         {outline}
         isViewFocused={isFocused}
         bind:focusPosition={viewState.focusPosition}
-        containerStyle={titleOutlineEditorContainer}
-        editorStyleVariant="cardsViewTitle"
+        variant={{ style: "cardsViewTitle" }}
       />
     </div>
     <div class={paragraphContainerStyle}>
       <div class={paragraphContainerLine}></div>
       {#each outline.paragraphs as paragraph (paragraph.id)}
-        <div class={paragraphStyle}>
-          <ParagraphEditor
-            {paragraph}
-            isViewFocused={isFocused}
-            bind:focusPosition={viewState.focusPosition}
-            containerStyle={paragraphEditorContainer}
-            editorStyleVariant="card"
-          />
-        </div>
+        <ParagraphEditor
+          {paragraph}
+          variant={{ style: "card" }}
+          isViewFocused={isFocused}
+          bind:focusPosition={viewState.focusPosition}
+        />
       {/each}
     </div>
     <div class={contentBoxBottomSpace}>
@@ -215,6 +211,7 @@
   const headerTitleContainer = css({
     justifySelf: "center",
     w: "full",
+    maxW: "[38.25rem]",
     flex: "[0 1 auto]",
     display: "flex",
     flexDir: "row",
@@ -273,9 +270,6 @@
   });
 
   const titleOutlineBulletContainerStyle = css({
-    position: "absolute",
-    left: "0",
-    top: "0",
     w: "10",
     h: "full",
   });
@@ -343,37 +337,17 @@
     w: "[0.0625rem]",
     h: "full",
     position: "absolute",
-    z: "0",
+    z: "-1",
     top: "0",
     left: "[0.75rem]",
     bg: "view.text-muted",
   });
-
-  const paragraphStyle = css({
-    position: "relative",
-    z: "10",
-    display: "flex",
-    py: "[1.3125rem]",
-    px: "[1.75rem]",
-    bg: "card.bg",
-    rounded: "lg",
-    w: "full",
-    h: "fit",
-    shadow: "sm",
-  });
-
-  const titleOutlineEditorContainer = css.raw({
-    w: "full",
-    h: "fit",
-    wordBreak: "break-word",
-    gridColumn: "2",
-    minHeight: "[3rem]",
-    color: "view.text",
-  });
-
-  const paragraphEditorContainer = css.raw({
-    w: "full",
-    h: "fit",
-    minHeight: "[1.5rem]",
-  });
+  //
+  // const titleOutlineEditorContainer = css.raw({
+  //   w: "full",
+  //   h: "fit",
+  //   wordBreak: "break-word",
+  //   minHeight: "[3rem]",
+  //   color: "view.text",
+  // });
 </script>

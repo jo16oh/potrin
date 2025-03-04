@@ -1,29 +1,29 @@
 <script lang="ts">
   import { Editor } from "@tiptap/core";
   import { onDestroy } from "svelte";
-  import { css, type Styles } from "styled-system/css";
+  import { css } from "styled-system/css";
   import { Paragraph } from "$lib/models/Paragraph.svelte";
   import type { FocusPosition, EditorFocusPosition } from "./utils";
   import { watch } from "runed";
   import { createParagraphExtensions } from "./schema";
   import { Window } from "$lib/models/Window.svelte";
-
-  type EditorStyleVariant = "card";
+  import MockParagraphEditor from "./MockParagraphEditor.svelte";
+  import { paragraphEditorStyle } from "./styles";
 
   type Props = {
     paragraph: Paragraph;
     focusPosition: FocusPosition;
     isViewFocused: boolean;
-    containerStyle?: Styles;
-    editorStyleVariant: EditorStyleVariant;
+    variant: Parameters<typeof paragraphEditorStyle>[0];
+    disabled?: boolean;
   };
 
   let {
     paragraph,
     focusPosition = $bindable(),
     isViewFocused,
-    containerStyle,
-    editorStyleVariant,
+    variant,
+    disabled = false,
   }: Props = $props();
 
   const isFocused = $derived(focusPosition.id === paragraph.id);
@@ -72,7 +72,7 @@
       ],
       editorProps: {
         attributes: {
-          class: css(noRing),
+          class: noRing,
         },
       },
       onBlur: () => {
@@ -117,50 +117,30 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   bind:this={editorElement}
-  class={css(containerStyle, editorStyleVariants[editorStyleVariant])}
   style:display={editor ? "block" : "none"}
+  class={paragraphEditorStyle(variant)}
   onmouseleave={() => {
     if (editor && !isFocused) {
       editor?.destroy();
     }
   }}
 ></div>
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class={css(containerStyle, editorStyleVariants[editorStyleVariant], noRing)}
+  class="mock-editor"
   style:display={editor ? "none" : "block"}
-  onmouseenter={() => createEditor(paragraph, null)}
+  onmouseenter={() => {
+    if (!disabled) createEditor(paragraph, null);
+  }}
 >
-  <div class="mock-editor">
-    <div contenteditable tabindex="-1" class="tiptap ProseMirror">
-      {#if paragraph.doc}
-        {#each paragraph.doc.content ?? [] as content}
-          {#if content.type === "paragraph"}
-            <p>
-              {#each content.content ?? [] as c}
-                {#if c.type === "text"}
-                  {c.text}
-                {/if}
-              {/each}
-            </p>
-          {/if}
-        {/each}
-      {/if}
-    </div>
+  <div contenteditable tabindex="-1">
+    <MockParagraphEditor {paragraph} variant={{ style: "card" }} />
   </div>
 </div>
 
 <script module>
-  const editorStyleVariants = {
-    card: css.raw({
-      "& p": {
-        color: "card.text",
-        minHeight: "[1.5rem]",
-      },
-    }),
-  };
-
-  const noRing = css.raw({
+  const noRing = css({
     ring: "none",
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",

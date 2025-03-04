@@ -1,29 +1,26 @@
 <script lang="ts">
   import { Editor } from "@tiptap/core";
   import { onDestroy } from "svelte";
-  import { css, type Styles } from "styled-system/css";
+  import { css } from "styled-system/css";
   import type { Outline } from "$lib/models/Outline.svelte";
   import type { FocusPosition, EditorFocusPosition } from "./utils";
   import { watch } from "runed";
   import { createOutlineExtensions } from "./schema";
   import { Window } from "$lib/models/Window.svelte";
-
-  type EditorStyleVariant = "cardsViewTitle" | "cardsViewChildren";
+  import { outlineEditorStyle } from "./styles";
 
   type Props = {
     outline: Outline;
     focusPosition: FocusPosition;
     isViewFocused: boolean;
-    containerStyle?: Styles;
-    editorStyleVariant: EditorStyleVariant;
+    variant: Parameters<typeof outlineEditorStyle>[0];
   };
 
   let {
     outline,
     focusPosition = $bindable(),
     isViewFocused,
-    containerStyle,
-    editorStyleVariant,
+    variant,
   }: Props = $props();
 
   const isFocused = $derived(focusPosition.id === outline.id);
@@ -72,7 +69,7 @@
       ],
       editorProps: {
         attributes: {
-          class: css(noRing),
+          class: noRing,
         },
       },
       onBlur: () => {
@@ -117,7 +114,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   bind:this={editorElement}
-  class={css(containerStyle, editorStyleVariants[editorStyleVariant])}
+  class={outlineEditorStyle(variant)}
   style:display={editor ? "block" : "none"}
   onmouseleave={() => {
     if (editor && !isFocused) {
@@ -125,9 +122,10 @@
     }
   }}
 ></div>
+
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class={css(containerStyle, editorStyleVariants[editorStyleVariant], noRing)}
+  class={outlineEditorStyle(variant)}
   style:display={editor ? "none" : "block"}
   onmouseenter={() => createEditor(outline, null)}
 >
@@ -151,24 +149,7 @@
 </div>
 
 <script module>
-  const editorStyleVariants = {
-    cardsViewTitle: css.raw({
-      "& p": {
-        fontSize: "[2rem]",
-        fontWeight: "semibold",
-        color: "view.text",
-      },
-    }),
-    cardsViewChildren: css.raw({
-      "& p": {
-        fontSize: "[2rem]",
-        fontWeight: "semibold",
-        color: "view.text",
-      },
-    }),
-  };
-
-  const noRing = css.raw({
+  const noRing = css({
     ring: "none",
   });
 </script>
