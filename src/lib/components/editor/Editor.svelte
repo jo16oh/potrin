@@ -1,29 +1,36 @@
-<script lang="ts">
+<script lang="ts" generics="T extends Outline | Paragraph">
   import { Editor } from "@tiptap/core";
   import { onDestroy } from "svelte";
   import { css } from "styled-system/css";
-  import type { Outline } from "$lib/models/Outline.svelte";
+  import { Paragraph } from "$lib/models/Paragraph.svelte";
   import type { FocusPosition, EditorFocusPosition } from "./utils";
   import { watch } from "runed";
-  import { createOutlineExtensions } from "./schema";
+  import { createOutlineExtensions, createParagraphExtensions } from "./schema";
   import { Window } from "$lib/models/Window.svelte";
-  import { outlineEditorStyle } from "./styles";
+  import MockParagraphEditor from "./MockParagraphEditor.svelte";
+  import { outlineEditorStyle, paragraphEditorStyle } from "./styles";
+  import { Outline } from "$lib/models/Outline.svelte";
+  import MockOutlineEditor from "./MockOutlineEditor.svelte";
+
+  type EditorStyleVariants<T> = T extends Outline
+    ? Parameters<typeof outlineEditorStyle>[0]
+    : Parameters<typeof paragraphEditorStyle>[0];
 
   type Props = {
-    outline: Outline;
+    doc: T;
+    variant: EditorStyleVariants<T>;
     focusPosition: FocusPosition;
     isViewFocused: boolean;
-    variant: Parameters<typeof outlineEditorStyle>[0];
   };
 
   let {
-    outline,
+    doc,
     focusPosition = $bindable(),
     isViewFocused,
     variant,
   }: Props = $props();
 
-  const isFocused = $derived(focusPosition.id === outline.id);
+  const isFocused = $derived(focusPosition.id === doc.id);
 
   let editor: Editor | undefined = $state();
   let editorElement: HTMLDivElement = $state() as HTMLDivElement;
@@ -31,11 +38,11 @@
   watch(
     [() => focusPosition, () => isViewFocused, () => Window.hasFocus()],
     () => {
-      if (isViewFocused && focusPosition.id === outline.id) {
+      if (isViewFocused && focusPosition.id === doc.id) {
         if (editor) {
           editor.commands.focus(focusPosition.position);
         } else {
-          (async () => await createEditor(outline, focusPosition.position))();
+          (async () => await createEditor(doc, focusPosition.position))();
         }
       } else {
         editor?.commands.blur();
@@ -56,17 +63,21 @@
     { lazy: true },
   );
 
-  async function createEditor(outline: Outline, pos: EditorFocusPosition) {
+  async function createEditor(
+    doc: Outline | Paragraph,
+    pos: EditorFocusPosition,
+  ) {
     if (editor) return;
 
     editor = new Editor({
       element: editorElement,
-      extensions: [
-        ...(await createOutlineExtensions(
-          outline,
-          (pos) => (focusPosition = pos),
-        )),
-      ],
+      extensions:
+        doc instanceof Outline
+          ? await createOutlineExtensions(doc, (pos) => (focusPosition = pos))
+          : await createParagraphExtensions(
+              doc,
+              (pos) => (focusPosition = pos),
+            ),
       editorProps: {
         attributes: {
           class: noRing,
@@ -85,14 +96,14 @@
       },
       onDestroy: () => {
         if (editor) {
-          outline.save();
+          doc.save();
           editor = undefined;
         }
       },
       onFocus: () => {
-        if (!isFocused) {
+        if (focusPosition.id !== doc.id) {
           focusPosition = {
-            id: outline.id,
+            id: doc.id,
             position: editor!.state.selection.from,
           };
         }
@@ -114,8 +125,10 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   bind:this={editorElement}
-  class={outlineEditorStyle(variant)}
   style:display={editor ? "block" : "none"}
+  class={doc instanceof Outline
+    ? outlineEditorStyle(variant as EditorStyleVariants<Outline>)
+    : paragraphEditorStyle(variant as EditorStyleVariants<Paragraph>)}
   onmouseleave={() => {
     if (editor && !isFocused) {
       editor?.destroy();
@@ -125,32 +138,30 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class={outlineEditorStyle(variant)}
+  class="mock-editor"
   style:display={editor ? "none" : "block"}
-  onmouseenter={() => createEditor(outline, null)}
+  onmouseenter={() => createEditor(doc, null)}
 >
-  <div class="mock-editor">
-    <div contenteditable tabindex="-1" class="tiptap ProseMirror">
-      {#if outline.doc}
-        {#each outline.doc.content ?? [] as content}
-          {#if content.type === "paragraph"}
-            <p>
-              {#each content.content ?? [] as c}
-                {#if c.type === "text"}
-                  {c.text}
-                {/if}
-              {/each}
-            </p>
-          {/if}
-        {/each}
-      {/if}
-    </div>
+  <div contenteditable tabindex="-1">
+    {#if doc instanceof Outline}
+      <MockOutlineEditor
+        outline={doc}
+        variant={variant as EditorStyleVariants<Outline>}
+      />
+    {:else}
+      <MockParagraphEditor
+        paragraph={doc}
+        variant={variant as EditorStyleVariants<Paragraph>}
+      />
+    {/if}
   </div>
 </div>
 
 <script module>
   const noRing = css({
     ring: "none",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   });
 </script>
 

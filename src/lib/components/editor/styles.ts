@@ -24,6 +24,7 @@ export const outlineEditorStyle = cva({
 
 export const paragraphEditorStyle = cva({
   base: {
+    position: "relative",
     minH: "[4.225rem]",
     "& p": {
       minH: "[1.6rem]",
@@ -34,7 +35,6 @@ export const paragraphEditorStyle = cva({
   variants: {
     style: {
       card: {
-        position: "relative",
         rounded: "lg",
         w: "full",
         h: "fit",

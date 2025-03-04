@@ -2,12 +2,11 @@
   import { ChevronLeft, ChevronRight, Search, X } from "lucide-svelte";
   import { css } from "styled-system/css";
   import Button from "../common/Button.svelte";
-  import OutlineEditor from "../editor/OutlineEditor.svelte";
   import { type ViewState } from "../../../generated/tauri-commands";
   import { Outline } from "$lib/models/Outline.svelte";
   import Asterisk from "../icon/Asterisk.svelte";
   import ScrollArea from "../common/ScrollArea.svelte";
-  import ParagraphEditor from "../editor/ParagraphEditor.svelte";
+  import Editor from "../editor/Editor.svelte";
   import { debounce } from "es-toolkit";
   import { watch } from "runed";
   import { onMount } from "svelte";
@@ -113,8 +112,8 @@
         />
         <div class={titleBulletBoxLine}></div>
       </div>
-      <OutlineEditor
-        {outline}
+      <Editor
+        doc={outline}
         isViewFocused={isFocused}
         bind:focusPosition={viewState.focusPosition}
         variant={{ style: "cardsViewTitle" }}
@@ -123,8 +122,8 @@
     <div class={paragraphContainerStyle}>
       <div class={paragraphContainerLine}></div>
       {#each outline.paragraphs as paragraph (paragraph.id)}
-        <ParagraphEditor
-          {paragraph}
+        <Editor
+          doc={paragraph}
           variant={{ style: "card" }}
           isViewFocused={isFocused}
           bind:focusPosition={viewState.focusPosition}
