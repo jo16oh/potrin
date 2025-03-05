@@ -12,6 +12,7 @@
   import { onMount } from "svelte";
   import CardStack from "../icon/CardStack.svelte";
   import { View } from "$lib/models/Workspace.svelte";
+  import VerticalLine from "../icon/VerticalLine.svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
 
@@ -110,7 +111,7 @@
           class={titleOutlineAsteriskStyle}
           data-outline-empty={Boolean(outline.text.length)}
         />
-        <div class={titleBulletBoxLine}></div>
+        <VerticalLine class={titleBulletBoxLine} />
       </div>
       <Editor
         doc={outline}
@@ -120,7 +121,7 @@
       />
     </div>
     <div class={paragraphContainerStyle}>
-      <div class={paragraphContainerLine}></div>
+      <VerticalLine class={paragraphContainerLine} />
       {#each outline.paragraphs as paragraph (paragraph.id)}
         <Editor
           doc={paragraph}
@@ -131,7 +132,8 @@
       {/each}
     </div>
     <div class={contentBoxBottomSpace}>
-      <div class={contetBoxBottomLine}></div>
+      <!-- <div class={contetBoxBottomLine}></div> -->
+      <VerticalLine class={contetBoxBottomLine} />
       <div class={roundedLineEnd}></div>
     </div>
   </div>
@@ -287,13 +289,11 @@
   });
 
   const titleBulletBoxLine = css({
-    w: "[0.0625rem]",
     h: "[calc(100% - 2.5rem)]",
     position: "absolute",
     top: "10",
     left: "[0.75rem]",
-    bg: "view.text-muted",
-    rounded: "md",
+    color: "view.text-muted",
   });
 
   const contentBoxBottomSpace = css({
@@ -303,13 +303,11 @@
   });
 
   const contetBoxBottomLine = css({
-    w: "[0.0625rem]",
     h: "[1.125rem]",
     position: "absolute",
     top: "0",
     left: "[0.75rem]",
-    bg: "view.text-muted",
-    rounded: "md",
+    color: "view.text-muted",
   });
 
   const roundedLineEnd = css({
@@ -333,13 +331,12 @@
   });
 
   const paragraphContainerLine = css({
-    w: "[0.0625rem]",
     h: "full",
     position: "absolute",
     z: "-1",
     top: "0",
     left: "[0.75rem]",
-    bg: "view.text-muted",
+    color: "view.text-muted",
   });
   //
   // const titleOutlineEditorContainer = css.raw({
