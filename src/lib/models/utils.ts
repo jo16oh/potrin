@@ -178,14 +178,11 @@ export class DescendantsIndex {
 
   get(ancestorId: string) {
     return (
-      this.#descendantsMap
-        .get(ancestorId)
-        ?.keys()
+      Array.from(this.#descendantsMap.get(ancestorId) ?? [])
         .map(
           (id) => this.#outlineBuffer.get(id) ?? this.#paragraphBuffer.get(id),
         )
-        .filter((o) => o !== undefined)
-        .toArray() ?? []
+        .filter((o) => o !== undefined) ?? []
     );
   }
 }
