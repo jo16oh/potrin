@@ -9,7 +9,6 @@ import {
   type Paragraph as RawParagraph,
   type Quote,
   type Links,
-  type Path,
   commands,
 } from "../../generated/tauri-commands";
 import { Outline } from "./Outline.svelte";
@@ -159,7 +158,6 @@ export class Paragraph {
   private _deleted = $state() as boolean;
   private _outlineId: string;
   private _outlineRef = $state<WeakRef<Outline> | undefined>();
-  private readonly _path = $state<Path | undefined>(); //allow update only through setter
   private readonly _quote = $state<Quote | null>(null); //allow update only through setter
   private readonly _links = $state<Readonly<Links>>() as Links; //allow update only through setter
   private _yDocManager: InstanceType<typeof Paragraph.YDocManager> | undefined;
@@ -214,18 +212,6 @@ export class Paragraph {
     return this._outlineRef?.deref() ?? null;
   }
 
-  get path(): Promise<Path> {
-    if (this._path) {
-      return Promise.resolve(this._path);
-    } else {
-      return Paragraph.#commands.fetchPath(this._outlineId).then((r) => {
-        const path = unwrap(r);
-        this.path = path;
-        return path;
-      });
-    }
-  }
-
   get isEmpty() {
     return !this.doc.content?.length;
   }
@@ -242,26 +228,10 @@ export class Paragraph {
     Outline.reversedLinkIndex.set(this.id, this._links);
   }
 
-  private set path(value: Path | null) {
-    // @ts-expect-error allow update only through this setter
-    this._path = value;
-
-    if (value) {
-      Outline.descendantsIndex.set(this.id, value);
-    }
-  }
-
   private set quote(value: Quote | null) {
     // @ts-expect-error allow update only through this setter
     this._quote = value;
     Paragraph.#reversedQuoteIndex.set(this.id, value);
-  }
-
-  updatePath(text: string, depth: number) {
-    if (!this._path) return;
-
-    const link = this._path[depth];
-    if (link) link.text = text;
   }
 
   async yDocManager() {
