@@ -428,17 +428,61 @@ impl<'r> Decode<'r, Sqlite> for Links {
 #[serde(rename_all = "camelCase")]
 pub struct TimelineDay {
     pub day_start: i64,
+    pub paragraph_position_index: ParagraphPositionIndex,
     pub paragraphs: Vec<Paragraph>,
     pub outlines: Vec<Outline>,
 }
 
-#[allow(dead_code)]
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
+#[serde(transparent)]
+pub struct ParagraphPositionIndex(
+    #[specta(type = HashMap<String, ParagraphPositionIndexItem>)]
+    HashMap<UUIDv7Base64URL, ParagraphPositionIndexItem>,
+);
+
+#[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ParagraphPositionIndexItem {
+    pub prev_id: Option<UUIDv7Base64URL>,
+    pub is_last: bool,
+}
+
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RawParagraphPositionIndexItem {
+    pub id: UUIDv7Base64URL,
+    pub prev_id: Option<UUIDv7Base64URL>,
+    pub is_last: bool,
+}
+
+impl From<RawParagraphPositionIndexItem> for ParagraphPositionIndexItem {
+    fn from(value: RawParagraphPositionIndexItem) -> Self {
+        Self {
+            prev_id: value.prev_id,
+            is_last: value.is_last,
+        }
+    }
+}
+
+impl From<Vec<RawParagraphPositionIndexItem>> for ParagraphPositionIndex {
+    fn from(value: Vec<RawParagraphPositionIndexItem>) -> Self {
+        Self(
+            value
+                .into_iter()
+                .map(|v| (v.id, ParagraphPositionIndexItem::from(v)))
+                .collect::<HashMap<UUIDv7Base64URL, ParagraphPositionIndexItem>>(),
+        )
+    }
+}
+
 #[derive(FromRow)]
 pub struct Oplog {
     pub rowid: i64,
     pub primary_key: UUIDv7Base64URL,
     pub tablename: String,
     pub operation: String,
+    #[allow(dead_code)]
     pub updated_at: i64,
     pub status: Option<Vec<u8>>,
 }

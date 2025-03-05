@@ -3,8 +3,8 @@ use crate::{
     types::{
         model::{
             Ancestor, Descendant, LinkCount, Oplog, Outline, OutlineForIndex, Paragraph,
-            ParagraphForIndex, Path, PendingYUpdate, Pot, RawParagraph, RawParagraphForIndex,
-            YUpdate,
+            ParagraphForIndex, ParagraphPositionIndex, Path, PendingYUpdate, Pot, RawParagraph,
+            RawParagraphForIndex, RawParagraphPositionIndexItem, YUpdate,
         },
         state::{AppState, WorkspaceState},
         util::{BytesBase64URL, UUIDv7Base64URL},
@@ -325,8 +325,7 @@ pub async fn paragraphs_by_created_at(
         LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
         LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
         WHERE ? <= paragraphs.created_at AND paragraphs.created_at < ? AND paragraphs.deleted = false
-        GROUP BY paragraphs.id
-        ORDER BY paragraphs.created_at DESC;
+        GROUP BY paragraphs.id;
     "#;
 
     let mut query_builder = sqlx::query_as::<_, RawParagraph>(query);
@@ -338,6 +337,57 @@ pub async fn paragraphs_by_created_at(
         .fetch_all(pool)
         .await
         .map(|raw_paragraphs| raw_paragraphs.into_iter().map(Paragraph::from).collect())
+        .context("database error")
+}
+
+pub async fn paragraph_position_index(
+    pool: &SqlitePool,
+    outline_ids: &[UUIDv7Base64URL],
+    paragraph_ids: &[UUIDv7Base64URL],
+) -> Result<ParagraphPositionIndex> {
+    let query = format!(
+        r#"
+            WITH CTE AS (
+                SELECT 
+                    id,
+                    LAG(id) OVER (PARTITION BY outline_id ORDER BY fractional_index ASC) AS prev_id,
+                    CASE 
+                        WHEN LEAD(id) OVER (PARTITION BY outline_id ORDER BY fractional_index ASC) IS NULL THEN TRUE
+                        ELSE FALSE
+                    END AS is_last
+                FROM paragraphs
+                WHERE outline_id IN ({}) AND deleted = false
+            )
+            SELECT * 
+            FROM CTE 
+            WHERE id IN ({});
+        "#,
+        outline_ids
+            .iter()
+            .map(|_| "?".to_string())
+            .collect::<Vec<String>>()
+            .join(", "),
+        paragraph_ids
+            .iter()
+            .map(|_| "?".to_string())
+            .collect::<Vec<String>>()
+            .join(", ")
+    );
+
+    let mut query_builder = sqlx::query_as::<_, RawParagraphPositionIndexItem>(&query);
+
+    for id in outline_ids {
+        query_builder = query_builder.bind(id);
+    }
+
+    for id in paragraph_ids {
+        query_builder = query_builder.bind(id);
+    }
+
+    query_builder
+        .fetch_all(pool)
+        .await
+        .map(ParagraphPositionIndex::from)
         .context("database error")
 }
 
@@ -657,6 +707,51 @@ pub async fn outlines_by_id(
             FROM outlines
             LEFT JOIN outline_links ON outlines.id = outline_links.id_from
             LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
+            WHERE id IN ({}) AND deleted = false
+            GROUP BY id;
+        "#,
+        outline_ids
+            .iter()
+            .map(|_| "?".to_string())
+            .collect::<Vec<String>>()
+            .join(", ")
+    );
+
+    let mut query_builder = sqlx::query_as::<_, Outline>(&query);
+
+    for id in outline_ids {
+        query_builder = query_builder.bind(id);
+    }
+
+    query_builder
+        .fetch_all(pool)
+        .await
+        .context("database error")
+}
+
+pub async fn outlines_with_path_by_id(
+    pool: &SqlitePool,
+    outline_ids: &[UUIDv7Base64URL],
+) -> Result<Vec<Outline>> {
+    let query = format!(
+        r#"
+            SELECT
+                id,
+                parent_id,
+                fractional_index,
+                doc,
+                text,
+                paths.path AS path,
+                jsonb_group_array(linked_paths.path) AS links,
+                hidden,
+                collapsed,
+                deleted,
+                created_at,
+                updated_at
+            FROM outlines
+            LEFT JOIN outline_paths AS paths ON paths.outline_id = outlines.id
+            LEFT JOIN outline_links ON outlines.id = outline_links.id_from
+            LEFT JOIN outline_paths AS linked_paths ON linked_paths.outline_id = outline_links.id_to
             WHERE id IN ({}) AND deleted = false
             GROUP BY id;
         "#,

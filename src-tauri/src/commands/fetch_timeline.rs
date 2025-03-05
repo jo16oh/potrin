@@ -95,10 +95,13 @@ pub async fn fetch_timeline<R: Runtime>(
     };
 
     let outline_ids: Vec<UUIDv7Base64URL> = paragraphs.iter().map(|c| c.outline_id).collect();
-    let outlines = fetch::outlines_by_id(pool, &outline_ids).await?;
+    let paragraph_ids: Vec<UUIDv7Base64URL> = paragraphs.iter().map(|p| p.id).collect();
+    let outlines = fetch::outlines_with_path_by_id(pool, &outline_ids).await?;
+    let index = fetch::paragraph_position_index(pool, &outline_ids, &paragraph_ids).await?;
 
     eyre::Ok(Some(TimelineDay {
         day_start: from.timestamp_millis(),
+        paragraph_position_index: index,
         paragraphs,
         outlines,
     }))
