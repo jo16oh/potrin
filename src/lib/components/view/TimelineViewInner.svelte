@@ -150,69 +150,73 @@
 
   <div bind:this={daysRef} class={contentContainerStyle} data-loading={loading}>
     {#each timeline.days as day (day.dayStart)}
-      <div class="day" data-date={day.dayStart.getTime()}>
-        <div class={dateStyle}>
-          {format(day.dayStart, "yyyy-MM-dd")}
-        </div>
-        <div class={dayContentsStyle}>
-          {#each day.items as { outline, paragraphs }}
-            <div class={outlineContainerStyle}>
-              <div class={outlineStyle}>
-                <div class={asteriskContainerStyle}>
-                  <Asterisk class={asteriskStyle} />
-                </div>
-                <div class={pathStyle}>
-                  {#await outline.path then path}
-                    {#each path as pathItem, idx}
-                      {#if idx !== 0}
-                        <ChevronRight class={chevronStyle} />
-                      {/if}
-                      <div
-                        class={pathTextStyle}
-                        data-last={path.length - 1 === idx}
-                      >
-                        {pathItem.text}
-                      </div>
-                    {/each}
-                  {/await}
-                </div>
-              </div>
-
-              <div class={paragraphContainerStyle}>
-                {#each paragraphs as paragraph, idx (paragraph.id)}
-                  <div class={paragraphStyle}>
-                    {#if paragraph.id in day.paragraphPositionIndex}
-                      {@const index = day.paragraphPositionIndex[paragraph.id]}
-                      {#if index && (index.prevId === paragraphs[idx - 1]?.id || index.prevId === null)}
-                        <VerticalLine class={paragraphContainerLineTop} />
-                      {:else}
-                        <VerticalLineDash class={paragraphContainerLineTop} />
-                        <Tilda class={tildaTop} />
-                      {/if}
-                    {/if}
-                    <MockParagraphEditor
-                      {paragraph}
-                      variant={{ style: "card" }}
-                    />
-                    {#if idx === paragraphs.length - 1}
-                      {@const index = day.paragraphPositionIndex[paragraph.id]}
-                      {#if index?.isLast}
-                        <VerticalLine class={paragraphContainerLineBottom} />
-                        <div class={roundedLineEnd}></div>
-                      {:else}
-                        <VerticalLineDash
-                          class={paragraphContainerLineBottom}
-                        />
-                        <Tilda class={tildaBottom} />
-                      {/if}
-                    {/if}
+      {#if day.items.length}
+        <div class="day" data-date={day.dayStart.getTime()}>
+          <div class={dateStyle}>
+            {format(day.dayStart, "yyyy-MM-dd")}
+          </div>
+          <div class={dayContentsStyle}>
+            {#each day.items as { outline, paragraphs }}
+              <div class={outlineContainerStyle}>
+                <div class={outlineStyle}>
+                  <div class={asteriskContainerStyle}>
+                    <Asterisk class={asteriskStyle} />
                   </div>
-                {/each}
+                  <div class={pathStyle}>
+                    {#await outline.path then path}
+                      {#each path as pathItem, idx}
+                        {#if idx !== 0}
+                          <ChevronRight class={chevronStyle} />
+                        {/if}
+                        <div
+                          class={pathTextStyle}
+                          data-last={path.length - 1 === idx}
+                        >
+                          {pathItem.text}
+                        </div>
+                      {/each}
+                    {/await}
+                  </div>
+                </div>
+
+                <div class={paragraphContainerStyle}>
+                  {#each paragraphs as paragraph, idx (paragraph.id)}
+                    <div class={paragraphStyle}>
+                      {#if paragraph.id in day.paragraphPositionIndex}
+                        {@const index =
+                          day.paragraphPositionIndex[paragraph.id]}
+                        {#if index && (index.prevId === paragraphs[idx - 1]?.id || index.prevId === null)}
+                          <VerticalLine class={paragraphContainerLineTop} />
+                        {:else}
+                          <VerticalLineDash class={paragraphContainerLineTop} />
+                          <Tilda class={tildaTop} />
+                        {/if}
+                      {/if}
+                      <MockParagraphEditor
+                        {paragraph}
+                        variant={{ style: "card" }}
+                      />
+                      {#if idx === paragraphs.length - 1}
+                        {@const index =
+                          day.paragraphPositionIndex[paragraph.id]}
+                        {#if index?.isLast}
+                          <VerticalLine class={paragraphContainerLineBottom} />
+                          <div class={roundedLineEnd}></div>
+                        {:else}
+                          <VerticalLineDash
+                            class={paragraphContainerLineBottom}
+                          />
+                          <Tilda class={tildaBottom} />
+                        {/if}
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
               </div>
-            </div>
-          {/each}
+            {/each}
+          </div>
         </div>
-      </div>
+      {/if}
     {/each}
   </div>
 </VirtualScroll>
