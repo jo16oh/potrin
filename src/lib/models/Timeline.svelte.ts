@@ -114,8 +114,8 @@ export class Timeline {
               nextDay.dayStart.getTime() < p.createdAt &&
               p.createdAt < prevDay.dayStart.getTime()
             ) {
-              const tl = await fetchTimeline({ at: p.createdAt });
-              if (tl) timeline.days.splice(i + 1, 0, tl);
+              const day = await fetchTimeline({ at: p.createdAt });
+              if (day) timeline.days.splice(i + 1, 0, day);
             }
           }
         }
@@ -145,7 +145,7 @@ export class Timeline {
     return day ? () => this.days.push(day) : null;
   }
 
-  cleanup() {
+  cleanup = () => {
     this._cleanup?.();
-  }
+  };
 }
