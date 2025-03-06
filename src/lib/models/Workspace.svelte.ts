@@ -432,6 +432,37 @@ class ViewMethods {
       await Paragraph.buffer.get(current.focusPosition.id)?.save();
     }
   }
+
+  new<T extends "cards" | "outline">(type: T): Extract<ViewState, { type: T }> {
+    switch (type) {
+      case "cards":
+        return {
+          id: crypto.randomUUID(),
+          type: "cards",
+          outlineId: null,
+          title: "",
+          pinned: false,
+          scrollPosition: 0,
+          focusPosition: { id: null, position: "start" },
+          viewWidthRatio: 1,
+        } as Extract<ViewState, { type: T }>;
+      case "outline":
+        return {
+          id: crypto.randomUUID(),
+          type: "outline",
+          outlineId: null,
+          title: "",
+          pinned: false,
+          scrollPosition: 0,
+          focusPosition: { id: null, position: "start" },
+          viewWidthRatio: 1,
+        } as Extract<ViewState, { type: T }>;
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported view type: ${_exhaustiveCheck}`);
+      }
+    }
+  }
 }
 
 export type View = ViewState;
