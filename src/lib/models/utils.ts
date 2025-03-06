@@ -113,28 +113,16 @@ export class DescendantsIndex {
   readonly #descendantsMap = new Map<string, Set<string>>();
   readonly #prevPathMap = new Map<string, Path>();
   readonly #outlineBuffer: WeakRefMap<string, Outline>;
-  readonly #paragraphBuffer: WeakRefMap<string, Paragraph>;
 
-  constructor(
-    outlineBuffer: WeakRefMap<string, Outline>,
-    paragraphBuffer: WeakRefMap<string, Paragraph>,
-  ) {
+  constructor(outlineBuffer: WeakRefMap<string, Outline>) {
     this.#outlineBuffer = outlineBuffer;
-    this.#paragraphBuffer = paragraphBuffer;
     this.#outlineBuffer.addHook(this.#reconcile);
-    this.#paragraphBuffer.addHook(this.#reconcile);
   }
 
   // Using arrow function to fix `this` to the instance,
   // which avoids `this` reference error in FinalizationRegistry
   #reconcile = (deletedId: string) => {
-    if (
-      !(
-        this.#outlineBuffer.get(deletedId) ??
-        this.#paragraphBuffer.get(deletedId)
-      )
-    )
-      return;
+    if (!this.#outlineBuffer.get(deletedId)) return;
 
     const ancestors = this.#prevPathMap.get(deletedId);
     if (!ancestors) return;
@@ -179,9 +167,7 @@ export class DescendantsIndex {
   get(ancestorId: string) {
     return (
       Array.from(this.#descendantsMap.get(ancestorId) ?? [])
-        .map(
-          (id) => this.#outlineBuffer.get(id) ?? this.#paragraphBuffer.get(id),
-        )
+        .map((id) => this.#outlineBuffer.get(id))
         .filter((o) => o !== undefined) ?? []
     );
   }

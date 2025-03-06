@@ -39,10 +39,7 @@ export class Outline {
   static #commands: Commands = commands;
   static readonly buffer = new WeakRefMap<string, Outline>();
   static readonly reversedLinkIndex = new ReversedLinkIndex(this.buffer);
-  static readonly descendantsIndex = new DescendantsIndex(
-    Outline.buffer,
-    Paragraph.buffer,
-  );
+  static readonly descendantsIndex = new DescendantsIndex(Outline.buffer);
 
   static inject(commands: Commands) {
     this.#commands = commands;
