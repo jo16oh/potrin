@@ -1,9 +1,9 @@
 <script lang="ts" generics="T">
   import { tick } from "svelte";
-  import { onMount } from "svelte";
   import type { Snippet } from "svelte";
   import ScrollArea from "./ScrollArea.svelte";
   import { css } from "styled-system/css";
+  import type { SvelteHTMLElements, UIEventHandler } from "svelte/elements";
 
   type Props = {
     ref?: HTMLDivElement | undefined;
@@ -17,7 +17,7 @@
     ) => Promise<void> | void;
     loading?: Snippet;
     children?: Snippet;
-  };
+  } & SvelteHTMLElements["div"];
 
   let {
     ref = $bindable(),
@@ -27,12 +27,14 @@
     onReachBottom,
     loading,
     children,
+    onscroll,
+    ...restProps
   }: Props = $props();
 
   let loadingTop: boolean = $state(false);
   let loadingBottom: boolean = $state(false);
 
-  async function updateArrayHead(updateArray: () => void) {
+  export async function updateArrayHead(updateArray: () => void) {
     await tick();
     const scrollTopBefore = ref?.scrollTop ?? 0;
     const scrollHeightBefore = ref?.scrollHeight ?? 0;
@@ -48,7 +50,7 @@
     });
   }
 
-  async function onscroll() {
+  const handleScroll: UIEventHandler<HTMLDivElement> = async (e) => {
     const scrollTop = ref?.scrollTop ?? 0;
     const scrollHeight = ref?.scrollHeight ?? 0;
     const clientHeight = ref?.clientHeight ?? 0;
@@ -65,7 +67,7 @@
         if (lengthAfter > maxLength) {
           const rowsAdded = lengthAfter - lengthBefore;
           if (rowsAdded > 0) {
-            items = items.toSpliced(-rowsAdded);
+            items.splice(-rowsAdded);
           }
         }
 
@@ -84,7 +86,7 @@
           const rowsAdded = lengthAfter - lengthBefore;
           if (rowsAdded > 0) {
             await updateArrayHead(() => {
-              items = items.toSpliced(0, rowsAdded);
+              items.splice(0, rowsAdded);
             });
           }
         }
@@ -92,14 +94,18 @@
         loadingBottom = false;
       }
     }
-  }
 
-  onMount(async () => {
-    await onReachTop?.(updateArrayHead);
-  });
+    onscroll?.(e);
+  };
 </script>
 
-<ScrollArea bind:ref type="always" {scrollAreaStyle} {onscroll}>
+<ScrollArea
+  bind:ref
+  type="always"
+  {scrollAreaStyle}
+  onscroll={handleScroll}
+  {...restProps}
+>
   {#if loadingTop}
     <div class={loadingTopStyle}>
       {@render loading?.()}
