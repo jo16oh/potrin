@@ -389,7 +389,7 @@ class ViewMethods {
 
   open(current: ViewState, next: ViewState) {
     this.#history.addPrev(current);
-    Object.assign(current, next);
+    Object.assign(current, { ...next, id: current.id });
   }
 
   back(current: ViewState) {
