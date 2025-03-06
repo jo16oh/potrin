@@ -7,7 +7,7 @@ import {
 } from "../../generated/tauri-commands";
 import { Outline } from "./Outline.svelte";
 import { fetchTimeline } from "$lib/commands";
-import { isSameDay } from "date-fns";
+import { addDays, isSameDay } from "date-fns";
 import { getCurrent } from "@tauri-apps/api/webviewWindow";
 
 export class TimelineDay {
@@ -96,26 +96,60 @@ export class Timeline {
       .listen(async (e) => {
         const operation = e.payload.operation;
 
-        if (operation.kind === "delete") {
-          // remove from day
-          return;
-        }
+        if (operation.kind === "delete") return;
 
-        for (const { currentValue: p } of operation.targets) {
-          for (const [i, day] of timeline.days.entries()) {
-            const nextDay = timeline.days[i + 1];
-            const prevDay = timeline.days[i - 1];
+        const targetDays = new Set(
+          operation.targets.map((e) => e.currentValue.createdAt),
+        );
 
-            if (isSameDay(new Date(p.createdAt), day.dayStart)) {
-              await day.reload();
-            } else if (
-              nextDay !== undefined &&
-              prevDay !== undefined &&
-              nextDay.dayStart.getTime() < p.createdAt &&
-              p.createdAt < prevDay.dayStart.getTime()
-            ) {
-              const day = await fetchTimeline({ at: p.createdAt });
-              if (day) timeline.days.splice(i + 1, 0, day);
+        const latestDayStart = timeline.days[0]?.dayStart;
+        const oldestDayStart =
+          timeline.days[timeline.days.length - 1]?.dayStart;
+
+        for (const createdAt of targetDays) {
+          // when the timeline is empty
+          if (!latestDayStart || !oldestDayStart) {
+            const day = await fetchTimeline("latest");
+            if (day) timeline.days.push(day);
+            continue;
+          }
+          // when the updated paragraph is younger than the latest day in the timeline
+          else if (addDays(latestDayStart, 1).getTime() <= createdAt) {
+            const nextDay = await fetchTimeline({
+              after: latestDayStart.getTime(),
+            });
+
+            if (nextDay && isSameDay(nextDay.dayStart, new Date(createdAt))) {
+              timeline.days.unshift(nextDay);
+            }
+          }
+          // when the updated paragraph is older than the oldest day in the timeline
+          else if (createdAt < oldestDayStart.getTime()) {
+            const prevDay = await fetchTimeline({
+              before: oldestDayStart.getTime(),
+            });
+
+            if (prevDay && isSameDay(prevDay.dayStart, new Date(createdAt))) {
+              timeline.days.push(prevDay);
+            }
+          }
+          // when the updated paragraph's timestamp is between the oldest and latest day of the timeline
+          else {
+            for (const [i, day] of timeline.days.entries()) {
+              const nextDayStart = timeline.days[i - 1]?.dayStart;
+              const prevDayStart = timeline.days[i + 1]?.dayStart;
+
+              if (isSameDay(new Date(createdAt), day.dayStart)) {
+                await day.reload();
+              } else if (
+                prevDayStart !== undefined &&
+                nextDayStart !== undefined &&
+                prevDayStart.getTime() <= createdAt &&
+                createdAt < nextDayStart.getTime()
+              ) {
+                const day = await fetchTimeline({ at: createdAt });
+                if (day) timeline.days.splice(i + 1, 0, day);
+              }
             }
           }
         }
