@@ -27,10 +27,6 @@
   let scrollAreaRef = $state<HTMLDivElement>()!;
   let daysRef = $state<HTMLDivElement>()!;
 
-  $inspect(format(new Date(view.position!.dayStart), "yyyy-MM-dd"));
-  $inspect(view.position?.scrollOffset);
-  $inspect(loading);
-
   onMount(async () => {
     const dayStart = view.position?.dayStart;
     const scrollOffset = view.position?.scrollOffset;
