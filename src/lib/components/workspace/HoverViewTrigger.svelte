@@ -43,7 +43,7 @@
     pinned: false,
     scrollPosition: 0,
     focusPosition: { id: null, position: "start" },
-    flexGrow: 1,
+    viewWidthRatio: 1,
   });
 
   async function handleClickMaximize(e: MouseEvent) {
@@ -70,7 +70,7 @@
         title: "",
         scrollPosition: 0,
         focusPosition: { id: null, position: "start" },
-        flexGrow: 1,
+        viewWidthRatio: 1,
       });
     });
   }
@@ -89,7 +89,7 @@
         title: "",
         scrollPosition: 0,
         focusPosition: { id: null, position: "start" },
-        flexGrow: 1,
+        viewWidthRatio: 1,
       });
     });
   }

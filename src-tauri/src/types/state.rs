@@ -42,7 +42,8 @@ impl WorkspaceState {
                 id: Uuid::new_v4().to_string(),
                 views: vec![ViewState::Timeline {
                     id: timeline_view_id.clone(),
-                    flex_grow: 1.0,
+                    view_width_ratio: 1.0,
+                    position: None,
                 }],
                 focused_view_id: None,
                 pinned_view_ids,
@@ -99,7 +100,7 @@ pub enum ViewState {
         id: String,
         outline_id: Option<UUIDv7Base64URL>,
         title: String,
-        flex_grow: f64,
+        view_width_ratio: f64,
         scroll_position: u32,
         focus_position: FocusPosition,
     },
@@ -108,7 +109,7 @@ pub enum ViewState {
         id: String,
         outline_id: Option<UUIDv7Base64URL>,
         title: String,
-        flex_grow: f64,
+        view_width_ratio: f64,
         scroll_position: u32,
         focus_position: FocusPosition,
     },
@@ -117,19 +118,23 @@ pub enum ViewState {
         id: String,
         outline_id: Option<UUIDv7Base64URL>,
         title: String,
-        flex_grow: f64,
+        view_width_ratio: f64,
         scroll_position: u32,
         focus_position: FocusPosition,
     },
     #[serde(rename_all = "camelCase")]
-    Timeline { id: String, flex_grow: f64 },
+    Timeline {
+        id: String,
+        view_width_ratio: f64,
+        position: Option<TimelinePosition>,
+    },
     #[serde(rename_all = "camelCase")]
     Relation {
         id: String,
         outline_id: UUIDv7Base64URL,
         title: String,
         direction: RelationDirection,
-        flex_grow: f64,
+        view_width_ratio: f64,
         scroll_position: u32,
     },
     #[serde(rename_all = "camelCase")]
@@ -137,7 +142,7 @@ pub enum ViewState {
         id: String,
         query: String,
         scope: Option<UUIDv7Base64URL>,
-        flex_grow: f64,
+        view_width_ratio: f64,
         scroll_position: u32,
     },
 }
@@ -172,4 +177,11 @@ pub enum PositionString {
 pub enum RelationDirection {
     Back,
     Forward,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelinePosition {
+    day_start: i64,
+    scroll_offset: f64,
 }

@@ -219,8 +219,7 @@ describe("ViewHistory", () => {
       type: "cards",
       title: "",
       outlineId: crypto.randomUUID(),
-      pinned: false,
-      flexGrow: 1,
+      viewWidthRatio: 1,
       scrollPosition: 0,
       focusPosition: {
         id: null,
