@@ -12,6 +12,7 @@
   import VerticalLineDash from "../icon/VerticalLineDash.svelte";
   import VerticalLine from "../icon/VerticalLine.svelte";
   import Tilda from "../icon/Tilda.svelte";
+  import { debounce } from "es-toolkit";
 
   type Props = {
     timeline: Timeline;
@@ -19,12 +20,20 @@
     pinned: boolean;
   };
 
-  let { timeline, view: _, pinned }: Props = $props();
+  let { timeline, view, pinned }: Props = $props();
 
+  let loading = $state(true);
+  let virtualScrollRef = $state<ReturnType<typeof VirtualScroll>>()!;
   let scrollAreaRef = $state<HTMLDivElement>()!;
+  let daysRef = $state<HTMLDivElement>()!;
+
+  $inspect(format(new Date(view.position!.dayStart), "yyyy-MM-dd"));
+  $inspect(view.position?.scrollOffset);
+  $inspect(loading);
 
   onMount(async () => {
-    (await timeline.loadTop())?.();
+    const dayStart = view.position?.dayStart;
+    const scrollOffset = view.position?.scrollOffset;
 
     while (scrollAreaRef.scrollHeight <= scrollAreaRef.clientHeight) {
       const update = await timeline.loadBottom();
@@ -34,23 +43,97 @@
         break;
       }
     }
+
+    if (dayStart && scrollOffset) {
+      for (const e of daysRef.children) {
+        if (
+          Number(e.getAttribute("data-date")) === dayStart &&
+          e instanceof HTMLElement
+        ) {
+          const scrollAmount = e.offsetTop + scrollOffset;
+
+          while (
+            scrollAreaRef.scrollHeight <=
+            scrollAmount + scrollAreaRef.clientHeight
+          ) {
+            const update = await timeline.loadBottom();
+            if (update) {
+              update();
+            } else {
+              break;
+            }
+          }
+
+          scrollAreaRef.scrollTo({
+            top: scrollAmount,
+          });
+
+          break;
+        }
+      }
+    }
+
+    const update = await timeline.loadTop();
+    if (update) await virtualScrollRef.updateArrayHead(update);
+    loading = false;
   });
 
   onDestroy(timeline.cleanup);
+
+  const onscroll = debounce(() => {
+    const containerRect = scrollAreaRef.getBoundingClientRect();
+    const elements = Array.from(daysRef.children);
+    elements.sort(
+      (a, b) =>
+        Number(b.getAttribute("data-date")) -
+        Number(a.getAttribute("data-date")),
+    );
+
+    for (const e of elements) {
+      const eRect = e.getBoundingClientRect();
+      const isVisible =
+        eRect.bottom > containerRect.top && eRect.top < containerRect.bottom;
+      const dayStart = Number(e.getAttribute("data-date"));
+
+      if (isNaN(dayStart)) throw new Error("invalid date");
+
+      if (isVisible) {
+        view.position = {
+          dayStart: dayStart,
+          scrollOffset: containerRect.top - eRect.top,
+        };
+        break;
+      }
+    }
+  }, 400);
 </script>
 
 <VirtualScroll
+  bind:this={virtualScrollRef}
   bind:ref={scrollAreaRef}
-  items={[]}
-  maxLength={16}
+  items={timeline.days}
+  maxLength={28}
   onReachTop={async (doUpdate) => {
-    const update = await timeline.loadTop();
-    if (update) doUpdate(update);
+    for (const _ of Array.from(Array(7))) {
+      const update = await timeline.loadTop();
+      if (update) {
+        await doUpdate(update);
+      } else {
+        break;
+      }
+    }
   }}
   onReachBottom={async (doUpdate) => {
-    const update = await timeline.loadBottom();
-    if (update) doUpdate(update);
+    for (const _ of Array.from(Array(7))) {
+      const update = await timeline.loadBottom();
+      if (update) {
+        doUpdate(update);
+      } else {
+        break;
+      }
+    }
   }}
+  {onscroll}
 >
   <div class={headerStyle}>
     <div class={headerLeftButtons}></div>
@@ -69,66 +152,70 @@
     </div>
   </div>
 
-  <div class={contentContainerStyle}>
-    {#each timeline.days as day}
-      <div class={dateStyle}>
-        {format(day.dayStart, "yyyy-MM-dd")}
-      </div>
-      <div class={dayContentsStyle}>
-        {#each day.items as { outline, paragraphs }}
-          <div class={outlineContainerStyle}>
-            <div class={outlineStyle}>
-              <div class={asteriskContainerStyle}>
-                <Asterisk class={asteriskStyle} />
-              </div>
-              <div class={pathStyle}>
-                {#await outline.path then path}
-                  {#each path as pathItem, idx}
-                    {#if idx !== 0}
-                      <ChevronRight class={chevronStyle} />
-                    {/if}
-                    <div
-                      class={pathTextStyle}
-                      data-last={path.length - 1 === idx}
-                    >
-                      {pathItem.text}
-                    </div>
-                  {/each}
-                {/await}
-              </div>
-            </div>
-
-            <div class={paragraphContainerStyle}>
-              {#each paragraphs as paragraph, idx (paragraph.id)}
-                <div class={paragraphStyle}>
-                  {#if paragraph.id in day.paragraphPositionIndex}
-                    {@const index = day.paragraphPositionIndex[paragraph.id]}
-                    {#if index && (index.prevId === paragraphs[idx - 1]?.id || index.prevId === null)}
-                      <VerticalLine class={paragraphContainerLineTop} />
-                    {:else}
-                      <VerticalLineDash class={paragraphContainerLineTop} />
-                      <Tilda class={tildaTop} />
-                    {/if}
-                  {/if}
-                  <MockParagraphEditor
-                    {paragraph}
-                    variant={{ style: "card" }}
-                  />
-                  {#if idx === paragraphs.length - 1}
-                    {@const index = day.paragraphPositionIndex[paragraph.id]}
-                    {#if index?.isLast}
-                      <VerticalLine class={paragraphContainerLineBottom} />
-                      <div class={roundedLineEnd}></div>
-                    {:else}
-                      <VerticalLineDash class={paragraphContainerLineBottom} />
-                      <Tilda class={tildaBottom} />
-                    {/if}
-                  {/if}
+  <div bind:this={daysRef} class={contentContainerStyle} data-loading={loading}>
+    {#each timeline.days as day (day.dayStart)}
+      <div class="day" data-date={day.dayStart.getTime()}>
+        <div class={dateStyle}>
+          {format(day.dayStart, "yyyy-MM-dd")}
+        </div>
+        <div class={dayContentsStyle}>
+          {#each day.items as { outline, paragraphs }}
+            <div class={outlineContainerStyle}>
+              <div class={outlineStyle}>
+                <div class={asteriskContainerStyle}>
+                  <Asterisk class={asteriskStyle} />
                 </div>
-              {/each}
+                <div class={pathStyle}>
+                  {#await outline.path then path}
+                    {#each path as pathItem, idx}
+                      {#if idx !== 0}
+                        <ChevronRight class={chevronStyle} />
+                      {/if}
+                      <div
+                        class={pathTextStyle}
+                        data-last={path.length - 1 === idx}
+                      >
+                        {pathItem.text}
+                      </div>
+                    {/each}
+                  {/await}
+                </div>
+              </div>
+
+              <div class={paragraphContainerStyle}>
+                {#each paragraphs as paragraph, idx (paragraph.id)}
+                  <div class={paragraphStyle}>
+                    {#if paragraph.id in day.paragraphPositionIndex}
+                      {@const index = day.paragraphPositionIndex[paragraph.id]}
+                      {#if index && (index.prevId === paragraphs[idx - 1]?.id || index.prevId === null)}
+                        <VerticalLine class={paragraphContainerLineTop} />
+                      {:else}
+                        <VerticalLineDash class={paragraphContainerLineTop} />
+                        <Tilda class={tildaTop} />
+                      {/if}
+                    {/if}
+                    <MockParagraphEditor
+                      {paragraph}
+                      variant={{ style: "card" }}
+                    />
+                    {#if idx === paragraphs.length - 1}
+                      {@const index = day.paragraphPositionIndex[paragraph.id]}
+                      {#if index?.isLast}
+                        <VerticalLine class={paragraphContainerLineBottom} />
+                        <div class={roundedLineEnd}></div>
+                      {:else}
+                        <VerticalLineDash
+                          class={paragraphContainerLineBottom}
+                        />
+                        <Tilda class={tildaBottom} />
+                      {/if}
+                    {/if}
+                  </div>
+                {/each}
+              </div>
             </div>
-          </div>
-        {/each}
+          {/each}
+        </div>
       </div>
     {/each}
   </div>
@@ -255,6 +342,9 @@
     px: "2",
     pt: "32",
     m: "auto",
+    "&[data-loading=true]": {
+      opacity: "0",
+    },
   });
 
   const dateStyle = css({

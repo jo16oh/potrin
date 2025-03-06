@@ -7,7 +7,9 @@
   type Props = { view: Extract<View, { type: "timeline" }>; pinned: boolean };
   let { view, pinned }: Props = $props();
 
-  let promise = $state(Timeline.init("latest"));
+  let promise = $state(
+    Timeline.init(view.position ? { at: view.position.dayStart } : "latest"),
+  );
 </script>
 
 <div class={viewContainer}>
