@@ -1,10 +1,10 @@
 <script lang="ts">
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
-  import HoverViewTrigger from "$lib/components/workspace/HoverViewTrigger.svelte";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import { css } from "styled-system/css";
   import CardsView from "../view/CardsView.svelte";
   import TimelineView from "../view/TimelineView.svelte";
+  import HoverViewButton from "./HoverViewButton.svelte";
 
   const workspace = Workspace.current;
   const pinnedTabs = $derived(workspace.state.pinnedTabs);
@@ -59,7 +59,8 @@
   {#if focusedTabId === null}
     <div class={viewStyle}></div>
   {/if}
-  <HoverViewTrigger />
+
+  <HoverViewButton />
 </div>
 
 <script module>
