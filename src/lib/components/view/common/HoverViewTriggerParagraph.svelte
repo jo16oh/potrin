@@ -40,5 +40,8 @@
     w: "full",
     h: "fit",
     textAlign: "start",
+    _hover: {
+      cursor: "pointer",
+    },
   });
 </script>
