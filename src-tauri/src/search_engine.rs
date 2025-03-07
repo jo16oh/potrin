@@ -248,7 +248,7 @@ pub async fn remove_index<R: Runtime>(
     targets: &[DeleteTarget],
 ) -> eyre::Result<()> {
     let windows = app_handle.webview_windows();
-    let targets_map = targets.into_iter().into_group_map_by(|t| t.pot_id);
+    let targets_map = targets.iter().into_group_map_by(|t| t.pot_id);
 
     for (pot_id, targets) in targets_map.into_iter() {
         if let Some(win) = windows.get(&pot_id.to_string()) {
