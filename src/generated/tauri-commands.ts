@@ -207,6 +207,14 @@ async deletePot(potId: UUIDv7Base64URL) : Promise<Result<null, PotrinError>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async fetchParagraphPositionIndex(outlineIds: UUIDv7Base64URL[], paragraphIds: UUIDv7Base64URL[]) : Promise<Result<ParagraphPositionIndex, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_paragraph_position_index", { outlineIds, paragraphIds }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

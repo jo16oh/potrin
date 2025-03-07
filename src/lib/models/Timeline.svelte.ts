@@ -1,14 +1,16 @@
 import { Paragraph } from "./Paragraph.svelte";
 import {
+  commands,
   events,
   type FetchTimelineOption,
   type ParagraphPositionIndex,
   type TimelineDay as RawTimelineDay,
-} from "../../generated/tauri-commands";
+} from "generated/tauri-commands";
 import { Outline } from "./Outline.svelte";
 import { fetchTimeline } from "$lib/commands";
 import { addDays, isSameDay } from "date-fns";
 import { getCurrent } from "@tauri-apps/api/webviewWindow";
+import { unwrap } from "$lib/utils";
 
 export class TimelineDay {
   readonly dayStart: Date;
@@ -46,7 +48,8 @@ export class TimelineDay {
     const items = this.#outlines
       .map((o) => {
         const paragraphs = o.paragraphs.filter(
-          (p) => !p.isEmpty && isSameDay(p.createdAt, this.dayStart),
+          (p) =>
+            !p.isEmpty && !p.deleted && isSameDay(p.createdAt, this.dayStart),
         );
         return paragraphs.length
           ? { outline: o, paragraphs: paragraphs }
@@ -76,6 +79,16 @@ export class TimelineDay {
       this.#paragraphPositionIndex = tl.#paragraphPositionIndex;
     }
   }
+
+  async reloadIndex() {
+    const outlineIds = this.items.map(({ outline }) => outline.id);
+    const paragraphIds = this.items
+      .flatMap((item) => item.paragraphs)
+      .map((p) => p.id);
+    this.#paragraphPositionIndex = await commands
+      .fetchParagraphPositionIndex(outlineIds, paragraphIds)
+      .then(unwrap);
+  }
 }
 
 export class Timeline {
@@ -96,7 +109,12 @@ export class Timeline {
       .listen(async (e) => {
         const operation = e.payload.operation;
 
-        if (operation.kind === "delete") return;
+        if (operation.kind === "delete") {
+          for (const d of timeline.days) {
+            d.reloadIndex();
+          }
+          return;
+        }
 
         const targetDays = new Set(
           operation.targets.map((e) => e.currentValue.createdAt),
