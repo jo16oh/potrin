@@ -2,8 +2,8 @@
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import { css } from "styled-system/css";
-  import CardsView from "../view/CardsView.svelte";
   import TimelineView from "../view/TimelineView.svelte";
+  import { CardsView } from "$lib/components/view";
   import HoverViewButton from "./HoverViewButton.svelte";
 
   const workspace = Workspace.current;

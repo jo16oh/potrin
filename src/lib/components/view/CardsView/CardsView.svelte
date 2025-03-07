@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type ViewState } from "../../../generated/tauri-commands";
+  import { type ViewState } from "generated/tauri-commands";
   import { Outline } from "$lib/models/Outline.svelte";
   import { Paragraph } from "$lib/models/Paragraph.svelte";
   import CardsViewInner from "./CardsViewInner.svelte";

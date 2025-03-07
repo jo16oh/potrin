@@ -1,18 +1,18 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight, Search, X } from "lucide-svelte";
   import { css } from "styled-system/css";
-  import Button from "../common/Button.svelte";
-  import { type ViewState } from "../../../generated/tauri-commands";
+  import Button from "$lib/components/common/Button.svelte";
+  import { type ViewState } from "generated/tauri-commands";
   import { Outline } from "$lib/models/Outline.svelte";
-  import Asterisk from "../icon/Asterisk.svelte";
-  import ScrollArea from "../common/ScrollArea.svelte";
-  import Editor from "../editor/Editor.svelte";
+  import Asterisk from "$lib/components/icon/Asterisk.svelte";
+  import ScrollArea from "$lib/components/common/ScrollArea.svelte";
+  import Editor from "$lib/components/editor/Editor.svelte";
   import { debounce } from "es-toolkit";
   import { watch } from "runed";
   import { onMount } from "svelte";
-  import CardStack from "../icon/CardStack.svelte";
+  import CardStack from "$lib/components/icon/CardStack.svelte";
   import { View } from "$lib/models/Workspace.svelte";
-  import VerticalLine from "../icon/VerticalLine.svelte";
+  import VerticalLine from "$lib/components/icon/VerticalLine.svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
 
