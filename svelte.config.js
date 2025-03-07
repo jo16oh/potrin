@@ -11,6 +11,7 @@ const config = {
     adapter: adapter(),
     alias: {
       "styled-system": "./styled-system/*",
+      generated: "./src/generated/*",
     },
     typescript: {
       config: (config) => {
