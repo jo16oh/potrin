@@ -19,7 +19,7 @@
 
   type Props = {
     outline: Outline;
-    viewState: CardsViewState;
+    view: CardsViewState;
     isFocused: boolean;
     pinned: boolean;
     onCloseButtonClick: () => void;
@@ -27,25 +27,25 @@
 
   let {
     outline,
-    viewState = $bindable(),
+    view = $bindable(),
     isFocused,
     pinned,
     onCloseButtonClick,
   }: Props = $props();
 
-  let scrollAreaRef = $state<HTMLDivElement>();
+  let scrollAreaRef = $state<HTMLDivElement>()!;
 
   watch(
     () => outline.text,
-    debounce(() => (viewState.title = outline.text), 16),
+    debounce(() => (view.title = outline.text), 16),
   );
 
   onMount(() => {
-    scrollAreaRef?.scrollTo(0, viewState.scrollPosition);
+    scrollAreaRef?.scrollTo(0, view.scrollPosition);
   });
 
   const onscroll = debounce(() => {
-    if (scrollAreaRef) viewState.scrollPosition = scrollAreaRef?.scrollTop ?? 0;
+    view.scrollPosition = scrollAreaRef?.scrollTop ?? 0;
   }, 100);
 </script>
 
@@ -54,30 +54,30 @@
     <div class={headerLeftButtons}>
       <Button
         class={headerButtonStyle}
-        disabled={!View.hasPrev(viewState.id)}
+        disabled={!View.hasPrev(view.id)}
         onmousedown={(e: MouseEvent) => e.preventDefault()}
         onclick={(e: MouseEvent) => {
           e.preventDefault();
-          View.back(viewState);
+          View.back(view);
         }}
       >
         <ChevronLeft
           class={headerIconStyle}
-          data-disabled={!View.hasPrev(viewState.id)}
+          data-disabled={!View.hasPrev(view.id)}
         />
       </Button>
       <Button
         class={headerButtonStyle}
-        disabled={!View.hasNext(viewState.id)}
+        disabled={!View.hasNext(view.id)}
         onmousedown={(e: MouseEvent) => e.preventDefault()}
         onclick={(e: MouseEvent) => {
           e.preventDefault();
-          View.forward(viewState);
+          View.forward(view);
         }}
       >
         <ChevronRight
           class={headerIconStyle}
-          data-disabled={!View.hasNext(viewState.id)}
+          data-disabled={!View.hasNext(view.id)}
         />
       </Button>
       <Button class={headerButtonStyle}>
@@ -89,10 +89,10 @@
         <CardStack class={headerTitleIconStyle} />
       </Button>
       <div class={headerTitleTextStyle}>
-        {#if viewState.title.length === 0}
+        {#if view.title.length === 0}
           Untitled
         {:else}
-          {viewState.title}
+          {view.title}
         {/if}
       </div>
     </div>
@@ -117,7 +117,7 @@
       <Editor
         doc={outline}
         isViewFocused={isFocused}
-        bind:focusPosition={viewState.focusPosition}
+        bind:focusPosition={view.focusPosition}
         variant={{ style: "cardsViewTitle" }}
       />
     </div>
@@ -128,7 +128,7 @@
           doc={paragraph}
           variant={{ style: "card" }}
           isViewFocused={isFocused}
-          bind:focusPosition={viewState.focusPosition}
+          bind:focusPosition={view.focusPosition}
         />
       {/each}
     </div>

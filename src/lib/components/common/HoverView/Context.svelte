@@ -61,7 +61,7 @@
   {#snippet content()}
     {#if view.type === "cards"}
       <CardsView
-        bind:viewState={view}
+        bind:view
         isFocused={open}
         onCloseButtonClick={() => (open = false)}
       />

@@ -46,7 +46,7 @@
               <CardsView
                 isFocused={tab.id === focusedTabId &&
                   view.id === tab.focusedViewId}
-                viewState={view}
+                {view}
                 onCloseButtonClick={() =>
                   workspace.closeView(tab, tabIdx, view, viewIdx)}
               />

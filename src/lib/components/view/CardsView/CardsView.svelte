@@ -10,14 +10,14 @@
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
   type Props = {
-    viewState: CardsViewState;
+    view: CardsViewState;
     isFocused: boolean;
     pinned?: boolean;
     onCloseButtonClick: () => void;
   };
 
   let {
-    viewState: view = $bindable(),
+    view = $bindable(),
     isFocused,
     pinned = false,
     onCloseButtonClick,
@@ -69,7 +69,7 @@
     {#await promise then outline}
       <CardsViewInner
         {outline}
-        bind:viewState={view}
+        bind:view
         {isFocused}
         {pinned}
         {onCloseButtonClick}
