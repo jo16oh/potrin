@@ -14,6 +14,7 @@
   import { debounce } from "es-toolkit";
   import HoverViewContext from "../common/HoverViewContext.svelte";
   import HoverViewTriggerParagraph from "../common/HoverViewTriggerParagraph.svelte";
+  import VerticalLineWithCircle from "$lib/components/icon/VerticalLineWithCircle.svelte";
 
   type Props = {
     timeline: Timeline;
@@ -205,10 +206,9 @@
                           {@const index =
                             day.paragraphPositionIndex[paragraph.id]}
                           {#if index?.isLast}
-                            <VerticalLine
+                            <VerticalLineWithCircle
                               class={paragraphContainerLineBottom}
                             />
-                            <div class={roundedLineEnd}></div>
                           {:else}
                             <VerticalLineDash
                               class={paragraphContainerLineBottom}
@@ -346,9 +346,12 @@
   });
 
   const contentContainerStyle = css({
+    display: "flex",
+    flexDir: "column",
+    gap: "9",
     maxW: "[38.25rem]",
     px: "2",
-    pt: "32",
+    py: "32",
     m: "auto",
     "&[data-loading=true]": {
       opacity: "0",
@@ -365,7 +368,7 @@
     flexDir: "column",
     w: "full",
     h: "fit",
-    py: "6",
+    py: "4",
     gap: "4",
   });
 
@@ -439,19 +442,19 @@
 
   const paragraphContainerLineTop = css({
     h: "4",
+    w: "6",
     position: "absolute",
     z: "-10",
     top: "-4",
-    left: "[0.75rem]",
     color: "view.text-muted",
   });
 
   const paragraphContainerLineBottom = css({
     h: "4",
+    w: "6",
     position: "absolute",
     z: "-10",
     bottom: "-4",
-    left: "[0.75rem]",
     color: "view.text-muted",
   });
 
@@ -479,15 +482,5 @@
     bottom: "-3.5",
     left: "[0.5rem]",
     color: "view.text-muted",
-  });
-
-  const roundedLineEnd = css({
-    w: "1",
-    h: "1",
-    bg: "view.text-muted",
-    rounded: "circle",
-    position: "absolute",
-    bottom: "-4",
-    left: "[0.65rem]",
   });
 </script>

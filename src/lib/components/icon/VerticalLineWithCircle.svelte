@@ -13,4 +13,11 @@
     stroke-width="0.0625rem"
     stroke-linecap="round"
   />
+  <circle
+    cx="50%"
+    cy="calc(100% - 0.125rem)"
+    r="0.125rem"
+    fill="currentColor"
+  >
+  </circle>
 </svg>

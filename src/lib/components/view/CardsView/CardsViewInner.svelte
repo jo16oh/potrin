@@ -13,6 +13,7 @@
   import CardStack from "$lib/components/icon/CardStack.svelte";
   import { View } from "$lib/models/Workspace.svelte";
   import VerticalLine from "$lib/components/icon/VerticalLine.svelte";
+  import VerticalLineWithCircle from "$lib/components/icon/VerticalLineWithCircle.svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
 
@@ -133,8 +134,7 @@
     </div>
     <div class={contentBoxBottomSpace}>
       <!-- <div class={contetBoxBottomLine}></div> -->
-      <VerticalLine class={contetBoxBottomLine} />
-      <div class={roundedLineEnd}></div>
+      <VerticalLineWithCircle class={contetBoxBottomLine} />
     </div>
   </div>
 </ScrollArea>
@@ -289,10 +289,10 @@
   });
 
   const titleBulletBoxLine = css({
+    w: "6",
     h: "[calc(100% - 2.5rem)]",
     position: "absolute",
     top: "10",
-    left: "[0.75rem]",
     color: "view.text-muted",
   });
 
@@ -303,21 +303,11 @@
   });
 
   const contetBoxBottomLine = css({
+    w: "6",
     h: "[1.125rem]",
     position: "absolute",
     top: "0",
-    left: "[0.75rem]",
     color: "view.text-muted",
-  });
-
-  const roundedLineEnd = css({
-    w: "1",
-    h: "1",
-    bg: "view.text-muted",
-    rounded: "circle",
-    position: "absolute",
-    top: "[1.125rem]",
-    left: "[0.65rem]",
   });
 
   const paragraphContainerStyle = css({
@@ -331,11 +321,11 @@
   });
 
   const paragraphContainerLine = css({
+    w: "6",
     h: "full",
     position: "absolute",
     z: "-1",
     top: "0",
-    left: "[0.75rem]",
     color: "view.text-muted",
   });
   //
