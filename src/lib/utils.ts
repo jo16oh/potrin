@@ -3,7 +3,7 @@ import { uuidv7obj } from "uuidv7";
 import { toBytes, toBase64 } from "fast-base64/js";
 // @ts-expect-error no type declaration
 import { toUrl, fromUrl } from "fast-base64/url";
-import type { Result } from "../generated/tauri-commands";
+import type { Result } from "generated/tauri-commands";
 
 declare const _brand: unique symbol;
 

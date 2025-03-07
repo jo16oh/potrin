@@ -1,6 +1,6 @@
 <script lang="ts">
   import { css } from "styled-system/css";
-  import { commands, type Pot } from "../../../generated/tauri-commands";
+  import { commands, type Pot } from "generated/tauri-commands";
   import { unwrap } from "$lib/utils";
   import Button from "$lib/components/common/Button.svelte";
   import Dialog from "$lib/components/common/Dialog.svelte";

@@ -2,7 +2,7 @@
   import { css } from "styled-system/css";
   import Dialog from "$lib/components/common/Dialog.svelte";
   import Button from "$lib/components/common/Button.svelte";
-  import { commands } from "../../../generated/tauri-commands";
+  import { commands } from "generated/tauri-commands";
   import { uuidv7, unwrap } from "$lib/utils";
   import { App } from "$lib/models/App.svelte";
   import CloseButton from "./CloseButton.svelte";

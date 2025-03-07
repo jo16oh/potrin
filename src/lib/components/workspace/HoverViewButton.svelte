@@ -1,9 +1,9 @@
 <script lang="ts">
   import { Columns2, Link, Maximize2, PencilLine } from "lucide-svelte";
   import { css } from "styled-system/css";
-  import type { ViewState } from "../../../generated/tauri-commands";
+  import type { ViewState } from "generated/tauri-commands";
   import { HoverView } from "$lib/components/common//HoverView";
-  import Button from "../common/Button.svelte";
+  import Button from "$lib/components/common/Button.svelte";
   import { View, Workspace } from "$lib/models/Workspace.svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;

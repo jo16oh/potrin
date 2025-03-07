@@ -5,7 +5,7 @@ export const prerender = true;
 export const ssr = false;
 
 import type { LayoutLoad } from "./$types";
-import { commands } from "../generated/tauri-commands";
+import { commands } from "generated/tauri-commands";
 import { unwrap } from "$lib/utils";
 
 export const load: LayoutLoad = async () => {

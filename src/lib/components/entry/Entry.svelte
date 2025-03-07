@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { commands } from "../../../generated/tauri-commands";
+  import { commands } from "generated/tauri-commands";
   import Button from "$lib/components/common/Button.svelte";
   import UserIcon from "$lib/components/icon/UserIcon.svelte";
   import { css } from "styled-system/css";

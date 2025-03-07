@@ -1,7 +1,7 @@
 <script lang="ts">
   import { css, type Styles } from "styled-system/css";
   import Dialog from "$lib/components/common/Dialog.svelte";
-  import { commands, type Pot } from "../../../generated/tauri-commands";
+  import { commands, type Pot } from "generated/tauri-commands";
   import { unwrap } from "$lib/utils";
   import { App } from "$lib/models/App.svelte";
   import type { Snippet } from "svelte";

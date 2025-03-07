@@ -3,7 +3,7 @@ import {
   commands as tauriCommands,
   events,
   type AppState,
-} from "../../generated/tauri-commands";
+} from "generated/tauri-commands";
 import { applyPatch, compare } from "fast-json-patch";
 import { getCurrent } from "@tauri-apps/api/webviewWindow";
 

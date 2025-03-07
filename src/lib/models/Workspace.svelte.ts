@@ -5,7 +5,7 @@ import {
   type TabState,
   type ViewState,
   type WorkspaceState,
-} from "../../generated/tauri-commands";
+} from "generated/tauri-commands";
 import { applyPatch, compare } from "fast-json-patch";
 import { getCurrent } from "@tauri-apps/api/webviewWindow";
 import { SvelteMap } from "svelte/reactivity";

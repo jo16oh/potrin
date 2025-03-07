@@ -13,7 +13,7 @@ import {
   type Paragraph as RawParagraph,
   type Path,
   commands,
-} from "../../generated/tauri-commands";
+} from "generated/tauri-commands";
 import { Paragraph } from "./Paragraph.svelte";
 import * as Y from "yjs";
 import { generateKeyBetween } from "fractional-indexing-jittered";

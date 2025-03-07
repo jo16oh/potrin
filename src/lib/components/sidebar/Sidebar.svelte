@@ -11,14 +11,14 @@
     X,
   } from "lucide-svelte";
   import { Workspace } from "$lib/models/Workspace.svelte";
-  import Popover from "../common/Popover.svelte";
-  import { commands } from "../../../generated/tauri-commands";
-  import PopoverClose from "../common/PopoverClose.svelte";
-  import RenamePot from "../entry/RenamePot.svelte";
+  import Popover from "$lib/components/common/Popover.svelte";
+  import { commands } from "generated/tauri-commands";
+  import PopoverClose from "$lib/components/common/PopoverClose.svelte";
+  import RenamePot from "$lib/components/entry/RenamePot.svelte";
   import { watch } from "runed";
   import { unwrap } from "$lib/utils";
-  import CardStack from "../icon/CardStack.svelte";
-  import ScrollArea from "../common/ScrollArea.svelte";
+  import CardStack from "$lib/components/icon/CardStack.svelte";
+  import ScrollArea from "$lib/components/common/ScrollArea.svelte";
 
   const MAX_WIDTH_REM = 38;
   const MIN_WIDTH_REM = 10;

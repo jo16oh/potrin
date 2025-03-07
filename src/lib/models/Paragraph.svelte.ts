@@ -10,7 +10,7 @@ import {
   type Quote,
   type Links,
   commands,
-} from "../../generated/tauri-commands";
+} from "generated/tauri-commands";
 import { Outline } from "./Outline.svelte";
 import * as Y from "yjs";
 import { ReversedQuoteIndex, WeakRefMap } from "./utils";
