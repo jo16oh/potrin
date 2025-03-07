@@ -51,20 +51,29 @@
   {#snippet rightsideTopButtons()}
     <Button
       class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => e.stopPropagation()}
+      onmousedown={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       onclick={handleClickMaximize}
     >
       <Maximize2 class={iconInsideRightSideButton} />
     </Button>
     <Button
       class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => e.stopPropagation()}
+      onmousedown={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       <Columns2 class={iconInsideRightSideButton} />
     </Button>
     <Button
       class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => e.stopPropagation()}
+      onmousedown={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       <Link class={iconInsideRightSideButton} />
     </Button>
