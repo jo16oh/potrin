@@ -213,7 +213,17 @@ export class Paragraph {
   }
 
   get isEmpty() {
-    return !this.doc.content?.length;
+    function check(doc: JSONContent): boolean {
+      if (doc.content && doc.content.length > 0) {
+        return doc.content.every(check);
+      } else if (doc.text !== undefined) {
+        return doc.text.length === 0;
+      } else {
+        return true;
+      }
+    }
+
+    return check(this._doc);
   }
 
   private set doc(value: JSONContent) {
