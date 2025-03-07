@@ -2,25 +2,14 @@
   import { Columns2, Link, Maximize2, PencilLine } from "lucide-svelte";
   import { css } from "styled-system/css";
   import type { ViewState } from "../../../generated/tauri-commands";
-  import HoverViewDialog from "../view/HoverViewDialog.svelte";
+  import { HoverView } from "$lib/components/common//HoverView";
   import Button from "../common/Button.svelte";
   import { View, Workspace } from "$lib/models/Workspace.svelte";
 
   type CardsViewState = Extract<ViewState, { type: "cards" }>;
 
-  let view: CardsViewState = $state({
-    id: crypto.randomUUID(),
-    type: "cards",
-    outlineId: null,
-    title: "",
-    pinned: false,
-    scrollPosition: 0,
-    focusPosition: { id: null, position: "start" },
-    viewWidthRatio: 1,
-  });
-
+  let view = $state<CardsViewState>(View.new("cards"));
   let open = $state(false);
-
   let workspaceState = Workspace.current.state;
 
   async function handleClickMaximize(e: MouseEvent) {
@@ -56,27 +45,46 @@
   }
 </script>
 
-<HoverViewDialog bind:view bind:open>
-  {#snippet trigger()}
+<HoverView.Context bind:view bind:open>
+  <HoverView.Trigger
+    class={floatingButtonStyle}
+    onmousedown={(e) => {
+      e.preventDefault();
+    }}
+    onclick={(e) => {
+      e.preventDefault();
+      open = true;
+    }}
+  >
     <PencilLine class={floatingButtonIconStyle} />
-  {/snippet}
+  </HoverView.Trigger>
+
   {#snippet rightsideTopButtons()}
     <Button
       class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => e.stopPropagation()}
+      onmousedown={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       onclick={handleClickMaximize}
     >
       <Maximize2 class={iconInsideRightSideButton} />
     </Button>
     <Button
       class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => e.stopPropagation()}
+      onmousedown={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       <Columns2 class={iconInsideRightSideButton} />
     </Button>
     <Button
       class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => e.stopPropagation()}
+      onmousedown={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       <Link class={iconInsideRightSideButton} />
     </Button>
@@ -84,15 +92,37 @@
   {#snippet rightsideBottomButtons()}
     <Button
       class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => e.stopPropagation()}
+      onmousedown={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       onclick={handleClickNew}
     >
       <PencilLine class={iconInsideRightSideButton} />
     </Button>
   {/snippet}
-</HoverViewDialog>
+</HoverView.Context>
 
 <script module>
+  const floatingButtonStyle = css({
+    zIndex: "global.float",
+    position: "fixed",
+    right: "[28px]",
+    bottom: "[16px]",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    p: "0",
+    w: "14",
+    h: "14",
+    bg: "workspace.bg/90",
+    rounded: "circle",
+    transition: "colors",
+    _hover: {
+      bg: "workspace.bg-selected",
+    },
+  });
+
   const floatingButtonIconStyle = css({
     w: "6",
     h: "6",

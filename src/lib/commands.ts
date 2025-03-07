@@ -3,7 +3,7 @@ import {
   commands as tauriCommands,
   type FetchTimelineOption,
   type UUIDv7Base64URL,
-} from "../generated/tauri-commands";
+} from "generated/tauri-commands";
 import { Outline } from "./models/Outline.svelte";
 import { TimelineDay } from "./models/Timeline.svelte";
 

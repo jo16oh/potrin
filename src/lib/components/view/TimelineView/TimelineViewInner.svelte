@@ -1,18 +1,19 @@
 <script lang="ts">
   import { ChevronRight, ClockArrowDown, X } from "lucide-svelte";
   import { css } from "styled-system/css";
-  import Button from "../common/Button.svelte";
-  import type { View } from "$lib/models/Workspace.svelte";
-  import VirtualScroll from "../common/VirtualScroll.svelte";
+  import Button from "$lib/components/common/Button.svelte";
+  import { View } from "$lib/models/Workspace.svelte";
+  import VirtualScroll from "$lib/components/common/VirtualScroll.svelte";
   import { Timeline } from "$lib/models/Timeline.svelte";
   import { format } from "date-fns/format";
-  import Asterisk from "../icon/Asterisk.svelte";
-  import MockParagraphEditor from "../editor/MockParagraphEditor.svelte";
+  import Asterisk from "$lib/components/icon/Asterisk.svelte";
   import { onDestroy, onMount } from "svelte";
-  import VerticalLineDash from "../icon/VerticalLineDash.svelte";
-  import VerticalLine from "../icon/VerticalLine.svelte";
-  import Tilda from "../icon/Tilda.svelte";
+  import VerticalLineDash from "$lib/components/icon/VerticalLineDash.svelte";
+  import VerticalLine from "$lib/components/icon/VerticalLine.svelte";
+  import Tilda from "$lib/components/icon/Tilda.svelte";
   import { debounce } from "es-toolkit";
+  import HoverViewContext from "../common/HoverViewContext.svelte";
+  import HoverViewTriggerParagraph from "../common/HoverViewTriggerParagraph.svelte";
 
   type Props = {
     timeline: Timeline;
@@ -131,94 +132,101 @@
   }}
   {onscroll}
 >
-  <div class={headerStyle}>
-    <div class={headerLeftButtons}></div>
-    <div class={headerTitleContainer}>
-      <Button class={headerTitleButtonStyle}>
-        <ClockArrowDown class={headerTitleIconStyle} />
-      </Button>
-      <div class={headerTitleTextStyle}>Timeline</div>
-    </div>
-    <div class={headerRightButtons}>
-      {#if !pinned}
-        <Button class={headerButtonStyle}>
-          <X class={headerIconStyle} />
+  <HoverViewContext>
+    <div class={headerStyle}>
+      <div class={headerLeftButtons}></div>
+      <div class={headerTitleContainer}>
+        <Button class={headerTitleButtonStyle}>
+          <ClockArrowDown class={headerTitleIconStyle} />
         </Button>
-      {/if}
+        <div class={headerTitleTextStyle}>Timeline</div>
+      </div>
+      <div class={headerRightButtons}>
+        {#if !pinned}
+          <Button class={headerButtonStyle}>
+            <X class={headerIconStyle} />
+          </Button>
+        {/if}
+      </div>
     </div>
-  </div>
 
-  <div bind:this={daysRef} class={contentContainerStyle} data-loading={loading}>
-    {#each timeline.days as day (day.dayStart)}
-      {#if day.items.length}
-        <div class="day" data-date={day.dayStart.getTime()}>
-          <div class={dateStyle}>
-            {format(day.dayStart, "yyyy-MM-dd")}
-          </div>
-          <div class={dayContentsStyle}>
-            {#each day.items as { outline, paragraphs }}
-              <div class={outlineContainerStyle}>
-                <div class={outlineStyle}>
-                  <div class={asteriskContainerStyle}>
-                    <Asterisk class={asteriskStyle} />
-                  </div>
-                  <div class={pathStyle}>
-                    {#await outline.path then path}
-                      {#each path as pathItem, idx}
-                        {#if idx !== 0}
-                          <ChevronRight class={chevronStyle} />
-                        {/if}
-                        <div
-                          class={pathTextStyle}
-                          data-last={path.length - 1 === idx}
-                        >
-                          {pathItem.text}
-                        </div>
-                      {/each}
-                    {/await}
-                  </div>
-                </div>
-
-                <div class={paragraphContainerStyle}>
-                  {#each paragraphs as paragraph, idx (paragraph.id)}
-                    <div class={paragraphStyle}>
-                      {#if paragraph.id in day.paragraphPositionIndex}
-                        {@const index =
-                          day.paragraphPositionIndex[paragraph.id]}
-                        {#if index && (index.prevId === paragraphs[idx - 1]?.id || index.prevId === null)}
-                          <VerticalLine class={paragraphContainerLineTop} />
-                        {:else}
-                          <VerticalLineDash class={paragraphContainerLineTop} />
-                          <Tilda class={tildaTop} />
-                        {/if}
-                      {/if}
-                      <MockParagraphEditor
-                        {paragraph}
-                        variant={{ style: "card" }}
-                      />
-                      {#if idx === paragraphs.length - 1}
-                        {@const index =
-                          day.paragraphPositionIndex[paragraph.id]}
-                        {#if index?.isLast}
-                          <VerticalLine class={paragraphContainerLineBottom} />
-                          <div class={roundedLineEnd}></div>
-                        {:else}
-                          <VerticalLineDash
-                            class={paragraphContainerLineBottom}
-                          />
-                          <Tilda class={tildaBottom} />
-                        {/if}
-                      {/if}
+    <div
+      bind:this={daysRef}
+      class={contentContainerStyle}
+      data-loading={loading}
+    >
+      {#each timeline.days as day (day.dayStart)}
+        {#if day.items.length}
+          <div class="day" data-date={day.dayStart.getTime()}>
+            <div class={dateStyle}>
+              {format(day.dayStart, "yyyy-MM-dd")}
+            </div>
+            <div class={dayContentsStyle}>
+              {#each day.items as { outline, paragraphs }}
+                <div class={outlineContainerStyle}>
+                  <div class={outlineStyle}>
+                    <div class={asteriskContainerStyle}>
+                      <Asterisk class={asteriskStyle} />
                     </div>
-                  {/each}
+                    <div class={pathStyle}>
+                      {#await outline.path then path}
+                        {#each path as pathItem, idx}
+                          {#if idx !== 0}
+                            <ChevronRight class={chevronStyle} />
+                          {/if}
+                          <div
+                            class={pathTextStyle}
+                            data-last={path.length - 1 === idx}
+                          >
+                            {pathItem.text}
+                          </div>
+                        {/each}
+                      {/await}
+                    </div>
+                  </div>
+
+                  <div class={paragraphContainerStyle}>
+                    {#each paragraphs as paragraph, idx (paragraph.id)}
+                      <div class={paragraphStyle}>
+                        {#if paragraph.id in day.paragraphPositionIndex}
+                          {@const index =
+                            day.paragraphPositionIndex[paragraph.id]}
+                          {#if index && (index.prevId === paragraphs[idx - 1]?.id || index.prevId === null)}
+                            <VerticalLine class={paragraphContainerLineTop} />
+                          {:else}
+                            <VerticalLineDash
+                              class={paragraphContainerLineTop}
+                            />
+                            <Tilda class={tildaTop} />
+                          {/if}
+                        {/if}
+                        <HoverViewTriggerParagraph {paragraph} />
+                        {#if idx === paragraphs.length - 1}
+                          {@const index =
+                            day.paragraphPositionIndex[paragraph.id]}
+                          {#if index?.isLast}
+                            <VerticalLine
+                              class={paragraphContainerLineBottom}
+                            />
+                            <div class={roundedLineEnd}></div>
+                          {:else}
+                            <VerticalLineDash
+                              class={paragraphContainerLineBottom}
+                            />
+                            <Tilda class={tildaBottom} />
+                          {/if}
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
                 </div>
-              </div>
-            {/each}
+              {/each}
+            </div>
           </div>
-        </div>
-      {/if}
-    {/each}
-  </div>
+        {/if}
+      {/each}
+    </div>
+  </HoverViewContext>
 </VirtualScroll>
 
 <script module>

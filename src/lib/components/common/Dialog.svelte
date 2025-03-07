@@ -5,8 +5,9 @@
   import TitleBarHandler from "./TitleBarHandler.svelte";
 
   type Props = Dialog.RootProps & {
-    trigger: Snippet;
     content: Snippet;
+    rootContent?: Snippet;
+    trigger?: Snippet;
     overlayContent?: Snippet;
     triggerProps?: WithoutChild<Dialog.TriggerProps>;
     triggerStyle?: Styles;
@@ -20,6 +21,7 @@
     trigger,
     content,
     overlayContent,
+    rootContent,
     triggerStyle,
     triggerProps,
     contentStyle,
@@ -30,8 +32,10 @@
 </script>
 
 <Dialog.Root bind:open {...restProps}>
+  {@render rootContent?.()}
+
   <Dialog.Trigger class={css(triggerStyle)} {...triggerProps}>
-    {@render trigger()}
+    {@render trigger?.()}
   </Dialog.Trigger>
   <Dialog.Portal>
     <Dialog.Overlay class={overlayStyle} {...overlayProps}>

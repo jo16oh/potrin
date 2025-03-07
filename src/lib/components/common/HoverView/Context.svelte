@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Dialog from "../common/Dialog.svelte";
-  import CardsView from "../view/CardsView.svelte";
+  import Dialog from "../../common/Dialog.svelte";
+  import { CardsView } from "$lib/components/view/CardsView";
   import { css } from "styled-system/css";
   import { View, Workspace } from "$lib/models/Workspace.svelte";
   import { watch } from "runed";
@@ -11,8 +11,8 @@
 
   type Props = {
     view: ViewState;
-    open: boolean;
-    trigger: Snippet;
+    open?: boolean;
+    children?: Snippet;
     rightsideTopButtons?: Snippet;
     rightsideBottomButtons?: Snippet;
   };
@@ -20,7 +20,7 @@
   let {
     view = $bindable(),
     open = $bindable(false),
-    trigger,
+    children,
     rightsideTopButtons,
     rightsideBottomButtons,
   }: Props = $props();
@@ -50,16 +50,14 @@
 
 <Dialog
   bind:open
-  triggerStyle={floatingButtonStyle}
   contentStyle={hoverViewContainerStyle}
-  triggerProps={{
-    onmousedown: (e) => {
-      e.preventDefault();
-      open = true;
-    },
+  overlayProps={{
+    onmousedown: (e) => e.preventDefault(),
   }}
-  {trigger}
 >
+  {#snippet rootContent()}
+    {@render children?.()}
+  {/snippet}
   {#snippet content()}
     {#if view.type === "cards"}
       <CardsView
@@ -86,25 +84,6 @@
 </Dialog>
 
 <script module>
-  const floatingButtonStyle = css.raw({
-    zIndex: "global.float",
-    position: "fixed",
-    right: "[24px]",
-    bottom: "[16px]",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    p: "0",
-    w: "14",
-    h: "14",
-    bg: "workspace.bg/90",
-    rounded: "circle",
-    transition: "colors",
-    _hover: {
-      bg: "workspace.bg-selected",
-    },
-  });
-
   const hoverViewContainerStyle = css.raw({
     top: "[0.5rem]",
     w: "[80vw]",
