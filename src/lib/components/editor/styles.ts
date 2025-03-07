@@ -41,7 +41,7 @@ export const paragraphEditorStyle = cva({
         py: "[1.3125rem]",
         px: "[1.75rem]",
         bg: "card.bg",
-        shadow: "sm",
+        shadow: "md",
       },
     },
   },
