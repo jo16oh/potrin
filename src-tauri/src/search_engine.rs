@@ -280,7 +280,8 @@ pub async fn search(
     index: &SearchIndex,
     query: &str,
     order_by: OrderBy,
-    limit: u8,
+    offset: u32,
+    limit: u32,
     search_fuzziness: SearchFuzziness,
 ) -> eyre::Result<Vec<SearchResult>> {
     if search_fuzziness != *index.fuzziness.read().await {
@@ -332,7 +333,7 @@ pub async fn search(
                 .collect()
         }
         OrderBy::Relevance => {
-            let collector = TopDocs::with_limit(limit as usize);
+            let collector = TopDocs::with_limit(limit as usize).and_offset(offset as usize);
 
             searcher
                 .search(&parsed_query, &collector)?
@@ -440,9 +441,16 @@ mod tests {
 
         // prefix search
         assert_eq!(
-            search(&index, "c", OrderBy::Relevance, 100, SearchFuzziness::Exact)
-                .await
-                .unwrap(),
+            search(
+                &index,
+                "c",
+                OrderBy::Relevance,
+                0,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
             vec![SearchResult {
                 id: one,
                 doc_type: String::from("paragraph")
@@ -455,6 +463,7 @@ mod tests {
                 &index,
                 "brulee",
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Exact
             )
@@ -472,6 +481,7 @@ mod tests {
                 &index,
                 "brûlée".nfd().collect::<String>().as_str(),
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Exact
             )
@@ -489,6 +499,7 @@ mod tests {
                 &index,
                 "connected",
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Exact
             )
@@ -506,6 +517,7 @@ mod tests {
                 &index,
                 "cantnt",
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Fuzziest
             )
@@ -523,6 +535,7 @@ mod tests {
                 &index,
                 "はねだ",
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Exact
             )
@@ -540,6 +553,7 @@ mod tests {
                 &index,
                 "羽田Airport",
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Exact
             )
@@ -557,6 +571,7 @@ mod tests {
                 &index,
                 "hnd",
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Exact
             )
@@ -574,6 +589,7 @@ mod tests {
                 &index,
                 "份有",
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Exact
             )
@@ -591,6 +607,7 @@ mod tests {
                 &index,
                 "草",
                 OrderBy::Relevance,
+                0,
                 100,
                 SearchFuzziness::Exact
             )

@@ -133,9 +133,9 @@ async fetchConflictingOutlineIds(outlineId: UUIDv7Base64URL, parentId: UUIDv7Bas
     else return { status: "error", error: e  as any };
 }
 },
-async search(query: string, orderBy: OrderBy, limit: number) : Promise<Result<[Outline[], Paragraph[], SearchResult[]], PotrinError>> {
+async search(query: string, orderBy: OrderBy, offset: number, limit: number) : Promise<Result<[Outline[], Paragraph[], SearchResult[]], PotrinError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("search", { query, orderBy, limit }) };
+    return { status: "ok", data: await TAURI_INVOKE("search", { query, orderBy, offset, limit }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

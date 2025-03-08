@@ -20,7 +20,8 @@ pub async fn search<R: Runtime>(
     window: Window<R>,
     query: &str,
     order_by: OrderBy,
-    limit: u8,
+    offset: u32,
+    limit: u32,
 ) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>, Vec<SearchResult>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
     let app_state_lock = get_rw_state::<R, AppState>(&app_handle)?;
@@ -31,6 +32,7 @@ pub async fn search<R: Runtime>(
         index,
         query,
         order_by,
+        offset,
         limit,
         app_state.setting.search.fuzziness,
     )
