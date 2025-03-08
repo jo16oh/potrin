@@ -33,6 +33,7 @@
     const dayStart = view.position?.dayStart;
     const scrollOffset = view.position?.scrollOffset;
 
+    // load bottom until the timeline is scrollable
     while (scrollAreaRef.scrollHeight <= scrollAreaRef.clientHeight) {
       const update = await timeline.loadBottom();
       if (update) {
@@ -43,34 +44,31 @@
     }
 
     if (dayStart && scrollOffset) {
-      for (const e of daysRef.children) {
-        if (
-          Number(e.getAttribute("data-date")) === dayStart &&
-          e instanceof HTMLElement
-        ) {
-          const scrollAmount = e.offsetTop + scrollOffset;
+      const dayRef = document.getElementById(view.id + dayStart.toString());
+      if (!dayRef) return;
 
-          while (
-            scrollAreaRef.scrollHeight <=
-            scrollAmount + scrollAreaRef.clientHeight
-          ) {
-            const update = await timeline.loadBottom();
-            if (update) {
-              update();
-            } else {
-              break;
-            }
-          }
+      const scrollAmount = dayRef.offsetTop + scrollOffset;
 
-          scrollAreaRef.scrollTo({
-            top: scrollAmount,
-          });
-
+      // load bottom until the timeline is fully scrollable to the previous position
+      while (
+        scrollAreaRef.scrollHeight <=
+        scrollAmount + scrollAreaRef.clientHeight
+      ) {
+        const update = await timeline.loadBottom();
+        if (update) {
+          update();
+        } else {
           break;
         }
       }
+
+      // scroll to previous position
+      scrollAreaRef.scrollTo({
+        top: scrollAmount,
+      });
     }
 
+    // load top
     const update = await timeline.loadTop();
     if (update) await virtualScrollRef.updateArrayHead(update);
     loading = false;
@@ -83,15 +81,14 @@
     const elements = Array.from(daysRef.children);
     elements.sort(
       (a, b) =>
-        Number(b.getAttribute("data-date")) -
-        Number(a.getAttribute("data-date")),
+        Number(b.id.slice(view.id.length)) - Number(a.id.slice(view.id.length)),
     );
 
     for (const e of elements) {
       const eRect = e.getBoundingClientRect();
       const isVisible =
         eRect.bottom > containerRect.top && eRect.top < containerRect.bottom;
-      const dayStart = Number(e.getAttribute("data-date"));
+      const dayStart = Number(e.id.slice(view.id.length));
 
       if (isNaN(dayStart)) throw new Error("invalid date");
 
@@ -158,7 +155,7 @@
     >
       {#each timeline.days as day (day.dayStart)}
         {#if day.items.length}
-          <div class="day" data-date={day.dayStart.getTime()}>
+          <div class="day" id={view.id + day.dayStart.getTime().toString()}>
             <div class={dateStyle}>
               {format(day.dayStart, "yyyy-MM-dd")}
             </div>
