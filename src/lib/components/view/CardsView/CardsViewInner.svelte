@@ -33,7 +33,10 @@
     onCloseButtonClick,
   }: Props = $props();
 
+  const REM = 16;
+
   let scrollAreaRef = $state<HTMLDivElement>()!;
+  let paragraphContainerRef = $state<HTMLDivElement>()!;
 
   watch(
     () => outline.text,
@@ -41,7 +44,36 @@
   );
 
   onMount(() => {
-    scrollAreaRef?.scrollTo(0, view.scrollPosition);
+    // If the view is opend in hoverview on timeline,
+    // scroll to the point where the cursor is visible
+    if (view.focusPosition?.id && view.focusPosition.position === "end") {
+      const editor = document.getElementById(view.id + view.focusPosition.id);
+      if (!editor) return;
+      const editorRect = editor.getBoundingClientRect();
+      const scrollRect = scrollAreaRef.getBoundingClientRect();
+
+      if (
+        editorRect.bottom > scrollRect.bottom ||
+        editorRect.bottom < editorRect.top + scrollAreaRef.clientHeight / 2
+      ) {
+        // If the editor's height is bigger than viewport's height,
+        // scroll to the bottom of the editor.
+        if (scrollAreaRef.clientHeight < editor.clientHeight) {
+          editor.scrollIntoView({ block: "end" });
+        }
+        // else, scroll to the top of the editor.
+        else {
+          editor.scrollIntoView({ block: "start" });
+          scrollAreaRef.scrollTo({
+            top: scrollAreaRef.scrollTop - 2 * (REM / 4),
+          });
+        }
+      }
+    }
+    // else, restore previous scroll position
+    else {
+      scrollAreaRef?.scrollTo(0, view.scrollPosition);
+    }
   });
 
   const onscroll = debounce(() => {
@@ -121,15 +153,17 @@
         variant={{ style: "cardsViewTitle" }}
       />
     </div>
-    <div class={paragraphContainerStyle}>
+    <div bind:this={paragraphContainerRef} class={paragraphContainerStyle}>
       <VerticalLine class={paragraphContainerLine} />
       {#each outline.paragraphs as paragraph (paragraph.id)}
-        <Editor
-          doc={paragraph}
-          variant={{ style: "card" }}
-          isViewFocused={isFocused}
-          bind:focusPosition={view.focusPosition}
-        />
+        <div id={view.id + paragraph.id}>
+          <Editor
+            doc={paragraph}
+            variant={{ style: "card" }}
+            isViewFocused={isFocused}
+            bind:focusPosition={view.focusPosition}
+          />
+        </div>
       {/each}
     </div>
     <div class={contentBoxBottomSpace}>
