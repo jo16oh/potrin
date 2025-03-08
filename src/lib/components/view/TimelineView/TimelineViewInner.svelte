@@ -367,7 +367,7 @@
   });
 
   const dateStyle = css({
-    fontSize: "4xl",
+    fontSize: "3xl",
     fontWeight: "semibold",
   });
 
