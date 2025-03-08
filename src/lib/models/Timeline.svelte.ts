@@ -197,6 +197,13 @@ export class Timeline {
     return day ? () => this.days.push(day) : null;
   }
 
+  async latest() {
+    const day = await fetchTimeline("latest");
+    if (day) {
+      this.days.splice(0, this.days.length, day);
+    }
+  }
+
   cleanup = () => {
     this._cleanup?.();
   };

@@ -76,6 +76,21 @@
 
   onDestroy(timeline.cleanup);
 
+  async function handleHeaderClick() {
+    await timeline.latest();
+    scrollAreaRef.scrollTo({ top: 0 });
+
+    // load bottom until the timeline is scrollable
+    while (scrollAreaRef.scrollHeight <= scrollAreaRef.clientHeight) {
+      const update = await timeline.loadBottom();
+      if (update) {
+        update();
+      } else {
+        break;
+      }
+    }
+  }
+
   const onscroll = debounce(() => {
     const containerRect = scrollAreaRef.getBoundingClientRect();
     const elements = Array.from(daysRef.children);
@@ -103,7 +118,8 @@
   }, 400);
 </script>
 
-<div class={headerStyle}>
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<div class={headerStyle} onclick={handleHeaderClick}>
   <div class={headerLeftButtons}></div>
   <div class={headerTitleContainer}>
     <Button class={headerTitleButtonStyle}>
@@ -320,10 +336,6 @@
     w: "6",
     h: "6",
     rounded: "circle",
-    bg: "transparent",
-    _hover: {
-      bg: "view.bg-selected",
-    },
   });
 
   const headerTitleIconStyle = css({
