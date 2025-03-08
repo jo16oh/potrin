@@ -106,6 +106,23 @@
   }, 400);
 </script>
 
+<div class={headerStyle}>
+  <div class={headerLeftButtons}></div>
+  <div class={headerTitleContainer}>
+    <Button class={headerTitleButtonStyle}>
+      <ClockArrowDown class={headerTitleIconStyle} />
+    </Button>
+    <div class={headerTitleTextStyle}>Timeline</div>
+  </div>
+  <div class={headerRightButtons}>
+    {#if !pinned}
+      <Button class={headerButtonStyle}>
+        <X class={headerIconStyle} />
+      </Button>
+    {/if}
+  </div>
+</div>
+
 <VirtualScroll
   bind:this={virtualScrollRef}
   bind:ref={scrollAreaRef}
@@ -134,23 +151,6 @@
   {onscroll}
 >
   <HoverViewContext>
-    <div class={headerStyle}>
-      <div class={headerLeftButtons}></div>
-      <div class={headerTitleContainer}>
-        <Button class={headerTitleButtonStyle}>
-          <ClockArrowDown class={headerTitleIconStyle} />
-        </Button>
-        <div class={headerTitleTextStyle}>Timeline</div>
-      </div>
-      <div class={headerRightButtons}>
-        {#if !pinned}
-          <Button class={headerButtonStyle}>
-            <X class={headerIconStyle} />
-          </Button>
-        {/if}
-      </div>
-    </div>
-
     <div
       bind:this={daysRef}
       class={contentContainerStyle}
@@ -231,9 +231,6 @@
 
 <script module>
   const headerStyle = css({
-    position: "sticky",
-    top: "0",
-    zIndex: "local.header",
     display: "grid",
     gridTemplateColumns: "[1fr auto 1fr]",
     gap: "4",
@@ -243,9 +240,7 @@
     overflow: "hidden",
     h: "8",
     p: "1",
-    bg: "view.bg/90",
     roundedTop: "md",
-    backdropFilter: "[blur(4px)]",
   });
 
   const headerLeftButtons = css({

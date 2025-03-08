@@ -81,62 +81,62 @@
   }, 100);
 </script>
 
-<ScrollArea bind:ref={scrollAreaRef} orientation="vertical" {onscroll}>
-  <div class={headerStyle}>
-    <div class={headerLeftButtons}>
-      <Button
-        class={headerButtonStyle}
-        disabled={!View.hasPrev(view.id)}
-        onmousedown={(e: MouseEvent) => e.preventDefault()}
-        onclick={(e: MouseEvent) => {
-          e.preventDefault();
-          View.back(view);
-        }}
-      >
-        <ChevronLeft
-          class={headerIconStyle}
-          data-disabled={!View.hasPrev(view.id)}
-        />
-      </Button>
-      <Button
-        class={headerButtonStyle}
-        disabled={!View.hasNext(view.id)}
-        onmousedown={(e: MouseEvent) => e.preventDefault()}
-        onclick={(e: MouseEvent) => {
-          e.preventDefault();
-          View.forward(view);
-        }}
-      >
-        <ChevronRight
-          class={headerIconStyle}
-          data-disabled={!View.hasNext(view.id)}
-        />
-      </Button>
-      <Button class={headerButtonStyle}>
-        <Search class={headerIconStyle} />
-      </Button>
-    </div>
-    <div class={headerTitleContainer}>
-      <Button class={headerTitleButtonStyle}>
-        <CardStack class={headerTitleIconStyle} />
-      </Button>
-      <div class={headerTitleTextStyle}>
-        {#if view.title.length === 0}
-          Untitled
-        {:else}
-          {view.title}
-        {/if}
-      </div>
-    </div>
-    <div class={headerRightButtons}>
-      {#if !pinned}
-        <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
-          <X class={headerIconStyle} />
-        </Button>
+<div class={headerStyle}>
+  <div class={headerLeftButtons}>
+    <Button
+      class={headerButtonStyle}
+      disabled={!View.hasPrev(view.id)}
+      onmousedown={(e: MouseEvent) => e.preventDefault()}
+      onclick={(e: MouseEvent) => {
+        e.preventDefault();
+        View.back(view);
+      }}
+    >
+      <ChevronLeft
+        class={headerIconStyle}
+        data-disabled={!View.hasPrev(view.id)}
+      />
+    </Button>
+    <Button
+      class={headerButtonStyle}
+      disabled={!View.hasNext(view.id)}
+      onmousedown={(e: MouseEvent) => e.preventDefault()}
+      onclick={(e: MouseEvent) => {
+        e.preventDefault();
+        View.forward(view);
+      }}
+    >
+      <ChevronRight
+        class={headerIconStyle}
+        data-disabled={!View.hasNext(view.id)}
+      />
+    </Button>
+    <Button class={headerButtonStyle}>
+      <Search class={headerIconStyle} />
+    </Button>
+  </div>
+  <div class={headerTitleContainer}>
+    <Button class={headerTitleButtonStyle}>
+      <CardStack class={headerTitleIconStyle} />
+    </Button>
+    <div class={headerTitleTextStyle}>
+      {#if view.title.length === 0}
+        Untitled
+      {:else}
+        {view.title}
       {/if}
     </div>
   </div>
+  <div class={headerRightButtons}>
+    {#if !pinned}
+      <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
+        <X class={headerIconStyle} />
+      </Button>
+    {/if}
+  </div>
+</div>
 
+<ScrollArea bind:ref={scrollAreaRef} orientation="vertical" {onscroll}>
   <div class={contentContainerStyle}>
     <div class={titleOutlineContainerStyle}>
       <div class={titleOutlineBulletContainerStyle}>
@@ -175,9 +175,6 @@
 
 <script module>
   const headerStyle = css({
-    position: "sticky",
-    top: "0",
-    zIndex: "local.header",
     display: "grid",
     gridTemplateColumns: "[1fr auto 1fr]",
     gap: "4",
@@ -187,9 +184,7 @@
     overflow: "hidden",
     h: "8",
     p: "1",
-    bg: "view.bg/90",
     roundedTop: "md",
-    backdropFilter: "[blur(4px)]",
   });
 
   const headerLeftButtons = css({
