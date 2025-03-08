@@ -26,13 +26,19 @@
 </script>
 
 <HoverView.Trigger
-  class={triggerStyle}
-  onmousedown={(e) => {
-    e.preventDefault();
-    context.view = createNewView();
+  onclick={(e) => {
+    if (window.getSelection()?.toString().length ?? 0 > 0) {
+      e.preventDefault();
+    } else {
+      context.view = createNewView();
+    }
   }}
 >
-  <MockParagraphEditor {paragraph} variant={{ style: "card" }} />
+  {#snippet child({ props })}
+    <div class={triggerStyle} {...props}>
+      <MockParagraphEditor {paragraph} variant={{ style: "card" }} />
+    </div>
+  {/snippet}
 </HoverView.Trigger>
 
 <script module>
