@@ -12,6 +12,6 @@
     stroke="currentColor"
     stroke-width="0.0625rem"
     stroke-linecap="round"
-    stroke-dasharray="1, 4"
+    stroke-dasharray="2 3 2 1.5"
   />
 </svg>

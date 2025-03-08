@@ -198,7 +198,9 @@
                             <VerticalLineDash
                               class={paragraphContainerLineTop}
                             />
-                            <Tilda class={tildaTop} />
+                            <div class={tildaTopContainer}>
+                              <Tilda class={tildaTop} />
+                            </div>
                           {/if}
                         {/if}
                         <HoverViewTriggerParagraph {paragraph} />
@@ -213,7 +215,9 @@
                             <VerticalLineDash
                               class={paragraphContainerLineBottom}
                             />
-                            <Tilda class={tildaBottom} />
+                            <div class={tildaBottomContainer}>
+                              <Tilda class={tildaBottom} />
+                            </div>
                           {/if}
                         {/if}
                       </div>
@@ -459,23 +463,39 @@
     position: "relative",
   });
 
+  const tildaTopContainer = css({
+    h: "4",
+    w: "6",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    z: "-10",
+    top: "-4",
+    color: "view.text-muted",
+  });
+
+  const tildaBottomContainer = css({
+    h: "4",
+    w: "6",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "absolute",
+    z: "-10",
+    bottom: "-4",
+    color: "view.text-muted",
+  });
+
   const tildaTop = css({
     h: "2.5",
     w: "2.5",
-    position: "absolute",
-    z: "-10",
-    top: "-3",
-    left: "[0.5rem]",
     color: "view.text-muted",
   });
 
   const tildaBottom = css({
     h: "2.5",
     w: "2.5",
-    position: "absolute",
-    z: "-10",
-    bottom: "-3.5",
-    left: "[0.5rem]",
     color: "view.text-muted",
   });
 </script>
