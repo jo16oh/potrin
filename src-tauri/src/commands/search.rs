@@ -64,7 +64,7 @@ pub async fn search<R: Runtime>(
         ]
         .concat();
 
-        fetch::outlines_by_id(pool, &outline_ids).await?
+        fetch::outlines_with_path_by_id(pool, &outline_ids).await?
     };
 
     eyre::Ok((
