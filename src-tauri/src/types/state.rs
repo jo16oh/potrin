@@ -1,7 +1,10 @@
-use super::model::Pot;
 use crate::{
     search_engine::OrderBy,
-    types::{setting::AppSetting, util::UUIDv7Base64URL},
+    types::{
+        model::{Path, Pot},
+        setting::AppSetting,
+        util::UUIDv7Base64URL,
+    },
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -144,7 +147,7 @@ pub enum ViewState {
     Search {
         id: String,
         query: String,
-        scope: Option<UUIDv7Base64URL>,
+        path: Option<Path>,
         order_by: OrderBy,
         view_width_ratio: f64,
         scroll_position: u32,

@@ -133,9 +133,9 @@ async fetchConflictingOutlineIds(outlineId: UUIDv7Base64URL, parentId: UUIDv7Bas
     else return { status: "error", error: e  as any };
 }
 },
-async search(query: string, orderBy: OrderBy, offset: number, limit: number) : Promise<Result<[Outline[], Paragraph[], UUIDv7Base64URL[]], PotrinError>> {
+async search(query: string, scope: UUIDv7Base64URL[] | null, orderBy: OrderBy, offset: number, limit: number) : Promise<Result<[Outline[], Paragraph[], UUIDv7Base64URL[]], PotrinError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("search", { query, orderBy, offset, limit }) };
+    return { status: "ok", data: await TAURI_INVOKE("search", { query, scope, orderBy, offset, limit }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -280,7 +280,7 @@ export type TimelineDay = { dayStart: number; paragraphPositionIndex: ParagraphP
 export type TimelinePosition = { dayStart: number; scrollOffset: number }
 export type UUIDv7Base64URL = string
 export type UserState = { id: UUIDv7Base64URL; name: string }
-export type ViewState = { type: "cards"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "outline"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "document"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "timeline"; id: string; viewWidthRatio: number; position: TimelinePosition | null } | { type: "relation"; id: string; outlineId: UUIDv7Base64URL; title: string; direction: RelationDirection; viewWidthRatio: number; scrollPosition: number } | { type: "search"; id: string; query: string; scope: UUIDv7Base64URL | null; orderBy: OrderBy; viewWidthRatio: number; scrollPosition: number }
+export type ViewState = { type: "cards"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "outline"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "document"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "timeline"; id: string; viewWidthRatio: number; position: TimelinePosition | null } | { type: "relation"; id: string; outlineId: UUIDv7Base64URL; title: string; direction: RelationDirection; viewWidthRatio: number; scrollPosition: number } | { type: "search"; id: string; query: string; path: Path | null; orderBy: OrderBy; viewWidthRatio: number; scrollPosition: number }
 export type WorkspaceState = { pot: Pot; pinnedTabs: PinnedTabState[]; tabs: TabState[]; focusedTabId: string | null; sidebar: SidebarState }
 export type WorkspaceStateChange = { patch: string }
 
