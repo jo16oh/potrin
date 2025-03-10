@@ -19,6 +19,7 @@ pub async fn search<R: Runtime>(
     app_handle: AppHandle<R>,
     window: Window<R>,
     query: &str,
+    scope: Option<Vec<UUIDv7Base64URL>>,
     order_by: OrderBy,
     offset: u32,
     limit: u32,
@@ -31,6 +32,7 @@ pub async fn search<R: Runtime>(
     let search_results = search_engine::search(
         index,
         query,
+        scope,
         order_by,
         offset,
         limit,

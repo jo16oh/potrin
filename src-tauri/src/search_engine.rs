@@ -14,7 +14,7 @@ use std::any::TypeId;
 use std::fs;
 use tantivy::collector::TopDocs;
 use tantivy::directory::{ManagedDirectory, MmapDirectory};
-use tantivy::query::QueryParser;
+use tantivy::query::{BooleanQuery, Occur, QueryParser, TermQuery};
 use tantivy::tokenizer::{Language, LowerCaser, Stemmer};
 use tantivy::tokenizer::{TextAnalyzer, TokenizerManager};
 use tantivy::{doc, schema::*, DocAddress, IndexReader};
@@ -24,6 +24,7 @@ use tauri::test::MockRuntime;
 use tauri::{AppHandle, Manager, Runtime};
 use unicode_normalization::UnicodeNormalization;
 
+#[derive(Clone)]
 pub struct IndexTarget<'a> {
     pub id: UUIDv7Base64URL,
     pub pot_id: UUIDv7Base64URL,
@@ -219,16 +220,23 @@ async fn process_targets(
         );
 
         {
-            let path: Vec<&str> = item.path.iter().map(|e| e.text.as_str()).collect();
-            document.add_facet(index.fields.path, Facet::from_path(path));
+            let mut path: Vec<String> = item.path.iter().map(|e| e.id.to_string()).collect();
+
+            if item.doc_type == "outline" {
+                path.pop();
+            }
+
+            if !path.is_empty() {
+                document.add_facet(index.fields.path, Facet::from_path(path));
+            }
         }
 
         for (_, path) in item.links.iter() {
-            let mut texts: Vec<&str> = Vec::new();
+            let mut texts: Vec<String> = Vec::new();
             let mut hidden: bool = false;
 
             for link in path.iter() {
-                texts.push(&link.text);
+                texts.push(link.id.to_string());
                 hidden = hidden || link.hidden;
             }
 
@@ -280,6 +288,7 @@ pub async fn remove_index<R: Runtime>(
 pub async fn search(
     index: &SearchIndex,
     query: &str,
+    scope: Option<Vec<UUIDv7Base64URL>>,
     order_by: OrderBy,
     offset: u32,
     limit: u32,
@@ -296,11 +305,29 @@ pub async fn search(
         *f = search_fuzziness;
     }
 
-    let query_parser = index.parser.read().await;
-
-    let query = remove_diacritics(query.nfc().collect::<String>().as_str());
-    let parsed_query = query_parser.parse_query(&query)?;
     let searcher = index.reader.searcher();
+
+    let query = {
+        let query_parser = index.parser.read().await;
+        let query = remove_diacritics(query.nfc().collect::<String>().as_str());
+        let parsed_query = query_parser.parse_query(&query)?;
+
+        if let Some(path) = scope {
+            let path: Vec<String> = path.iter().map(|p| p.to_string()).collect();
+
+            let facet_query = TermQuery::new(
+                Term::from_facet(index.fields.path, &Facet::from_path(path)),
+                IndexRecordOption::Basic,
+            );
+
+            Box::new(BooleanQuery::new(vec![
+                (Occur::Must, Box::new(facet_query)),
+                (Occur::Must, parsed_query),
+            ]))
+        } else {
+            parsed_query
+        }
+    };
 
     let doc_addresses: Vec<DocAddress> = match order_by {
         OrderBy::CreatedAt(order) => {
@@ -313,7 +340,7 @@ pub async fn search(
                 TopDocs::with_limit(limit as usize).order_by_fast_field::<i64>("created_at", order);
 
             searcher
-                .search(&parsed_query, &collector)?
+                .search(&query, &collector)?
                 .into_iter()
                 .map(|(_, doc_address)| doc_address)
                 .collect()
@@ -328,7 +355,7 @@ pub async fn search(
                 TopDocs::with_limit(limit as usize).order_by_fast_field::<i64>("updated_at", order);
 
             searcher
-                .search(&parsed_query, &collector)?
+                .search(&query, &collector)?
                 .into_iter()
                 .map(|(_, doc_address)| doc_address)
                 .collect()
@@ -337,7 +364,7 @@ pub async fn search(
             let collector = TopDocs::with_limit(limit as usize).and_offset(offset as usize);
 
             searcher
-                .search(&parsed_query, &collector)?
+                .search(&query, &collector)?
                 .into_iter()
                 .map(|(_, doc_address)| doc_address)
                 .collect()
@@ -372,7 +399,7 @@ pub async fn search(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::run_in_mock_app;
+    use crate::{test::run_in_mock_app, types::model::Link};
     use chrono::Utc;
     use tauri::test::MockRuntime;
 
@@ -384,15 +411,28 @@ mod tests {
     async fn test_impl(app_handle: &AppHandle<MockRuntime>) -> eyre::Result<()> {
         let pot_id = UUIDv7Base64URL::new();
 
-        let one = UUIDv7Base64URL::new();
-        let two = UUIDv7Base64URL::new();
-        let three = UUIDv7Base64URL::new();
-        let four = UUIDv7Base64URL::new();
         let links = Links::new();
         let path = Path::new();
+
+        let links_for_path = vec![
+            Link {
+                id: UUIDv7Base64URL::new(),
+                text: "".to_string(),
+                hidden: false,
+            },
+            Link {
+                id: UUIDv7Base64URL::new(),
+                text: "".to_string(),
+                hidden: false,
+            },
+        ];
+
+        let path1 = Path::from(vec![links_for_path[0].clone()]);
+        let path2 = Path::from(links_for_path.clone());
+
         let input = vec![
             IndexTarget {
-                id: one,
+                id: UUIDv7Base64URL::new(),
                 pot_id,
                 doc_type: "paragraph",
                 doc: r#"{ "text": "content brûlée connection" }"#,
@@ -402,7 +442,7 @@ mod tests {
                 updated_at: Utc::now().timestamp_millis(),
             },
             IndexTarget {
-                id: two,
+                id: UUIDv7Base64URL::new(),
                 pot_id,
                 doc_type: "outline",
                 doc: r#"{ "text": "東京国際空港（とうきょうこくさいくうこう、英語: Tokyo International Airport）は、東京都大田区にある日本最大の空港。通称は羽田空港（はねだくうこう、英語: Haneda Airport）であり、単に「羽田」と呼ばれる場合もある。空港コードはHND。" }"#,
@@ -412,7 +452,7 @@ mod tests {
                 updated_at: Utc::now().timestamp_millis(),
             },
             IndexTarget {
-                id: three,
+                id: UUIDv7Base64URL::new(),
                 pot_id,
                 doc_type: "outline",
                 doc: r#"{ "text": "股份有限公司" }"#,
@@ -422,7 +462,7 @@ mod tests {
                 updated_at: Utc::now().timestamp_millis(),
             },
             IndexTarget {
-                id: four,
+                id: UUIDv7Base64URL::new(),
                 pot_id,
                 doc_type: "paragraph",
                 doc: r#"{ "text": "デカすぎで草" }"#,
@@ -431,13 +471,33 @@ mod tests {
                 created_at: Utc::now().timestamp_millis(),
                 updated_at: Utc::now().timestamp_millis(),
             },
+            IndexTarget {
+                id: UUIDv7Base64URL::new(),
+                pot_id,
+                doc_type: "paragraph",
+                doc: r#"{ "text": "path" }"#,
+                path: &path1,
+                links: &links,
+                created_at: 1,
+                updated_at: 1,
+            },
+            IndexTarget {
+                id: UUIDv7Base64URL::new(),
+                pot_id,
+                doc_type: "paragraph",
+                doc: r#"{ "text": "path" }"#,
+                path: &path2,
+                links: &links,
+                created_at: 2,
+                updated_at: 2,
+            },
         ];
 
         let index = load_index(app_handle, pot_id, SearchFuzziness::Exact)
             .await
             .unwrap();
 
-        process_targets(&index, input).await.unwrap();
+        process_targets(&index, input.clone()).await.unwrap();
         index.reader.reload().unwrap();
 
         // prefix search
@@ -445,6 +505,7 @@ mod tests {
             search(
                 &index,
                 "c",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -453,7 +514,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: one,
+                id: input[0].id,
                 doc_type: String::from("paragraph")
             },]
         );
@@ -463,6 +524,7 @@ mod tests {
             search(
                 &index,
                 "brulee",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -471,7 +533,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: one,
+                id: input[0].id,
                 doc_type: String::from("paragraph")
             },]
         );
@@ -481,6 +543,7 @@ mod tests {
             search(
                 &index,
                 "brûlée".nfd().collect::<String>().as_str(),
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -489,7 +552,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: one,
+                id: input[0].id,
                 doc_type: String::from("paragraph")
             },]
         );
@@ -499,6 +562,7 @@ mod tests {
             search(
                 &index,
                 "connected",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -507,7 +571,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: one,
+                id: input[0].id,
                 doc_type: String::from("paragraph")
             },]
         );
@@ -517,6 +581,7 @@ mod tests {
             search(
                 &index,
                 "cantnt",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -525,7 +590,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: one,
+                id: input[0].id,
                 doc_type: String::from("paragraph")
             },]
         );
@@ -535,6 +600,7 @@ mod tests {
             search(
                 &index,
                 "はねだ",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -543,7 +609,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: two,
+                id: input[1].id,
                 doc_type: String::from("outline")
             },]
         );
@@ -553,6 +619,7 @@ mod tests {
             search(
                 &index,
                 "羽田Airport",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -561,7 +628,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: two,
+                id: input[1].id,
                 doc_type: String::from("outline")
             },]
         );
@@ -571,6 +638,7 @@ mod tests {
             search(
                 &index,
                 "hnd",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -579,7 +647,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: two,
+                id: input[1].id,
                 doc_type: String::from("outline")
             },]
         );
@@ -589,6 +657,7 @@ mod tests {
             search(
                 &index,
                 "份有",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -597,7 +666,7 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: three,
+                id: input[2].id,
                 doc_type: String::from("outline")
             },]
         );
@@ -607,6 +676,7 @@ mod tests {
             search(
                 &index,
                 "草",
+                None,
                 OrderBy::Relevance,
                 0,
                 100,
@@ -615,7 +685,51 @@ mod tests {
             .await
             .unwrap(),
             vec![SearchResult {
-                id: four,
+                id: input[3].id,
+                doc_type: String::from("paragraph")
+            },]
+        );
+
+        // search inside certain path
+        assert_eq!(
+            search(
+                &index,
+                "path",
+                Some(links_for_path.iter().map(|e| e.id).collect::<Vec<_>>()[0..1].to_vec()),
+                OrderBy::CreatedAt(Order::Asc),
+                0,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![
+                SearchResult {
+                    id: input[4].id,
+                    doc_type: String::from("paragraph")
+                },
+                SearchResult {
+                    id: input[5].id,
+                    doc_type: String::from("paragraph")
+                },
+            ]
+        );
+
+        // search inside certain path
+        assert_eq!(
+            search(
+                &index,
+                "path",
+                Some(links_for_path.iter().map(|e| e.id).collect()),
+                OrderBy::Relevance,
+                0,
+                100,
+                SearchFuzziness::Exact
+            )
+            .await
+            .unwrap(),
+            vec![SearchResult {
+                id: input[5].id,
                 doc_type: String::from("paragraph")
             },]
         );
