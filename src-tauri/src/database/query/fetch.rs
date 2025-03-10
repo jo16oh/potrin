@@ -159,7 +159,7 @@ pub async fn paragraphs_by_id(
             LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
             LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
             LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-            WHERE id IN ({}) AND paragraphs.deleted = false
+            WHERE paragraphs.id IN ({}) AND paragraphs.deleted = false
             GROUP BY paragraphs.id;
         "#,
         paragraph_ids
