@@ -48,15 +48,16 @@ pub struct SearchResult {
     pub doc_type: String,
 }
 
-#[derive(Serialize, Deserialize, Type)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, Type)]
 #[serde(rename_all = "camelCase")]
 pub enum OrderBy {
     CreatedAt(Order),
     UpdatedAt(Order),
+    #[default]
     Relevance,
 }
 
-#[derive(Serialize, Deserialize, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type)]
 #[serde(rename_all = "camelCase")]
 pub enum Order {
     Desc,
