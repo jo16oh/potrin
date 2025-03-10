@@ -133,7 +133,7 @@ async fetchConflictingOutlineIds(outlineId: UUIDv7Base64URL, parentId: UUIDv7Bas
     else return { status: "error", error: e  as any };
 }
 },
-async search(query: string, orderBy: OrderBy, offset: number, limit: number) : Promise<Result<[Outline[], Paragraph[], SearchResult[]], PotrinError>> {
+async search(query: string, orderBy: OrderBy, offset: number, limit: number) : Promise<Result<[Outline[], Paragraph[], UUIDv7Base64URL[]], PotrinError>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("search", { query, orderBy, offset, limit }) };
 } catch (e) {
@@ -272,7 +272,6 @@ export type Quote = { id: UUIDv7Base64URL; versionId: UUIDv7Base64URL; path: Pat
 export type RelationDirection = "back" | "forward"
 export type RelationOption = { direction: Direction; includeChildren: IncludeChildrenOption | null }
 export type SearchFuzziness = "Exact" | "Fuzzy" | "Fuzziest"
-export type SearchResult = { id: UUIDv7Base64URL; doc_type: string }
 export type SearchSetting = { fuzziness: SearchFuzziness }
 export type SidebarState = { isFloat: boolean; width: number }
 export type TabState = { id: string; views: ViewState[]; focusedViewId: string | null }

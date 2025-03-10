@@ -1,6 +1,6 @@
 use crate::{
     database::query::fetch,
-    search_engine::{self, OrderBy, SearchIndex, SearchResult},
+    search_engine::{self, OrderBy, SearchIndex},
     types::{
         model::{Outline, Paragraph},
         state::AppState,
@@ -22,7 +22,7 @@ pub async fn search<R: Runtime>(
     order_by: OrderBy,
     offset: u32,
     limit: u32,
-) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>, Vec<SearchResult>)> {
+) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>, Vec<UUIDv7Base64URL>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
     let app_state_lock = get_rw_state::<R, AppState>(&app_handle)?;
     let app_state = app_state_lock.read().await;
@@ -65,5 +65,9 @@ pub async fn search<R: Runtime>(
         fetch::outlines_by_id(pool, &outline_ids).await?
     };
 
-    eyre::Ok((outlines, paragraphs, search_results))
+    eyre::Ok((
+        outlines,
+        paragraphs,
+        search_results.iter().map(|r| r.id).collect(),
+    ))
 }
