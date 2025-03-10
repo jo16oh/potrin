@@ -6,11 +6,10 @@
   import { watch } from "runed";
   import type { Snippet } from "svelte";
 
-  type ViewStateTypes = "cards" | "outline";
-  type ViewState = Extract<View, { type: ViewStateTypes }>;
+  type AllowedViewType = "cards" | "outline";
 
   type Props = {
-    view: ViewState;
+    view: View<AllowedViewType>;
     open?: boolean;
     children?: Snippet;
     rightsideTopButtons?: Snippet;

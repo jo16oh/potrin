@@ -7,8 +7,7 @@
   import Button from "$lib/components/common/Button.svelte";
   import { Columns2, Link, Maximize2 } from "lucide-svelte";
 
-  type ViewStateTypes = "cards" | "outline";
-  type ViewState = Extract<View, { type: ViewStateTypes }>;
+  type AllowedViewType = "cards" | "outline";
 
   type Props = {
     children?: Snippet;
@@ -84,7 +83,7 @@
   export class HoverViewContext {
     private static KEY = Symbol();
 
-    view: ViewState = $state(View.new("cards"));
+    view: View<AllowedViewType> = $state(View.new("cards"));
     open = $state(false);
 
     static init() {

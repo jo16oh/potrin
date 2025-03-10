@@ -6,7 +6,7 @@
   import { HoverViewContext } from "./HoverViewContext.svelte";
   import { css } from "styled-system/css";
 
-  type AllowedView = Extract<View, { type: "cards" | "outline" }>;
+  type AllowedViewType = "cards" | "outline";
 
   type Props = {
     paragraph: Paragraph;
@@ -16,7 +16,7 @@
 
   let context = HoverViewContext.state;
 
-  function createNewView(): AllowedView {
+  function createNewView(): View<AllowedViewType> {
     return {
       ...View.new("cards"),
       outlineId: paragraph.outlineId,

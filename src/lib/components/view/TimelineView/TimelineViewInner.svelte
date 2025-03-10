@@ -18,7 +18,7 @@
 
   type Props = {
     timeline: Timeline;
-    view: Extract<View, { type: "timeline" }>;
+    view: View<"timeline">;
     pinned: boolean;
   };
 

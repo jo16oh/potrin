@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { type ViewState } from "generated/tauri-commands";
   import { Outline } from "$lib/models/Outline.svelte";
   import { Paragraph } from "$lib/models/Paragraph.svelte";
   import CardsViewInner from "./CardsViewInner.svelte";
@@ -8,9 +7,8 @@
   import { watch } from "runed";
   import { View } from "$lib/models/Workspace.svelte";
 
-  type CardsViewState = Extract<ViewState, { type: "cards" }>;
   type Props = {
-    view: CardsViewState;
+    view: View<"cards">;
     isFocused: boolean;
     pinned?: boolean;
     onCloseButtonClick: () => void;

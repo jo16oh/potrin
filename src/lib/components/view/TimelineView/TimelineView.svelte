@@ -4,7 +4,7 @@
   import { Timeline } from "$lib/models/Timeline.svelte";
   import TimelineViewInner from "./TimelineViewInner.svelte";
 
-  type Props = { view: Extract<View, { type: "timeline" }>; pinned: boolean };
+  type Props = { view: View<"timeline">; pinned: boolean };
   let { view, pinned }: Props = $props();
 
   let promise = $state(

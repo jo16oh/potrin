@@ -2,7 +2,6 @@
   import { ChevronLeft, ChevronRight, Search, X } from "lucide-svelte";
   import { css } from "styled-system/css";
   import Button from "$lib/components/common/Button.svelte";
-  import { type ViewState } from "generated/tauri-commands";
   import { Outline } from "$lib/models/Outline.svelte";
   import Asterisk from "$lib/components/icon/Asterisk.svelte";
   import ScrollArea from "$lib/components/common/ScrollArea.svelte";
@@ -15,11 +14,9 @@
   import VerticalLine from "$lib/components/icon/VerticalLine.svelte";
   import VerticalLineWithCircle from "$lib/components/icon/VerticalLineWithCircle.svelte";
 
-  type CardsViewState = Extract<ViewState, { type: "cards" }>;
-
   type Props = {
     outline: Outline;
-    view: CardsViewState;
+    view: View<"cards">;
     isFocused: boolean;
     pinned: boolean;
     onCloseButtonClick: () => void;

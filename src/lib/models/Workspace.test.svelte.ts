@@ -5,8 +5,8 @@ import {
   CloseHistory,
   type HistoryItem,
   ViewHistory,
+  View,
 } from "./Workspace.svelte";
-import type { ViewState } from "../../generated/tauri-commands";
 
 describe("FocusHistory", () => {
   let focusHistory: FocusHistory;
@@ -208,12 +208,10 @@ describe("CloseHistory", () => {
 
 describe("ViewHistory", () => {
   let viewHistory: ViewHistory;
-  let mockState1: ViewState;
-  let mockState2: ViewState;
+  let mockState1: View<"cards">;
+  let mockState2: View<"cards">;
 
-  function createMockViewState(
-    id: string,
-  ): Extract<ViewState, { type: "cards" }> {
+  function createMockViewState(id: string): View<"cards"> {
     return {
       id: id,
       type: "cards",

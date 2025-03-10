@@ -4,19 +4,18 @@ import { Outline } from "./Outline.svelte";
 import { Paragraph } from "./Paragraph.svelte";
 import type { View } from "./Workspace.svelte";
 
-type SearchView = Extract<View, { type: "search" }>;
 type Item = {
   outline: Outline;
   paragraphs: Paragraph[];
 };
 
 export class Search {
-  #view: SearchView;
+  #view: View<"search">;
   #query = $state("");
   result: Promise<Item[]> = $state(new Promise(() => {}));
   #cleanup: () => void | undefined;
 
-  constructor(view: SearchView) {
+  constructor(view: View<"search">) {
     this.#view = view;
     this.#query = view.query;
 

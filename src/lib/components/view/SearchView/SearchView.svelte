@@ -5,9 +5,7 @@
   import { createSearchQueryExtensions } from "$lib/components/editor/schema";
   import type { View } from "$lib/models/Workspace.svelte";
 
-  type SearchView = Extract<View, { type: "search" }>;
-
-  type Props = { view: SearchView };
+  type Props = { view: View<"search"> };
 
   let { view }: Props = $props();
 

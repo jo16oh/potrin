@@ -433,30 +433,47 @@ class ViewMethods {
     }
   }
 
-  new<T extends "cards" | "outline">(type: T): Extract<ViewState, { type: T }> {
+  new<T extends "cards" | "outline" | "search">(type: T): View<T> {
     switch (type) {
-      case "cards":
-        return {
+      case "cards": {
+        const view: View<"cards"> = {
           id: crypto.randomUUID(),
           type: "cards",
           outlineId: null,
           title: "",
-          pinned: false,
           scrollPosition: 0,
           focusPosition: { id: null, position: "start" },
           viewWidthRatio: 1,
-        } as Extract<ViewState, { type: T }>;
-      case "outline":
-        return {
+        };
+
+        return view as View<T>;
+      }
+      case "outline": {
+        const view: View<"outline"> = {
           id: crypto.randomUUID(),
           type: "outline",
           outlineId: null,
           title: "",
-          pinned: false,
           scrollPosition: 0,
           focusPosition: { id: null, position: "start" },
           viewWidthRatio: 1,
-        } as Extract<ViewState, { type: T }>;
+        };
+
+        return view as View<T>;
+      }
+      case "search": {
+        const view: View<"search"> = {
+          id: crypto.randomUUID(),
+          type: "search",
+          query: "",
+          path: null,
+          orderBy: "relevance",
+          scrollPosition: 0,
+          viewWidthRatio: 1,
+        };
+
+        return view as View<T>;
+      }
       default: {
         const _exhaustiveCheck: never = type;
         throw new Error(`Unsupported view type: ${_exhaustiveCheck}`);
@@ -465,5 +482,5 @@ class ViewMethods {
   }
 }
 
-export type View = ViewState;
+export type View<T> = Extract<ViewState, { type: T }>;
 export const View = new ViewMethods();
