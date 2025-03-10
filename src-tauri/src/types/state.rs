@@ -40,20 +40,38 @@ pub struct WorkspaceState {
 impl WorkspaceState {
     pub fn new(pot: &Pot) -> Self {
         let timeline_view_id = Uuid::new_v4().to_string();
-        let mut pinned_view_ids = HashMap::<String, ()>::new();
-        pinned_view_ids.insert(timeline_view_id.clone(), ());
+        let mut pinned_view_ids_timeline = HashMap::<String, ()>::new();
+        pinned_view_ids_timeline.insert(timeline_view_id.clone(), ());
+        let mut pinned_view_ids_search = HashMap::<String, ()>::new();
+        pinned_view_ids_search.insert(timeline_view_id.clone(), ());
+
         Self {
             pot: pot.clone(),
-            pinned_tabs: vec![PinnedTabState {
-                id: Uuid::new_v4().to_string(),
-                views: vec![ViewState::Timeline {
-                    id: timeline_view_id.clone(),
-                    view_width_ratio: 1.0,
-                    position: None,
-                }],
-                focused_view_id: None,
-                pinned_view_ids,
-            }],
+            pinned_tabs: vec![
+                PinnedTabState {
+                    id: Uuid::new_v4().to_string(),
+                    views: vec![ViewState::Timeline {
+                        id: timeline_view_id.clone(),
+                        view_width_ratio: 1.0,
+                        position: None,
+                    }],
+                    focused_view_id: None,
+                    pinned_view_ids: pinned_view_ids_timeline,
+                },
+                PinnedTabState {
+                    id: Uuid::new_v4().to_string(),
+                    views: vec![ViewState::Search {
+                        id: timeline_view_id.clone(),
+                        query: "".to_string(),
+                        path: None,
+                        order_by: OrderBy::Relevance,
+                        view_width_ratio: 1.0,
+                        scroll_position: 0,
+                    }],
+                    focused_view_id: None,
+                    pinned_view_ids: pinned_view_ids_search,
+                },
+            ],
             tabs: Vec::new(),
             focused_tab_id: None,
             sidebar: SidebarState {
