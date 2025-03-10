@@ -59,7 +59,7 @@ pub async fn search<R: Runtime>(
                 .collect::<Vec<UUIDv7Base64URL>>(),
             paragraphs
                 .iter()
-                .map(|c| c.id)
+                .map(|c| c.outline_id)
                 .collect::<Vec<UUIDv7Base64URL>>(),
         ]
         .concat();
