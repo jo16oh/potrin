@@ -5,6 +5,7 @@
   import { CardsView } from "$lib/components/view";
   import { TimelineView } from "$lib/components/view";
   import HoverViewButton from "./HoverViewButton.svelte";
+  import SearchView from "../view/SearchView/SearchView.svelte";
 
   const workspace = Workspace.current;
   const pinnedTabs = $derived(workspace.state.pinnedTabs);
@@ -26,6 +27,8 @@
           >
             {#if view.type === "timeline"}
               <TimelineView {view} pinned={view.id in tab.pinnedViewIds} />
+            {:else if view.type === "search"}
+              <SearchView {view} />
             {/if}
           </div>
         {/each}

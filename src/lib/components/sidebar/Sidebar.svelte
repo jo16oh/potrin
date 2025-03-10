@@ -7,6 +7,7 @@
     PanelRight,
     PanelRightOpen,
     PencilLine,
+    Search,
     SquareArrowUpRight,
     X,
   } from "lucide-svelte";
@@ -182,6 +183,8 @@
                   <CardStack class={viewIconStyle} />
                 {:else if view.type === "timeline"}
                   <ClockArrowDown class={viewIconStyle} />
+                {:else if view.type === "search"}
+                  <Search class={viewIconStyle} />
                 {/if}
               </div>
               {#if view.type === "cards"}
@@ -197,6 +200,8 @@
                 </div>
               {:else if view.type === "timeline"}
                 <div class={viewTitleStyle}>Timeline</div>
+              {:else if view.type === "search"}
+                <div class={viewTitleStyle}>Search</div>
               {/if}
             </div>
           {/each}
