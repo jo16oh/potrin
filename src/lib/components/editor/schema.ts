@@ -23,6 +23,10 @@ export function getParagraphSchema() {
   return getSchema([Document, TiptapParagraph, Text]);
 }
 
+export function getSearchQuerySchema() {
+  return getSchema([OutlineDocument, TiptapParagraph, Text]);
+}
+
 const OutlineDocument = Node.create({
   name: "doc",
   topNode: true,
@@ -307,3 +311,7 @@ export const createOutlineExtensions = async (
     }),
   ];
 };
+
+export function createSearchQueryExtensions() {
+  return [OutlineDocument, TiptapParagraph, Text];
+}
