@@ -47,7 +47,7 @@ async fn upsert_outline_impl<R: Runtime>(
 
     insert::from_local::y_doc(&mut *tx, "outline", outline.id, pot_id, user_id).await?;
     rowids.extend(insert::from_local::y_updates(&mut *tx, &[y_update]).await?);
-    rowids.push(upsert::outline(&mut *tx, outline).await?);
+    rowids.push(upsert::outline(&mut *tx, pot_id, outline).await?);
     upsert_or_delete::outline_links(&mut tx, outline.id, &outline.links).await?;
     if let Some(ref path) = outline.path {
         upsert::path(&mut *tx, &[(outline.id, serde_sqlite_jsonb::to_vec(path)?)]).await?;

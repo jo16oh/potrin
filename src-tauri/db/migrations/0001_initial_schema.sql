@@ -388,6 +388,7 @@ END;
 
 CREATE TABLE outlines (
   id BLOB REFERENCES y_docs(id) ON DELETE CASCADE PRIMARY KEY,
+  pot_id BLOB REFERENCES pots(id) ON DELETE CASCADE NOT NULL,
   parent_id BLOB REFERENCES outlines(id) ON DELETE CASCADE,
   fractional_index TEXT NOT NULL,
   doc TEXT NOT NULL,
@@ -488,6 +489,7 @@ CREATE TABLE outline_paths(
 
 CREATE TABLE paragraphs (
   id BLOB REFERENCES y_docs(id) ON DELETE CASCADE PRIMARY KEY,
+  pot_id BLOB REFERENCES pots(id) ON DELETE CASCADE NOT NULL,
   outline_id BLOB REFERENCES outlines(id) ON DELETE CASCADE NOT NULL,
   fractional_index TEXT NOT NULL,
   doc TEXT NOT NULL,

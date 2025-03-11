@@ -6,7 +6,7 @@ use crate::types::{
 use eyre::{Context, Result};
 use sqlx::SqliteExecutor;
 
-pub async fn outline<'a, E>(conn: E, outline: &Outline) -> Result<i64>
+pub async fn outline<'a, E>(conn: E, pot_id: UUIDv7Base64URL, outline: &Outline) -> Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
@@ -16,6 +16,7 @@ where
         r#"
             INSERT INTO outlines (
                 id,
+                pot_id,
                 parent_id,
                 fractional_index,
                 doc,
@@ -26,9 +27,10 @@ where
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT DO UPDATE
             SET
+                pot_id = excluded.pot_id,
                 parent_id = excluded.parent_id,
                 fractional_index = excluded.fractional_index,
                 doc = excluded.doc,
@@ -44,6 +46,7 @@ where
         "#,
     )
     .bind(outline.id)
+    .bind(pot_id)
     .bind(outline.parent_id)
     .bind(&outline.fractional_index)
     .bind(&outline.doc)
@@ -58,7 +61,11 @@ where
     .context("database error")
 }
 
-pub async fn paragraph<'a, E>(conn: E, paragraph: &Paragraph) -> Result<i64>
+pub async fn paragraph<'a, E>(
+    conn: E,
+    pot_id: UUIDv7Base64URL,
+    paragraph: &Paragraph,
+) -> Result<i64>
 where
     E: SqliteExecutor<'a>,
 {
@@ -66,6 +73,7 @@ where
         r#"
             INSERT INTO paragraphs (
                 id,
+                pot_id,
                 outline_id,
                 fractional_index,
                 doc,
@@ -74,9 +82,10 @@ where
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT DO UPDATE
             SET
+                pot_id = excluded.pot_id,
                 outline_id = excluded.outline_id,
                 fractional_index = excluded.fractional_index,
                 doc = excluded.doc,
@@ -90,6 +99,7 @@ where
         "#,
     )
     .bind(paragraph.id)
+    .bind(pot_id)
     .bind(paragraph.outline_id)
     .bind(&paragraph.fractional_index)
     .bind(&paragraph.doc)

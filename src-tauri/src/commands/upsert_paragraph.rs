@@ -56,7 +56,7 @@ async fn upsert_paragraph_impl<R: Runtime>(
 
     insert::from_local::y_doc(&mut *tx, "paragraph", paragraph.id, pot_id, user_id).await?;
     rowids.extend(insert::from_local::y_updates(&mut *tx, &[y_update]).await?);
-    rowids.push(upsert::paragraph(&mut *tx, paragraph).await?);
+    rowids.push(upsert::paragraph(&mut *tx, pot_id, paragraph).await?);
     upsert_or_delete::paragraph_links(&mut tx, paragraph.id, &paragraph.links).await?;
     upsert_or_delete::quote(&mut tx, paragraph.id, &paragraph.quote).await?;
 
