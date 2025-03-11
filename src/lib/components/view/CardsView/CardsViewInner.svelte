@@ -133,7 +133,12 @@
   {/snippet}
 </Header>
 
-<ScrollArea bind:ref={scrollAreaRef} orientation="vertical" {onscroll}>
+<ScrollArea
+  bind:ref={scrollAreaRef}
+  type="always"
+  orientation="vertical"
+  {onscroll}
+>
   <div class={contentContainerStyle}>
     <div class={titleOutlineContainerStyle}>
       <div class={titleOutlineBulletContainerStyle}>
