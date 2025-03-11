@@ -10,6 +10,41 @@
   let promise = $state(
     Timeline.init(view.position ? { at: view.position.dayStart } : "latest"),
   );
+
+  // import { Outline } from "$lib/models/Outline.svelte";
+  // import { Paragraph } from "$lib/models/Paragraph.svelte";
+  // import { subDays } from "date-fns";
+  // import { range } from "es-toolkit";
+  // (async () => {
+  //   for (const i of range(100)) {
+  //     const o = await Outline.new();
+  //     const p = Paragraph.new(o);
+  //
+  //     o.createdAt = subDays(o.createdAt, i + 1);
+  //     p.createdAt = subDays(p.createdAt, i + 1);
+  //     o._doc = {
+  //       type: "doc",
+  //       content: [
+  //         {
+  //           type: "paragraph",
+  //           content: [{ type: "text", text: "吾輩は猫である" }],
+  //         },
+  //       ],
+  //     };
+  //     p._doc = {
+  //       type: "doc",
+  //       content: [
+  //         {
+  //           type: "paragraph",
+  //           content: [{ type: "text", text: "吾輩は猫である" }],
+  //         },
+  //       ],
+  //     };
+  //
+  //     await o.save();
+  //     await p.save();
+  //   }
+  // })();
 </script>
 
 <div class={viewContainer}>

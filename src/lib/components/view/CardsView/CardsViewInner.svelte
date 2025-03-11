@@ -13,6 +13,7 @@
   import { View } from "$lib/models/Workspace.svelte";
   import VerticalLine from "$lib/components/icon/VerticalLine.svelte";
   import VerticalLineWithCircle from "$lib/components/icon/VerticalLineWithCircle.svelte";
+  import Header from "../common/Header.svelte";
 
   type Props = {
     outline: Outline;
@@ -78,10 +79,10 @@
   }, 100);
 </script>
 
-<div class={headerStyle}>
-  <div class={headerLeftButtons}>
+<Header>
+  {#snippet left({ buttonStyle, iconStyle })}
     <Button
-      class={headerButtonStyle}
+      class={css(buttonStyle)}
       disabled={!View.hasPrev(view.id)}
       onmousedown={(e: MouseEvent) => e.preventDefault()}
       onclick={(e: MouseEvent) => {
@@ -90,12 +91,12 @@
       }}
     >
       <ChevronLeft
-        class={headerIconStyle}
+        class={css(iconStyle)}
         data-disabled={!View.hasPrev(view.id)}
       />
     </Button>
     <Button
-      class={headerButtonStyle}
+      class={css(buttonStyle)}
       disabled={!View.hasNext(view.id)}
       onmousedown={(e: MouseEvent) => e.preventDefault()}
       onclick={(e: MouseEvent) => {
@@ -104,34 +105,34 @@
       }}
     >
       <ChevronRight
-        class={headerIconStyle}
+        class={css(iconStyle)}
         data-disabled={!View.hasNext(view.id)}
       />
     </Button>
-    <Button class={headerButtonStyle}>
-      <Search class={headerIconStyle} />
+    <Button class={css(buttonStyle)}>
+      <Search class={css(iconStyle)} />
     </Button>
-  </div>
-  <div class={headerTitleContainer}>
-    <Button class={headerTitleButtonStyle}>
-      <CardStack class={headerTitleIconStyle} />
+  {/snippet}
+  {#snippet center({ buttonStyle, iconStyle, textStyle })}
+    <Button class={css(buttonStyle)}>
+      <CardStack class={css(iconStyle)} />
     </Button>
-    <div class={headerTitleTextStyle}>
+    <div class={css(textStyle)}>
       {#if view.title.length === 0}
         Untitled
       {:else}
         {view.title}
       {/if}
     </div>
-  </div>
-  <div class={headerRightButtons}>
+  {/snippet}
+  {#snippet right({ buttonStyle, iconStyle })}
     {#if !pinned}
-      <Button class={headerButtonStyle} onclick={onCloseButtonClick}>
-        <X class={headerIconStyle} />
+      <Button class={css(buttonStyle)} onclick={onCloseButtonClick}>
+        <X class={css(iconStyle)} />
       </Button>
     {/if}
-  </div>
-</div>
+  {/snippet}
+</Header>
 
 <ScrollArea bind:ref={scrollAreaRef} orientation="vertical" {onscroll}>
   <div class={contentContainerStyle}>
@@ -171,117 +172,6 @@
 </ScrollArea>
 
 <script module>
-  const headerStyle = css({
-    display: "grid",
-    gridTemplateColumns: "[1fr auto 1fr]",
-    gap: "4",
-    justifyContent: "space-between",
-    alignItems: "center",
-    w: "full",
-    overflow: "hidden",
-    h: "8",
-    p: "1",
-    roundedTop: "md",
-  });
-
-  const headerLeftButtons = css({
-    flexBasis: "[auto]",
-    flexGrow: "0",
-    flexShrink: "0",
-    display: "flex",
-    flexDir: "row",
-    gap: "2",
-  });
-
-  const headerRightButtons = css({
-    flexBasis: "[auto]",
-    flexGrow: "0",
-    flexShrink: "0",
-    display: "flex",
-    flexDir: "row",
-    justifyContent: "end",
-    gap: "2",
-  });
-
-  const headerButtonStyle = css({
-    justifySelf: "end",
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    transition: "colors",
-    p: "0",
-    w: "6",
-    h: "6",
-    rounded: "circle",
-    shadow: "[none]",
-    bg: "transparent",
-    _disabled: {
-      _hover: {
-        bg: "transparent",
-      },
-    },
-    _hover: {
-      bg: "view.bg-selected",
-    },
-  });
-
-  const headerIconStyle = css({
-    w: "4",
-    h: "4",
-    color: "view.text-muted",
-    "&[data-disabled=true]": {
-      color: "view.text-muted/50",
-    },
-  });
-
-  const headerTitleContainer = css({
-    justifySelf: "center",
-    w: "full",
-    maxW: "[38.25rem]",
-    flex: "[0 1 auto]",
-    display: "flex",
-    flexDir: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    h: "full",
-    minW: "0",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  });
-
-  const headerTitleButtonStyle = css({
-    flexShrink: "0",
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    transition: "colors",
-    p: "0",
-    w: "6",
-    h: "6",
-    rounded: "circle",
-    bg: "transparent",
-    _hover: {
-      bg: "view.bg-selected",
-    },
-  });
-
-  const headerTitleIconStyle = css({
-    w: "3",
-    h: "3",
-    color: "view.text-muted",
-  });
-
-  const headerTitleTextStyle = css({
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    color: "view.text-muted",
-    fontSize: "xs",
-    cursor: "default",
-  });
-
   const contentContainerStyle = css({
     maxW: "[38.25rem]",
     px: "2",
@@ -354,12 +244,4 @@
     top: "0",
     color: "view.text-muted",
   });
-  //
-  // const titleOutlineEditorContainer = css.raw({
-  //   w: "full",
-  //   h: "fit",
-  //   wordBreak: "break-word",
-  //   minHeight: "[3rem]",
-  //   color: "view.text",
-  // });
 </script>

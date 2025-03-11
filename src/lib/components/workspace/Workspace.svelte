@@ -29,7 +29,7 @@
               {#if view.type === "timeline"}
                 <TimelineView {view} pinned={view.id in tab.pinnedViewIds} />
               {:else if view.type === "search"}
-                <SearchView {view} />
+                <SearchView {view} pinned={view.id in tab.pinnedViewIds} />
               {/if}
             </div>
           {/each}
