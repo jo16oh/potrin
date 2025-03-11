@@ -34,7 +34,6 @@
   const REM = 16;
 
   let scrollAreaRef = $state<HTMLDivElement>()!;
-  let paragraphContainerRef = $state<HTMLDivElement>()!;
 
   watch(
     () => outline.text,
@@ -151,7 +150,7 @@
         variant={{ style: "cardsViewTitle" }}
       />
     </div>
-    <div bind:this={paragraphContainerRef} class={paragraphContainerStyle}>
+    <div class={paragraphContainerStyle}>
       <VerticalLine class={paragraphContainerLine} />
       {#each outline.paragraphs as paragraph (paragraph.id)}
         <div id={view.id + paragraph.id}>
