@@ -26,12 +26,34 @@
   let queryElement: HTMLDivElement = $state()!;
   let queryEditor: Editor;
 
+  let isComposing = false;
+
   onMount(() => {
     queryEditor = new Editor({
       element: queryElement,
       extensions: createSearchQueryExtensions(),
       content: search.query,
-      onTransaction: () => (view.query = search.query = queryEditor.getText()),
+      onUpdate: () => {
+        if (!isComposing) {
+          view.query = search.query = queryEditor.getText();
+          console.log(view.query);
+        }
+      },
+      editorProps: {
+        attributes: {
+          class: noRing,
+        },
+      },
+    });
+
+    queryElement.addEventListener("compositionstart", () => {
+      isComposing = true;
+    });
+
+    queryElement.addEventListener("compositionend", () => {
+      isComposing = false;
+      view.query = search.query = queryEditor.getText();
+      console.log(view.query);
     });
   });
 
