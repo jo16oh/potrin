@@ -697,49 +697,6 @@ pub async fn outline_trees(
     .context("database error")
 }
 
-pub async fn outlines_by_id(
-    pool: &SqlitePool,
-    outline_ids: &[UUIDv7Base64URL],
-) -> Result<Vec<Outline>> {
-    let query = format!(
-        r#"
-            SELECT
-                id,
-                parent_id,
-                fractional_index,
-                doc,
-                text,
-                jsonb_group_array(path) AS links,
-                hidden,
-                collapsed,
-                deleted,
-                created_at,
-                updated_at
-            FROM outlines
-            LEFT JOIN outline_links ON outlines.id = outline_links.id_from
-            LEFT JOIN outline_paths ON outline_paths.outline_id = outline_links.id_to
-            WHERE id IN ({}) AND deleted = false
-            GROUP BY id;
-        "#,
-        outline_ids
-            .iter()
-            .map(|_| "?".to_string())
-            .collect::<Vec<String>>()
-            .join(", ")
-    );
-
-    let mut query_builder = sqlx::query_as::<_, Outline>(&query);
-
-    for id in outline_ids {
-        query_builder = query_builder.bind(id);
-    }
-
-    query_builder
-        .fetch_all(pool)
-        .await
-        .context("database error")
-}
-
 pub async fn outlines_with_path_by_id(
     pool: &SqlitePool,
     pot_id: UUIDv7Base64URL,
