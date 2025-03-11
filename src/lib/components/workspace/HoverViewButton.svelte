@@ -104,7 +104,7 @@
   const floatingButtonStyle = css({
     zIndex: "global.float",
     position: "fixed",
-    right: "[28px]",
+    right: "[24px]",
     bottom: "[16px]",
     display: "flex",
     justifyContent: "center",

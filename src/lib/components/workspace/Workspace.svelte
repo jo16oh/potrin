@@ -13,63 +13,64 @@
   const focusedTabId = $derived(workspace.state.focusedTabId);
 </script>
 
-<div class={containerStyle}>
+<div class={workspaceContainerStyle}>
   <Sidebar />
 
-  {#each pinnedTabs as tab}
-    {#if workspace.isTabLoaded(tab.id)}
-      <div class={tabStyle} data-disabled={focusedTabId !== tab.id}>
-        {#each tab.views as view (view.id)}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div
-            class={viewStyle}
-            onmousedown={() => (tab.focusedViewId = view.id)}
-          >
-            {#if view.type === "timeline"}
-              <TimelineView {view} pinned={view.id in tab.pinnedViewIds} />
-            {:else if view.type === "search"}
-              <SearchView {view} />
-            {/if}
-          </div>
-        {/each}
-      </div>
-    {/if}
-  {/each}
+  <div class={tabsContainerStyle}>
+    {#each pinnedTabs as tab}
+      {#if workspace.isTabLoaded(tab.id)}
+        <div class={tabStyle} data-disabled={focusedTabId !== tab.id}>
+          {#each tab.views as view (view.id)}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class={viewStyle}
+              onmousedown={() => (tab.focusedViewId = view.id)}
+            >
+              {#if view.type === "timeline"}
+                <TimelineView {view} pinned={view.id in tab.pinnedViewIds} />
+              {:else if view.type === "search"}
+                <SearchView {view} />
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    {/each}
 
-  {#each tabs as tab, tabIdx}
-    {#if workspace.isTabLoaded(tab.id)}
-      <div class={tabStyle} data-disabled={focusedTabId !== tab.id}>
-        {#each tab.views as view, viewIdx (view.id)}
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div
-            class={viewStyle}
-            onmousedown={() => (tab.focusedViewId = view.id)}
-          >
-            {#if view.type === "cards"}
-              <CardsView
-                isFocused={tab.id === focusedTabId &&
-                  view.id === tab.focusedViewId}
-                {view}
-                onCloseButtonClick={() =>
-                  workspace.closeView(tab, tabIdx, view, viewIdx)}
-              />
-            {/if}
-          </div>
-        {/each}
-      </div>
+    {#each tabs as tab, tabIdx}
+      {#if workspace.isTabLoaded(tab.id)}
+        <div class={tabStyle} data-disabled={focusedTabId !== tab.id}>
+          {#each tab.views as view, viewIdx (view.id)}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class={viewStyle}
+              onmousedown={() => (tab.focusedViewId = view.id)}
+            >
+              {#if view.type === "cards"}
+                <CardsView
+                  isFocused={tab.id === focusedTabId &&
+                    view.id === tab.focusedViewId}
+                  {view}
+                  onCloseButtonClick={() =>
+                    workspace.closeView(tab, tabIdx, view, viewIdx)}
+                />
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    {/each}
+    {#if focusedTabId === null}
+      <div class={viewStyle}></div>
     {/if}
-  {/each}
-  {#if focusedTabId === null}
-    <div class={viewStyle}></div>
-  {/if}
 
-  <HoverViewButton />
+    <HoverViewButton />
+  </div>
 </div>
 
 <script module>
-  const containerStyle = css({
+  const workspaceContainerStyle = css({
     display: "flex",
-    flexDir: "row",
     gap: "2",
     bg: "workspace.bg",
     w: "full",
@@ -80,8 +81,14 @@
     overflow: "hidden",
   });
 
+  const tabsContainerStyle = css({
+    w: "full",
+    h: "full",
+  });
+
   const tabStyle = css({
     flex: "auto",
+    h: "full",
     display: "flex",
     flexDir: "row",
     gap: "2",
