@@ -296,6 +296,7 @@ pub async fn paragraphs_by_outline_id(
 
 pub async fn paragraphs_by_created_at(
     pool: &SqlitePool,
+    pot_id: UUIDv7Base64URL,
     from: DateTime<Utc>,
     to: DateTime<Utc>,
 ) -> Result<Vec<Paragraph>> {
@@ -324,7 +325,11 @@ pub async fn paragraphs_by_created_at(
         LEFT JOIN outline_paths AS quoted_paths ON quoted_paragraphs.outline_id = quoted_paths.outline_id
         LEFT JOIN paragraph_links ON paragraphs.id = paragraph_links.id_from
         LEFT JOIN outline_paths ON paragraph_links.id_to = outline_paths.outline_id
-        WHERE ? <= paragraphs.created_at AND paragraphs.created_at < ? AND paragraphs.deleted = false
+        WHERE 
+            ? <= paragraphs.created_at 
+            AND paragraphs.created_at < ? 
+            AND paragraphs.deleted = false
+            AND paragraphs.pot_id = ?
         GROUP BY paragraphs.id;
     "#;
 
@@ -332,6 +337,7 @@ pub async fn paragraphs_by_created_at(
 
     query_builder = query_builder.bind(from);
     query_builder = query_builder.bind(to);
+    query_builder = query_builder.bind(pot_id);
 
     query_builder
         .fetch_all(pool)
@@ -393,6 +399,7 @@ pub async fn paragraph_position_index(
 
 pub async fn conflicting_outline_ids(
     pool: &SqlitePool,
+    pot_id: UUIDv7Base64URL,
     outline_id: UUIDv7Base64URL,
     parent_id: Option<UUIDv7Base64URL>,
     text: &str,
@@ -410,6 +417,7 @@ pub async fn conflicting_outline_ids(
                 FROM outlines
                 WHERE
                     id != ?
+                    AND pot_id = ?
                     AND (parent_id = ? OR (? IS NULL AND parent_id IS NULL))
                 GROUP BY text
                 HAVING COUNT(*) > 1
@@ -419,14 +427,17 @@ pub async fn conflicting_outline_ids(
             WHERE
                 (text = ? OR text IN (SELECT text FROM ConflictingOutlines))
                 AND id != ?
+                AND pot_id = ?
                 AND (parent_id = ? OR (? IS NULL AND parent_id IS NULL));
         "#,
     )
     .bind(outline_id)
+    .bind(pot_id)
     .bind(parent_id)
     .bind(parent_id)
     .bind(text)
     .bind(outline_id)
+    .bind(pot_id)
     .bind(parent_id)
     .bind(parent_id)
     .fetch_all(pool)
@@ -731,6 +742,7 @@ pub async fn outlines_by_id(
 
 pub async fn outlines_with_path_by_id(
     pool: &SqlitePool,
+    pot_id: UUIDv7Base64URL,
     outline_ids: &[UUIDv7Base64URL],
 ) -> Result<Vec<Outline>> {
     let query = format!(
@@ -752,7 +764,7 @@ pub async fn outlines_with_path_by_id(
             LEFT JOIN outline_paths AS paths ON paths.outline_id = outlines.id
             LEFT JOIN outline_links ON outlines.id = outline_links.id_from
             LEFT JOIN outline_paths AS linked_paths ON linked_paths.outline_id = outline_links.id_to
-            WHERE id IN ({}) AND deleted = false
+            WHERE id IN ({}) AND deleted = false AND pot_id = ?
             GROUP BY id;
         "#,
         outline_ids
@@ -767,6 +779,8 @@ pub async fn outlines_with_path_by_id(
     for id in outline_ids {
         query_builder = query_builder.bind(id);
     }
+
+    query_builder = query_builder.bind(pot_id);
 
     query_builder
         .fetch_all(pool)

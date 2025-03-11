@@ -5,7 +5,7 @@ use crate::utils::get_state;
 use chrono::{DateTime, Datelike, Duration, Local, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use tauri::{AppHandle, Runtime};
+use tauri::{AppHandle, Runtime, Window};
 
 #[derive(Serialize, Deserialize, Clone, Debug, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -22,9 +22,20 @@ pub enum FetchTimelineOption {
 #[macros::log_err]
 pub async fn fetch_timeline<R: Runtime>(
     app_handle: AppHandle<R>,
+    window: Window<R>,
     option: FetchTimelineOption,
 ) -> eyre::Result<Option<TimelineDay>> {
-    let pool = get_state::<R, SqlitePool>(&app_handle)?;
+    let pot_id = window.label().try_into()?;
+
+    fetch_timeline_impl(&app_handle, pot_id, option).await
+}
+
+async fn fetch_timeline_impl<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    pot_id: UUIDv7Base64URL,
+    option: FetchTimelineOption,
+) -> eyre::Result<Option<TimelineDay>> {
+    let pool = get_state::<R, SqlitePool>(app_handle)?;
 
     let from = match option {
         FetchTimelineOption::Latest => {
@@ -88,7 +99,7 @@ pub async fn fetch_timeline<R: Runtime>(
 
     let to = from + Duration::days(1);
 
-    let paragraphs = fetch::paragraphs_by_created_at(pool, from, to).await?;
+    let paragraphs = fetch::paragraphs_by_created_at(pool, pot_id, from, to).await?;
 
     if paragraphs.is_empty() {
         return eyre::Ok(None);
@@ -96,7 +107,7 @@ pub async fn fetch_timeline<R: Runtime>(
 
     let outline_ids: Vec<UUIDv7Base64URL> = paragraphs.iter().map(|c| c.outline_id).collect();
     let paragraph_ids: Vec<UUIDv7Base64URL> = paragraphs.iter().map(|p| p.id).collect();
-    let outlines = fetch::outlines_with_path_by_id(pool, &outline_ids).await?;
+    let outlines = fetch::outlines_with_path_by_id(pool, pot_id, &outline_ids).await?;
     let index = fetch::paragraph_position_index(pool, &outline_ids, &paragraph_ids).await?;
 
     eyre::Ok(Some(TimelineDay {
@@ -142,7 +153,7 @@ mod test {
 
         create_tree(app_handle, pot.id, None, 2, 0).await;
 
-        let res = fetch_timeline(app_handle.clone(), FetchTimelineOption::Latest)
+        let res = fetch_timeline_impl(app_handle, pot.id, FetchTimelineOption::Latest)
             .await
             .unwrap()
             .unwrap();
@@ -150,8 +161,9 @@ mod test {
         assert_eq!(res.outlines.len(), 3);
         assert_eq!(res.paragraphs.len(), 3);
 
-        let res = fetch_timeline(
-            app_handle.clone(),
+        let res = fetch_timeline_impl(
+            app_handle,
+            pot.id,
             FetchTimelineOption::At((Utc::now()).timestamp_millis()),
         )
         .await
@@ -161,8 +173,9 @@ mod test {
         assert_eq!(res.outlines.len(), 3);
         assert_eq!(res.paragraphs.len(), 3);
 
-        let res = fetch_timeline(
-            app_handle.clone(),
+        let res = fetch_timeline_impl(
+            app_handle,
+            pot.id,
             FetchTimelineOption::Before((Utc::now() + Duration::days(2)).timestamp_millis()),
         )
         .await
@@ -172,8 +185,9 @@ mod test {
         assert_eq!(res.outlines.len(), 3);
         assert_eq!(res.paragraphs.len(), 3);
 
-        let res = fetch_timeline(
-            app_handle.clone(),
+        let res = fetch_timeline_impl(
+            app_handle,
+            pot.id,
             FetchTimelineOption::After((Utc::now() - Duration::days(2)).timestamp_millis()),
         )
         .await

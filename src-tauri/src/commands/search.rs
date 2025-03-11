@@ -25,6 +25,7 @@ pub async fn search<R: Runtime>(
     limit: u32,
 ) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>, Vec<UUIDv7Base64URL>)> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
+    let pot_id = window.label().try_into()?;
     let app_state_lock = get_rw_state::<R, AppState>(&app_handle)?;
     let app_state = app_state_lock.read().await;
     let index = get_state::<R, SearchIndex>(&window)?;
@@ -64,7 +65,7 @@ pub async fn search<R: Runtime>(
         ]
         .concat();
 
-        fetch::outlines_with_path_by_id(pool, &outline_ids).await?
+        fetch::outlines_with_path_by_id(pool, pot_id, &outline_ids).await?
     };
 
     eyre::Ok((

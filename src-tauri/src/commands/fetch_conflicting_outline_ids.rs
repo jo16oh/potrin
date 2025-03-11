@@ -4,6 +4,7 @@ use crate::utils::get_state;
 use sqlx::SqlitePool;
 use tauri::AppHandle;
 use tauri::Runtime;
+use tauri::Window;
 
 #[tauri::command]
 #[specta::specta]
@@ -11,14 +12,28 @@ use tauri::Runtime;
 #[macros::log_err]
 pub async fn fetch_conflicting_outline_ids<R: Runtime>(
     app_handle: AppHandle<R>,
+    window: Window<R>,
     outline_id: UUIDv7Base64URL,
     parent_id: Option<UUIDv7Base64URL>,
     text: &str,
 ) -> eyre::Result<Vec<(UUIDv7Base64URL, String)>> {
-    let pool = get_state::<R, SqlitePool>(&app_handle)?;
+    let pot_id = window.label().try_into()?;
 
-    fetch::conflicting_outline_ids(pool, outline_id, parent_id, text).await
+    fetch_conflicting_outline_ids_impl(&app_handle, pot_id, outline_id, parent_id, text).await
 }
+
+async fn fetch_conflicting_outline_ids_impl<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    pot_id: UUIDv7Base64URL,
+    outline_id: UUIDv7Base64URL,
+    parent_id: Option<UUIDv7Base64URL>,
+    text: &str,
+) -> eyre::Result<Vec<(UUIDv7Base64URL, String)>> {
+    let pool = get_state::<R, SqlitePool>(app_handle)?;
+
+    fetch::conflicting_outline_ids(pool, pot_id, outline_id, parent_id, text).await
+}
+
 
 #[cfg(test)]
 pub mod test {
@@ -73,7 +88,7 @@ pub mod test {
         }
 
         let result =
-            fetch_conflicting_outline_ids(app_handle.clone(), outlines[4].id, None, "editing")
+            fetch_conflicting_outline_ids_impl(app_handle, pot.id, outlines[4].id, None, "editing")
                 .await
                 .unwrap();
 
