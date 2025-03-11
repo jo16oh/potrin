@@ -1,9 +1,10 @@
 mod cjk_bigram_tokenizer;
 
+use crate::state::SearchIndices;
 use crate::types::model::{Links, Path};
 use crate::types::setting::SearchFuzziness;
 use crate::types::util::UUIDv7Base64URL;
-use crate::utils::{extract_text_from_doc, get_state};
+use crate::utils::{extract_text_from_doc, get_rw_state, get_state};
 use cjk_bigram_tokenizer::CJKBigramTokenizer;
 use diacritics::remove_diacritics;
 use eyre::OptionExt;
@@ -178,17 +179,18 @@ pub async fn add_index<R: Runtime>(
     app_handle: &AppHandle<R>,
     index_targets: Vec<IndexTarget<'_>>,
 ) -> eyre::Result<()> {
-    let windows = app_handle.webview_windows();
     let targets_map = index_targets.into_iter().into_group_map_by(|t| t.pot_id);
 
     for (pot_id, targets) in targets_map.into_iter() {
-        if let Some(win) = windows.get(&pot_id.to_string()) {
-            let index = get_state::<R, SearchIndex>(win)?;
+        let search_indices_lock = get_rw_state::<R, SearchIndices>(app_handle)?;
+        let search_indices = search_indices_lock.read().await;
+
+        if let Some(index) = search_indices.get(&pot_id) {
             process_targets(index, targets).await?;
         } else {
             let index = load_index(app_handle, pot_id, SearchFuzziness::default()).await?;
             process_targets(&index, targets).await?;
-        };
+        }
     }
 
     Ok(())

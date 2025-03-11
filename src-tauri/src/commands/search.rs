@@ -1,6 +1,7 @@
 use crate::{
     database::query::fetch,
-    search_engine::{self, OrderBy, SearchIndex},
+    search_engine::{self, OrderBy},
+    state::SearchIndices,
     types::{
         model::{Outline, Paragraph},
         state::AppState,
@@ -8,6 +9,7 @@ use crate::{
     },
     utils::{get_rw_state, get_state},
 };
+use eyre::OptionExt;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime, Window};
 
@@ -28,10 +30,14 @@ pub async fn search<R: Runtime>(
     let pot_id = window.label().try_into()?;
     let app_state_lock = get_rw_state::<R, AppState>(&app_handle)?;
     let app_state = app_state_lock.read().await;
-    let index = get_state::<R, SearchIndex>(&window)?;
+    let search_indices_lock = get_rw_state::<R, SearchIndices>(&window)?;
+    let search_indices = search_indices_lock.read().await;
+    let search_index = search_indices
+        .get(&pot_id)
+        .ok_or_eyre("search indices is not set")?;
 
     let search_results = search_engine::search(
-        index,
+        search_index,
         query,
         scope,
         order_by,

@@ -1,8 +1,7 @@
 use crate::{
     database::query::fetch,
-    search_engine::load_index,
-    state::init_workspace_state,
-    types::{setting::SearchFuzziness, state::AppState, util::UUIDv7Base64URL},
+    state::init_window_state,
+    types::{state::AppState, util::UUIDv7Base64URL},
     utils::{get_rw_state, get_state},
 };
 use sqlx::SqlitePool;
@@ -67,14 +66,9 @@ pub async fn open_pot(app_handle: &AppHandle, pot_id: UUIDv7Base64URL) -> eyre::
     #[cfg(target_os = "macos")]
     let win_builder = win_builder.title_bar_style(TitleBarStyle::Overlay);
 
-    let window = win_builder.build()?;
+    win_builder.build()?;
 
-    init_workspace_state(app_handle, &window, &pot)
-        .await
-        .unwrap();
-
-    let search_index = load_index(app_handle, pot.id, SearchFuzziness::Exact).await?;
-    window.manage(search_index);
+    init_window_state(app_handle, &pot).await.unwrap();
 
     Ok(())
 }

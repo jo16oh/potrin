@@ -68,9 +68,8 @@ pub fn run() {
                     if app_handle.webview_windows().len() > 1 {
                         let task_handle = async_runtime::spawn({
                             let app_handle = app_handle.clone();
-                            let window = window.clone();
                             async move {
-                                close_pot(&app_handle, &window, &pot_id).await.unwrap();
+                                close_pot(&app_handle, &pot_id).await.unwrap();
                             }
                         });
                         async_runtime::block_on(task_handle).unwrap();
