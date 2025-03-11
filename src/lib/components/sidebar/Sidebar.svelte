@@ -192,11 +192,7 @@
                   class={viewTitleStyle}
                   data-title-empty={view.title.length === 0}
                 >
-                  {#if view.title.length === 0}
-                    Untitled
-                  {:else}
-                    {view.title}
-                  {/if}
+                  {view.title}
                 </div>
               {:else if view.type === "timeline"}
                 <div class={viewTitleStyle}>Timeline</div>
@@ -232,11 +228,7 @@
                       class={viewTitleStyle}
                       data-title-empty={view.title.length === 0}
                     >
-                      {#if view.title.length === 0}
-                        Untitled
-                      {:else}
-                        {view.title}
-                      {/if}
+                      {view.title}
                     </div>
                   {/if}
                   <Button
@@ -445,7 +437,7 @@
     flexDir: "column",
     justifyContent: "start",
     alignItems: "start",
-    gap: "2",
+    gap: "1",
     w: "full",
     flexShrink: "0",
   });
