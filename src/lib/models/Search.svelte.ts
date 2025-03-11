@@ -4,7 +4,7 @@ import { Outline } from "./Outline.svelte";
 import { Paragraph } from "./Paragraph.svelte";
 import type { View } from "./Workspace.svelte";
 
-type Item = {
+export type SearchResultItem = {
   outline: Outline;
   paragraphs: Paragraph[];
 };
@@ -12,7 +12,7 @@ type Item = {
 export class Search {
   #view: View<"search">;
   #query = $state("");
-  result: Promise<Item[]> = $state(new Promise(() => {}));
+  result: Promise<SearchResultItem[]> = $state(new Promise(() => {}));
   #cleanup: () => void | undefined;
 
   constructor(view: View<"search">) {
