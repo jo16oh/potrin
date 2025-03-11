@@ -439,6 +439,7 @@
     alignItems: "start",
     gap: "1",
     w: "full",
+    pr: "0.5",
     flexShrink: "0",
   });
 
