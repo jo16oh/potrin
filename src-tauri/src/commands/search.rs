@@ -3,7 +3,7 @@ use crate::{
     search_engine::{self, OrderBy},
     state::SearchIndices,
     types::{
-        model::{Outline, Paragraph},
+        model::{Outline, Paragraph, ParagraphPositionIndex},
         state::AppState,
         util::UUIDv7Base64URL,
     },
@@ -12,6 +12,13 @@ use crate::{
 use eyre::OptionExt;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Runtime, Window};
+
+type SearchResult = (
+    Vec<Outline>,
+    Vec<Paragraph>,
+    Vec<UUIDv7Base64URL>,
+    ParagraphPositionIndex,
+);
 
 #[tauri::command]
 #[specta::specta]
@@ -25,7 +32,7 @@ pub async fn search<R: Runtime>(
     order_by: OrderBy,
     offset: u32,
     limit: u32,
-) -> eyre::Result<(Vec<Outline>, Vec<Paragraph>, Vec<UUIDv7Base64URL>)> {
+) -> eyre::Result<SearchResult> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
     let pot_id = window.label().try_into()?;
     let app_state_lock = get_rw_state::<R, AppState>(&app_handle)?;
@@ -47,36 +54,36 @@ pub async fn search<R: Runtime>(
     )
     .await?;
 
-    let paragraphs = {
-        let paragraph_ids = search_results
+    let paragraph_ids = search_results
+        .iter()
+        .filter(|r| r.doc_type == "paragraph")
+        .map(|r| r.id)
+        .collect::<Vec<UUIDv7Base64URL>>();
+
+    let paragraphs = fetch::paragraphs_by_id(pool, &paragraph_ids).await?;
+
+    let outline_ids = [
+        search_results
             .iter()
-            .filter(|r| r.doc_type == "paragraph")
+            .filter(|r| r.doc_type == "outline")
             .map(|r| r.id)
-            .collect::<Vec<UUIDv7Base64URL>>();
+            .collect::<Vec<UUIDv7Base64URL>>(),
+        paragraphs
+            .iter()
+            .map(|c| c.outline_id)
+            .collect::<Vec<UUIDv7Base64URL>>(),
+    ]
+    .concat();
 
-        fetch::paragraphs_by_id(pool, &paragraph_ids).await?
-    };
+    let outlines = fetch::outlines_with_path_by_id(pool, pot_id, &outline_ids).await?;
 
-    let outlines = {
-        let outline_ids = [
-            search_results
-                .iter()
-                .filter(|r| r.doc_type == "outline")
-                .map(|r| r.id)
-                .collect::<Vec<UUIDv7Base64URL>>(),
-            paragraphs
-                .iter()
-                .map(|c| c.outline_id)
-                .collect::<Vec<UUIDv7Base64URL>>(),
-        ]
-        .concat();
-
-        fetch::outlines_with_path_by_id(pool, pot_id, &outline_ids).await?
-    };
+    let paragraph_position_index =
+        fetch::paragraph_position_index(pool, &outline_ids, &paragraph_ids).await?;
 
     eyre::Ok((
         outlines,
         paragraphs,
         search_results.iter().map(|r| r.id).collect(),
+        paragraph_position_index,
     ))
 }
