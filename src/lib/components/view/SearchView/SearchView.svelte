@@ -36,7 +36,6 @@
       onUpdate: () => {
         if (!isComposing) {
           view.query = search.query = queryEditor.getText();
-          console.log(view.query);
         }
       },
       editorProps: {
@@ -53,7 +52,6 @@
     queryElement.addEventListener("compositionend", () => {
       isComposing = false;
       view.query = search.query = queryEditor.getText();
-      console.log(view.query);
     });
   });
 
