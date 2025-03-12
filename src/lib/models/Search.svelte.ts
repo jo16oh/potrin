@@ -96,78 +96,76 @@ export class Search {
     commands
       .search(this.#query, scope, { updatedAt: "desc" }, 0, 100)
       .then(unwrap)
-      .then(
-        ([rawOutlines, rawParagraphs, searchResults, paragraphPosition]) => {
-          const outlines = new Map(
-            rawOutlines.map((o) => [o.id, Outline.from(o)]),
-          );
+      .then(([rawOutlines, rawParagraphs, resultOrder, paragraphPosition]) => {
+        const outlines = new Map(
+          rawOutlines.map((o) => [o.id, Outline.from(o)]),
+        );
 
-          const paragraphs = Map.groupBy(
-            rawParagraphs
-              .map((p) => {
-                const o = outlines.get(p.outlineId);
-                return o ? Paragraph.from(p, o) : null;
-              })
-              .filter((p) => p !== null),
-            (p) => p.outlineId,
-          );
+        const paragraphs = Map.groupBy(
+          rawParagraphs
+            .map((p) => {
+              const o = outlines.get(p.outlineId);
+              return o ? Paragraph.from(p, o) : null;
+            })
+            .filter((p) => p !== null),
+          (p) => p.outlineId,
+        );
 
-          const orderMap = new Map(searchResults.map((id, i) => [id, i]));
+        const orderMap = new Map(resultOrder.map((id, i) => [id, i]));
 
-          const result = Array.from(outlines.values()).map((o) => {
-            return {
-              outline: o,
-              paragraphs: paragraphs.get(o.id) ?? [],
-            };
-          });
+        const result = Array.from(outlines.values()).map((o) => {
+          return {
+            outline: o,
+            paragraphs: paragraphs.get(o.id) ?? [],
+          };
+        });
 
-          if (this.#view.orderBy !== "relevance") {
-            const order =
-              "createdAt" in this.#view.orderBy
-                ? this.#view.orderBy.createdAt
-                : this.#view.orderBy.updatedAt;
+        if (this.#view.orderBy !== "relevance") {
+          const order =
+            "createdAt" in this.#view.orderBy
+              ? this.#view.orderBy.createdAt
+              : this.#view.orderBy.updatedAt;
 
-            if (order === "asc") {
-              result.sort((a, b) => {
-                return (
-                  Math.max(
-                    ...[
-                      orderMap.get(b.outline.id),
-                      ...b.paragraphs.map((p) => orderMap.get(p.id)),
-                    ].filter((i) => i !== undefined),
-                  ) -
-                  Math.max(
-                    ...[
-                      orderMap.get(a.outline.id),
-                      ...a.paragraphs.map((p) => orderMap.get(p.id)),
-                    ].filter((i) => i !== undefined),
-                  )
-                );
-              });
-            } else {
-              result.sort((a, b) => {
-                return (
-                  Math.min(
-                    ...[
-                      orderMap.get(a.outline.id),
-                      ...a.paragraphs.map((p) => orderMap.get(p.id)),
-                    ].filter((i) => i !== undefined),
-                  ) -
-                  Math.min(
-                    ...[
-                      orderMap.get(b.outline.id),
-                      ...b.paragraphs.map((p) => orderMap.get(p.id)),
-                    ].filter((i) => i !== undefined),
-                  )
-                );
-              });
-            }
+          if (order === "asc") {
+            result.sort((a, b) => {
+              return (
+                Math.max(
+                  ...[
+                    orderMap.get(b.outline.id),
+                    ...b.paragraphs.map((p) => orderMap.get(p.id)),
+                  ].filter((i) => i !== undefined),
+                ) -
+                Math.max(
+                  ...[
+                    orderMap.get(a.outline.id),
+                    ...a.paragraphs.map((p) => orderMap.get(p.id)),
+                  ].filter((i) => i !== undefined),
+                )
+              );
+            });
+          } else {
+            result.sort((a, b) => {
+              return (
+                Math.min(
+                  ...[
+                    orderMap.get(a.outline.id),
+                    ...a.paragraphs.map((p) => orderMap.get(p.id)),
+                  ].filter((i) => i !== undefined),
+                ) -
+                Math.min(
+                  ...[
+                    orderMap.get(b.outline.id),
+                    ...b.paragraphs.map((p) => orderMap.get(p.id)),
+                  ].filter((i) => i !== undefined),
+                )
+              );
+            });
           }
+        }
 
-          this.result = Promise.resolve(result);
-          this.paragraphPositionIndex = paragraphPosition;
-        },
-      );
+        this.result = Promise.resolve(result);
+        this.paragraphPositionIndex = paragraphPosition;
+      });
   };
 
   get query() {
