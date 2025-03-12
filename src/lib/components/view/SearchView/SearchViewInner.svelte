@@ -66,6 +66,15 @@
     queryEditor.destroy();
     search.cleanup();
   });
+
+  function onscroll() {
+    if (
+      scrollAreaRef.scrollTop ===
+      scrollAreaRef.scrollHeight - scrollAreaRef.clientHeight
+    ) {
+      search.loadMore();
+    }
+  }
 </script>
 
 <Header>
@@ -84,7 +93,7 @@
   {/snippet}
 </Header>
 
-<ScrollArea bind:ref={scrollAreaRef} type="always">
+<ScrollArea bind:ref={scrollAreaRef} type="always" {onscroll}>
   <div class={contentContainerStyle}>
     <div class={queryAreaStyle}>
       {#if search.path}

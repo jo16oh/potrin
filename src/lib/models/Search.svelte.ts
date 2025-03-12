@@ -92,7 +92,7 @@ export class Search {
   }
 
   reload = async () => {
-    const [result, paragraphPosition] = await search(
+    const { result, paragraphPosition, loadedLength } = await search(
       this.#query,
       this.#view.orderBy,
       0,
@@ -102,11 +102,11 @@ export class Search {
 
     this.result = result;
     this.paragraphPositionIndex = paragraphPosition;
-    this.#offset = result.length;
+    this.#offset = loadedLength;
   };
 
   loadMore = async () => {
-    const [result, paragraphPosition] = await search(
+    const { result, paragraphPosition, loadedLength } = await search(
       this.#query,
       this.#view.orderBy,
       this.#offset,
@@ -119,7 +119,7 @@ export class Search {
       ...this.paragraphPositionIndex,
       ...paragraphPosition,
     };
-    this.#offset += result.length;
+    this.#offset += loadedLength;
   };
 
   get query() {
@@ -214,9 +214,10 @@ async function search(
         }
       }
 
-      return [result, paragraphPosition] as [
-        SearchResultItem[],
-        ParagraphPositionIndex,
-      ];
+      return {
+        result,
+        paragraphPosition,
+        loadedLength: resultOrder.length,
+      };
     });
 }

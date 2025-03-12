@@ -345,8 +345,9 @@ pub async fn search(
                 Order::Asc => tantivy::Order::Asc,
             };
 
-            let collector =
-                TopDocs::with_limit(limit as usize).order_by_fast_field::<i64>("created_at", order);
+            let collector = TopDocs::with_limit(limit as usize)
+                .and_offset(offset as usize)
+                .order_by_fast_field::<i64>("created_at", order);
 
             searcher
                 .search(&query, &collector)?
@@ -360,8 +361,9 @@ pub async fn search(
                 Order::Asc => tantivy::Order::Asc,
             };
 
-            let collector =
-                TopDocs::with_limit(limit as usize).order_by_fast_field::<i64>("updated_at", order);
+            let collector = TopDocs::with_limit(limit as usize)
+                .and_offset(offset as usize)
+                .order_by_fast_field::<i64>("updated_at", order);
 
             searcher
                 .search(&query, &collector)?
