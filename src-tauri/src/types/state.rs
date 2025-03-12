@@ -1,10 +1,6 @@
 use crate::{
     search_engine::OrderBy,
-    types::{
-        model::{Path, Pot},
-        setting::AppSetting,
-        util::UUIDv7Base64URL,
-    },
+    types::{model::Pot, setting::AppSetting, util::UUIDv7Base64URL},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -63,7 +59,7 @@ impl WorkspaceState {
                     views: vec![ViewState::Search {
                         id: timeline_view_id.clone(),
                         query: "".to_string(),
-                        path: None,
+                        scope: None,
                         order_by: OrderBy::Relevance,
                         view_width_ratio: 1.0,
                         scroll_position: 0,
@@ -165,7 +161,7 @@ pub enum ViewState {
     Search {
         id: String,
         query: String,
-        path: Option<Path>,
+        scope: Option<UUIDv7Base64URL>,
         order_by: OrderBy,
         view_width_ratio: f64,
         scroll_position: u32,
