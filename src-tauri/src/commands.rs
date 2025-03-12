@@ -5,6 +5,7 @@ pub mod create_user;
 pub mod create_version;
 pub mod delete_pot;
 pub mod fetch_conflicting_outline_ids;
+pub mod fetch_outline_with_path_by_id;
 pub mod fetch_paragraph_position_index;
 pub mod fetch_path;
 pub mod fetch_pots;
@@ -55,6 +56,7 @@ pub fn commands() -> tauri_specta::Commands<tauri::Wry> {
         app_version::app_version,
         update_pot::update_pot::<tauri::Wry>,
         delete_pot::delete_pot::<tauri::Wry>,
-        fetch_paragraph_position_index::fetch_paragraph_position_index::<tauri::Wry>
+        fetch_paragraph_position_index::fetch_paragraph_position_index::<tauri::Wry>,
+        fetch_outline_with_path_by_id::fetch_outline_with_path_by_id::<tauri::Wry>
     ]
 }

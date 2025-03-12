@@ -215,6 +215,14 @@ async fetchParagraphPositionIndex(outlineIds: UUIDv7Base64URL[], paragraphIds: U
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+async fetchOutlineWithPathById(id: UUIDv7Base64URL) : Promise<Result<Outline | null, PotrinError>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_outline_with_path_by_id", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
