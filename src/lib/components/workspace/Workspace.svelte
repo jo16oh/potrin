@@ -2,10 +2,8 @@
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import { css } from "styled-system/css";
-  import { CardsView } from "$lib/components/view";
-  import { TimelineView } from "$lib/components/view";
+  import { CardsView, TimelineView, SearchView } from "$lib/components/view";
   import HoverViewButton from "./HoverViewButton.svelte";
-  import SearchView from "../view/SearchView/SearchView.svelte";
 
   const workspace = Workspace.current;
   const pinnedTabs = $derived(workspace.state.pinnedTabs);
