@@ -191,12 +191,11 @@
       </div>
     </div>
 
-    <div class={searchResultsContainer}>
-      <FlattenDocList
-        items={search.result}
-        paragraphPositionIndex={search.paragraphPositionIndex}
-      />
-    </div>
+    <FlattenDocList
+      class={searchResultsContainer}
+      items={search.result}
+      paragraphPositionIndex={search.paragraphPositionIndex}
+    />
   </div>
 </ScrollArea>
 

@@ -163,12 +163,11 @@
           <div class={dateStyle}>
             {format(day.dayStart, "yyyy-MM-dd")}
           </div>
-          <div class={dayContentsStyle}>
-            <FlattenDocList
-              items={day.items}
-              paragraphPositionIndex={day.paragraphPositionIndex}
-            />
-          </div>
+          <FlattenDocList
+            class={dayContentsStyle}
+            items={day.items}
+            paragraphPositionIndex={day.paragraphPositionIndex}
+          />
         </div>
       {/if}
     {/each}
