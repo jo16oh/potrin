@@ -16,10 +16,12 @@
   import VerticalLineWithCircle from "$lib/components/icon/VerticalLineWithCircle.svelte";
   import HoverViewContext from "../common/HoverViewContext.svelte";
   import Popover from "$lib/components/common/Popover.svelte";
+  import PopoverClose from "$lib/components/common/PopoverClose.svelte";
+  import type { View } from "$lib/models/Workspace.svelte";
 
-  type Props = { search: Search; pinned: boolean };
+  type Props = { view: View<"search">; search: Search; pinned: boolean };
 
-  let { search, pinned }: Props = $props();
+  let { view, search, pinned }: Props = $props();
 
   let queryElement: HTMLDivElement = $state()!;
   let queryEditor: Editor;
@@ -102,13 +104,78 @@
         <div bind:this={queryElement} class={queryEditorStyle}></div>
       </div>
       <div class={searchOptionStyle}>
-        <Popover triggerProps={{ class: searchOptionButtonStyle }}>
+        <Popover
+          triggerProps={{ class: searchOptionButtonStyle }}
+          contentProps={{
+            align: "end",
+          }}
+          contentStyle={css.raw({
+            bg: "card.bg",
+            display: "flex",
+            flexDir: "column",
+          })}
+        >
           {#snippet trigger()}
             <ChevronDown class={searchOptionIconStyle} />
-            <div class={searchOptionTextStyle}>Created At</div>
+            {#if view.orderBy === "relevance"}
+              <div class={searchOptionTextStyle}>Relevance</div>
+            {:else if "createdAt" in view.orderBy}
+              <div class={searchOptionTextStyle}>
+                {#if view.orderBy.createdAt === "asc"}
+                  Created At: asc
+                {:else}
+                  Created At: desc
+                {/if}
+              </div>
+            {:else}
+              <div class={searchOptionTextStyle}>
+                {#if view.orderBy.updatedAt === "asc"}
+                  Updated At: asc
+                {:else}
+                  Updated At: desc
+                {/if}
+              </div>
+            {/if}
           {/snippet}
           {#snippet content()}
-            <div>content</div>
+            <PopoverClose
+              onclick={() => (view.orderBy = { createdAt: "asc" })}
+              class={searchOptionButtonStyle}
+            >
+              <div class={searchOptionTextStyle}>
+                Created At: asc
+              </div></PopoverClose
+            >
+            <PopoverClose
+              onclick={() => (view.orderBy = { updatedAt: "asc" })}
+              class={searchOptionButtonStyle}
+            >
+              <div class={searchOptionTextStyle}>
+                Updated At: asc
+              </div></PopoverClose
+            >
+            <PopoverClose
+              onclick={() => (view.orderBy = { createdAt: "desc" })}
+              class={searchOptionButtonStyle}
+            >
+              <div class={searchOptionTextStyle}>
+                Created At: desc
+              </div></PopoverClose
+            >
+            <PopoverClose
+              onclick={() => (view.orderBy = { updatedAt: "desc" })}
+              class={searchOptionButtonStyle}
+            >
+              <div class={searchOptionTextStyle}>
+                Updated At: desc
+              </div></PopoverClose
+            >
+            <PopoverClose
+              onclick={() => (view.orderBy = "relevance")}
+              class={searchOptionButtonStyle}
+            >
+              <div class={searchOptionTextStyle}>Relevance</div></PopoverClose
+            >
           {/snippet}
         </Popover>
       </div>

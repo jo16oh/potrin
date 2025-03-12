@@ -11,5 +11,5 @@
 </script>
 
 {#await search then search}
-  <SearchViewInner {search} {pinned} />
+  <SearchViewInner {view} {search} {pinned} />
 {/await}
