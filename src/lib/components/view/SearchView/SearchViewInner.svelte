@@ -23,10 +23,13 @@
 
   let { view, search, pinned }: Props = $props();
 
+  let scrollAreaRef: HTMLDivElement = $state()!;
   let queryElement: HTMLDivElement = $state()!;
   let queryEditor: Editor;
 
   let isComposing = false;
+
+  const REM = 16;
 
   onMount(() => {
     queryEditor = new Editor({
@@ -34,6 +37,10 @@
       extensions: createSearchQueryExtensions(),
       content: search.query,
       onUpdate: () => {
+        if (scrollAreaRef.scrollTop > 8 * REM) {
+          scrollAreaRef.scrollTo({ top: 8 * REM });
+        }
+
         if (!isComposing) {
           search.query = queryEditor.getText();
         }
@@ -77,7 +84,7 @@
   {/snippet}
 </Header>
 
-<ScrollArea type="always">
+<ScrollArea bind:ref={scrollAreaRef} type="always">
   <div class={contentContainerStyle}>
     <div class={queryAreaStyle}>
       {#if search.path}
