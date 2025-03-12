@@ -2,6 +2,7 @@ import { unwrap } from "$lib/utils";
 import {
   commands,
   events,
+  type OrderBy,
   type ParagraphPositionIndex,
 } from "generated/tauri-commands";
 import { Outline } from "./Outline.svelte";
@@ -19,9 +20,11 @@ export type SearchResultItem = {
 export class Search {
   #view: View<"search">;
   #query = $state("");
-  #outline: Outline | null = $state(null);
+  #outline: Outline | undefined = $state();
   result: SearchResultItem[] = $state([]);
   paragraphPositionIndex: ParagraphPositionIndex = $state({});
+  #offset = 0;
+  #limit = 30;
   #cleanup: (() => void) | undefined;
 
   static async init(view: View<"search">) {
@@ -29,13 +32,13 @@ export class Search {
       ? await commands
           .fetchOutlineWithPathById(view.scope)
           .then(unwrap)
-          .then((o) => (o ? Outline.from(o) : null))
-      : null;
+          .then((o) => (o ? Outline.from(o) : undefined))
+      : undefined;
 
     return new Search(view, outline);
   }
 
-  private constructor(view: View<"search">, outline: Outline | null) {
+  private constructor(view: View<"search">, outline: Outline | undefined) {
     this.#view = view;
     this.#query = view.query;
     this.#outline = outline;
@@ -49,8 +52,8 @@ export class Search {
               ? await commands
                   .fetchOutlineWithPathById(view.scope)
                   .then(unwrap)
-                  .then((o) => (o ? Outline.from(o) : null))
-              : null;
+                  .then((o) => (o ? Outline.from(o) : undefined))
+              : undefined;
           })();
         },
         { lazy: true },
@@ -89,83 +92,34 @@ export class Search {
   }
 
   reload = async () => {
-    const scope = this.#outline
-      ? (await this.#outline.path).map((l) => l.id)
-      : null;
+    const [result, paragraphPosition] = await search(
+      this.#query,
+      this.#view.orderBy,
+      0,
+      this.#limit,
+      this.#outline,
+    );
 
-    commands
-      .search(this.#query, scope, { updatedAt: "desc" }, 0, 100)
-      .then(unwrap)
-      .then(([rawOutlines, rawParagraphs, resultOrder, paragraphPosition]) => {
-        const outlines = new Map(
-          rawOutlines.map((o) => [o.id, Outline.from(o)]),
-        );
+    this.result = result;
+    this.paragraphPositionIndex = paragraphPosition;
+    this.#offset = result.length;
+  };
 
-        const paragraphs = Map.groupBy(
-          rawParagraphs
-            .map((p) => {
-              const o = outlines.get(p.outlineId);
-              return o ? Paragraph.from(p, o) : null;
-            })
-            .filter((p) => p !== null),
-          (p) => p.outlineId,
-        );
+  loadMore = async () => {
+    const [result, paragraphPosition] = await search(
+      this.#query,
+      this.#view.orderBy,
+      this.#offset,
+      this.#limit,
+      this.#outline,
+    );
 
-        const orderMap = new Map(resultOrder.map((id, i) => [id, i]));
-
-        const result = Array.from(outlines.values()).map((o) => {
-          return {
-            outline: o,
-            paragraphs: paragraphs.get(o.id) ?? [],
-          };
-        });
-
-        if (this.#view.orderBy !== "relevance") {
-          const order =
-            "createdAt" in this.#view.orderBy
-              ? this.#view.orderBy.createdAt
-              : this.#view.orderBy.updatedAt;
-
-          if (order === "asc") {
-            result.sort((a, b) => {
-              return (
-                Math.max(
-                  ...[
-                    orderMap.get(b.outline.id),
-                    ...b.paragraphs.map((p) => orderMap.get(p.id)),
-                  ].filter((i) => i !== undefined),
-                ) -
-                Math.max(
-                  ...[
-                    orderMap.get(a.outline.id),
-                    ...a.paragraphs.map((p) => orderMap.get(p.id)),
-                  ].filter((i) => i !== undefined),
-                )
-              );
-            });
-          } else {
-            result.sort((a, b) => {
-              return (
-                Math.min(
-                  ...[
-                    orderMap.get(a.outline.id),
-                    ...a.paragraphs.map((p) => orderMap.get(p.id)),
-                  ].filter((i) => i !== undefined),
-                ) -
-                Math.min(
-                  ...[
-                    orderMap.get(b.outline.id),
-                    ...b.paragraphs.map((p) => orderMap.get(p.id)),
-                  ].filter((i) => i !== undefined),
-                )
-              );
-            });
-          }
-        }
-
-        this.result = result;
-        this.paragraphPositionIndex = paragraphPosition;
-      });
+    this.result.push(...result);
+    this.paragraphPositionIndex = {
+      ...this.paragraphPositionIndex,
+      ...paragraphPosition,
+    };
+    this.#offset += result.length;
   };
 
   get query() {
@@ -183,4 +137,86 @@ export class Search {
   cleanup = () => {
     this.#cleanup?.();
   };
+}
+
+async function search(
+  query: string,
+  orderBy: OrderBy,
+  offset: number,
+  limit: number,
+  outline?: Outline,
+) {
+  const scope = outline ? (await outline.path).map((l) => l.id) : null;
+
+  return await commands
+    .search(query, scope, { updatedAt: "desc" }, offset, limit)
+    .then(unwrap)
+    .then(([rawOutlines, rawParagraphs, resultOrder, paragraphPosition]) => {
+      const outlines = new Map(rawOutlines.map((o) => [o.id, Outline.from(o)]));
+
+      const paragraphs = Map.groupBy(
+        rawParagraphs
+          .map((p) => {
+            const o = outlines.get(p.outlineId);
+            return o ? Paragraph.from(p, o) : null;
+          })
+          .filter((p) => p !== null),
+        (p) => p.outlineId,
+      );
+
+      const orderMap = new Map(resultOrder.map((id, i) => [id, i]));
+
+      const result = Array.from(outlines.values()).map((o) => {
+        return {
+          outline: o,
+          paragraphs: paragraphs.get(o.id) ?? [],
+        };
+      });
+
+      if (orderBy !== "relevance") {
+        const order =
+          "createdAt" in orderBy ? orderBy.createdAt : orderBy.updatedAt;
+
+        if (order === "asc") {
+          result.sort((a, b) => {
+            return (
+              Math.max(
+                ...[
+                  orderMap.get(b.outline.id),
+                  ...b.paragraphs.map((p) => orderMap.get(p.id)),
+                ].filter((i) => i !== undefined),
+              ) -
+              Math.max(
+                ...[
+                  orderMap.get(a.outline.id),
+                  ...a.paragraphs.map((p) => orderMap.get(p.id)),
+                ].filter((i) => i !== undefined),
+              )
+            );
+          });
+        } else {
+          result.sort((a, b) => {
+            return (
+              Math.min(
+                ...[
+                  orderMap.get(a.outline.id),
+                  ...a.paragraphs.map((p) => orderMap.get(p.id)),
+                ].filter((i) => i !== undefined),
+              ) -
+              Math.min(
+                ...[
+                  orderMap.get(b.outline.id),
+                  ...b.paragraphs.map((p) => orderMap.get(p.id)),
+                ].filter((i) => i !== undefined),
+              )
+            );
+          });
+        }
+      }
+
+      return [result, paragraphPosition] as [
+        SearchResultItem[],
+        ParagraphPositionIndex,
+      ];
+    });
 }
