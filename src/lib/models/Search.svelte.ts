@@ -20,7 +20,7 @@ export class Search {
   #view: View<"search">;
   #query = $state("");
   #outline: Outline | null = $state(null);
-  result: Promise<SearchResultItem[]> = $state(new Promise(() => {}));
+  result: SearchResultItem[] = $state([]);
   paragraphPositionIndex: ParagraphPositionIndex = $state({});
   #cleanup: (() => void) | undefined;
 
@@ -60,7 +60,7 @@ export class Search {
         () => [this.#query, this.#view.orderBy, this.#outline],
         () => {
           if (this.#query.length === 0) {
-            this.result = Promise.resolve([]);
+            this.result = [];
             return;
           }
 
@@ -163,7 +163,7 @@ export class Search {
           }
         }
 
-        this.result = Promise.resolve(result);
+        this.result = result;
         this.paragraphPositionIndex = paragraphPosition;
       });
   };
