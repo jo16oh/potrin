@@ -466,7 +466,7 @@ class ViewMethods {
           id: crypto.randomUUID(),
           type: "search",
           query: "",
-          path: null,
+          scope: null,
           orderBy: "relevance",
           scrollPosition: 0,
           viewWidthRatio: 1,
