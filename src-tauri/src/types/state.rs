@@ -43,32 +43,16 @@ impl WorkspaceState {
 
         Self {
             pot: pot.clone(),
-            pinned_tabs: vec![
-                PinnedTabState {
-                    id: Uuid::new_v4().to_string(),
-                    views: vec![ViewState::Timeline {
-                        id: timeline_view_id.clone(),
-                        view_width_ratio: 1.0,
-                        position: None,
-                    }],
-                    focused_view_id: None,
-                    pinned_view_ids: pinned_view_ids_timeline,
-                },
-                PinnedTabState {
-                    id: Uuid::new_v4().to_string(),
-                    views: vec![ViewState::Search {
-                        id: timeline_view_id.clone(),
-                        query: "".to_string(),
-                        scope: None,
-                        title: "".to_string(),
-                        order_by: OrderBy::Relevance,
-                        view_width_ratio: 1.0,
-                        scroll_position: 0,
-                    }],
-                    focused_view_id: None,
-                    pinned_view_ids: pinned_view_ids_search,
-                },
-            ],
+            pinned_tabs: vec![PinnedTabState {
+                id: Uuid::new_v4().to_string(),
+                views: vec![ViewState::Timeline {
+                    id: timeline_view_id.clone(),
+                    view_width_ratio: 1.0,
+                    position: None,
+                }],
+                focused_view_id: None,
+                pinned_view_ids: pinned_view_ids_timeline,
+            }],
             tabs: Vec::new(),
             focused_tab_id: None,
             sidebar: SidebarState {
