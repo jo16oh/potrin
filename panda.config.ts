@@ -281,9 +281,6 @@ export default defineConfig({
     "html, body": {
       overscrollBehavior: "none",
     },
-    "body, body *": {
-      userSelect: "none",
-    },
   }),
 
   strictTokens: true,
