@@ -319,7 +319,7 @@ pub async fn search(
     let query = {
         let query_parser = index.parser.read().await;
         let query = remove_diacritics(query.nfc().collect::<String>().as_str());
-        let parsed_query = query_parser.parse_query(&query)?;
+        let (parsed_query, _) = query_parser.parse_query_lenient(&query);
 
         if let Some(path) = scope {
             let path: Vec<String> = path.iter().map(|p| p.to_string()).collect();
