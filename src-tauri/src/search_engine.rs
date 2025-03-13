@@ -297,14 +297,7 @@ pub async fn search(
     limit: u32,
     search_fuzziness: SearchFuzziness,
 ) -> eyre::Result<Vec<SearchResult>> {
-    if query.chars().count() <= 2 && !matches!(search_fuzziness, SearchFuzziness::Exact) {
-        let mut query_parser = index.parser.write().await;
-
-        query_parser.set_field_fuzzy(index.fields.text, true, 0, true);
-
-        let mut f = index.fuzziness.write().await;
-        *f = SearchFuzziness::Exact;
-    } else if search_fuzziness != *index.fuzziness.read().await {
+    if search_fuzziness != *index.fuzziness.read().await {
         let mut query_parser = index.parser.write().await;
 
         let levenshtein_distance = search_fuzziness.levenshtein_distance();

@@ -14,9 +14,9 @@ pub struct SearchSetting {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, specta::Type, Default)]
 pub enum SearchFuzziness {
+    #[default]
     Exact,
     Fuzzy,
-    #[default]
     Fuzziest,
 }
 
