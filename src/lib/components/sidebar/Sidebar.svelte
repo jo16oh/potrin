@@ -233,7 +233,9 @@
                       {view.title}
                     </div>
                   {:else if view.type === "search"}
-                    <div class={viewTitleStyle}>Search</div>
+                    <div class={viewTitleStyle}>
+                      {view.title}
+                    </div>
                   {/if}
                   <Button
                     class={viewCloseButtonStyle}

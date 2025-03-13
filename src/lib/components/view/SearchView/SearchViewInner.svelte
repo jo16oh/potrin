@@ -26,6 +26,18 @@
 
   const REM = 16;
 
+  watch(
+    () => [search.path, search.query],
+    () => {
+      (async () => {
+        const path = await search.path;
+        view.title = path
+          ? "In:" + path.map((p) => p.text).join("/") + " " + search.query
+          : search.query;
+      })();
+    },
+  );
+
   onMount(() => {
     queryEditor = new Editor({
       element: queryElement,
