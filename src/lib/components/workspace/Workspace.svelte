@@ -4,6 +4,7 @@
   import { css } from "styled-system/css";
   import { CardsView, TimelineView, SearchView } from "$lib/components/view";
   import HoverViewButton from "./HoverViewButton.svelte";
+  import SearchViewButton from "./SearchViewButton.svelte";
 
   const workspace = Workspace.current;
   const pinnedTabs = $derived(workspace.state.pinnedTabs);
@@ -62,6 +63,7 @@
       <div class={viewStyle}></div>
     {/if}
 
+    <SearchViewButton />
     <HoverViewButton />
   </div>
 </div>

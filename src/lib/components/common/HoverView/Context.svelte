@@ -5,8 +5,9 @@
   import { View, Workspace } from "$lib/models/Workspace.svelte";
   import { watch } from "runed";
   import type { Snippet } from "svelte";
+  import SearchView from "$lib/components/view/SearchView/SearchView.svelte";
 
-  type AllowedViewType = "cards" | "outline";
+  type AllowedViewType = "cards" | "outline" | "search";
 
   type Props = {
     view: View<AllowedViewType>;
@@ -64,6 +65,8 @@
         isFocused={open}
         onCloseButtonClick={() => (open = false)}
       />
+    {:else if view.type === "search"}
+      <SearchView {view} pinned={false} />
     {/if}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
