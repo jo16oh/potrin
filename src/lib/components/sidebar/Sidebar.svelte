@@ -221,6 +221,8 @@
                   <div class={viewIconContainerStyle}>
                     {#if view.type === "cards"}
                       <CardStack class={viewIconStyle} />
+                    {:else if view.type === "search"}
+                      <Search class={viewIconStyle} />
                     {/if}
                   </div>
                   {#if view.type === "cards"}
@@ -230,6 +232,8 @@
                     >
                       {view.title}
                     </div>
+                  {:else if view.type === "search"}
+                    <div class={viewTitleStyle}>Search</div>
                   {/if}
                   <Button
                     class={viewCloseButtonStyle}

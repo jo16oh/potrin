@@ -53,6 +53,8 @@
                   onCloseButtonClick={() =>
                     workspace.closeView(tab, tabIdx, view, viewIdx)}
                 />
+              {:else if view.type === "search"}
+                <SearchView {view} pinned={false} />
               {/if}
             </div>
           {/each}

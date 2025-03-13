@@ -109,7 +109,14 @@
       />
     </Button>
     <Button class={css(buttonStyle)}>
-      <Search class={css(iconStyle)} />
+      <Search
+        class={css(iconStyle)}
+        onmousedown={(e: MouseEvent) => e.preventDefault()}
+        onclick={(e: MouseEvent) => {
+          e.preventDefault();
+          View.open(view, { ...View.new("search"), scope: outline.id });
+        }}
+      />
     </Button>
   {/snippet}
   {#snippet center({ buttonStyle, iconStyle, textStyle })}

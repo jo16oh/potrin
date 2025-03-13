@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Search } from "$lib/models/Search.svelte";
   import { Editor } from "@tiptap/core";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { createSearchQueryExtensions } from "$lib/components/editor/schema";
   import Header from "../common/Header.svelte";
   import { ChevronDown, ChevronRight, SearchIcon, X } from "lucide-svelte";
@@ -12,6 +12,7 @@
   import PopoverClose from "$lib/components/common/PopoverClose.svelte";
   import type { View } from "$lib/models/Workspace.svelte";
   import FlattenDocList from "../common/FlattenDocList.svelte";
+  import { watch } from "runed";
 
   type Props = { view: View<"search">; search: Search; pinned: boolean };
 
@@ -28,6 +29,7 @@
   onMount(() => {
     queryEditor = new Editor({
       element: queryElement,
+      autofocus: "all",
       extensions: createSearchQueryExtensions(),
       content: search.query,
       onUpdate: () => {
@@ -68,6 +70,82 @@
     ) {
       search.loadMore();
     }
+  }
+
+  let contentElement: HTMLDivElement = $state()!;
+
+  type HighlightOptions = {
+    query?: string;
+    disabled?: boolean;
+    node_filter?: (node: Node) => number;
+    cssClass?: string;
+  };
+
+  watch(
+    () => [search.query, search.result],
+    () => {
+      highlight(contentElement, { query: search.query });
+    },
+  );
+
+  async function highlight(node: Node, ops: HighlightOptions) {
+    await tick();
+
+    const {
+      query = ``,
+      disabled = false,
+      node_filter = () => NodeFilter.FILTER_ACCEPT,
+      cssClass = `highlight-match`,
+    } = ops;
+
+    // clear previous ranges from HighlightRegistry
+    CSS.highlights.clear();
+
+    if (!query || disabled || typeof CSS == `undefined` || !CSS.highlights)
+      return; // abort if CSS highlight API not supported
+
+    // TODO: support more complex query
+    const queries = query
+      .toLowerCase()
+      .split(/[\s\p{Zs}]+/u)
+      .filter((q) => q.length > 0);
+    if (queries.length === 0) return;
+
+    const treeWalker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, {
+      acceptNode: node_filter,
+    });
+    const textNodes: Node[] = [];
+    let currentNode = treeWalker.nextNode();
+    while (currentNode) {
+      textNodes.push(currentNode);
+      currentNode = treeWalker.nextNode();
+    }
+
+    const ranges = textNodes.flatMap((el) => {
+      const text = el.textContent?.toLowerCase();
+      if (!text) return [];
+
+      return queries.flatMap((currentQuery) => {
+        const indices = [];
+        let startPos = 0;
+
+        while (startPos < text.length) {
+          const index = text.indexOf(currentQuery, startPos);
+          if (index === -1) break;
+          indices.push(index);
+          startPos = index + currentQuery.length;
+        }
+
+        return indices.map((index) => {
+          const range = new Range();
+          range.setStart(el, index);
+          range.setEnd(el, index + currentQuery.length);
+          return range;
+        });
+      });
+    });
+
+    CSS.highlights.set(cssClass, new Highlight(...ranges));
   }
 </script>
 
@@ -191,11 +269,13 @@
       </div>
     </div>
 
-    <FlattenDocList
-      class={searchResultsContainer}
-      items={search.result}
-      paragraphPositionIndex={search.paragraphPositionIndex}
-    />
+    <div bind:this={contentElement}>
+      <FlattenDocList
+        class={searchResultsContainer}
+        items={search.result}
+        paragraphPositionIndex={search.paragraphPositionIndex}
+      />
+    </div>
   </div>
 </ScrollArea>
 
@@ -349,3 +429,11 @@
     gap: "4",
   });
 </script>
+
+<style>
+  :global {
+    ::highlight(highlight-match) {
+      background-color: yellow;
+    }
+  }
+</style>
