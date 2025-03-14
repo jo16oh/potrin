@@ -37,7 +37,7 @@
 
   watch(
     () => outline.text,
-    debounce(() => (view.title = outline.text), 16),
+    debounce(() => (view.title = outline.text), 400),
   );
 
   onMount(() => {

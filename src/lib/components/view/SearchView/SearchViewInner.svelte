@@ -13,10 +13,16 @@
   import type { View } from "$lib/models/Workspace.svelte";
   import FlattenDocList from "../common/FlattenDocList.svelte";
   import { watch } from "runed";
+  import { debounce } from "es-toolkit";
 
-  type Props = { view: View<"search">; search: Search; pinned: boolean };
+  type Props = {
+    view: View<"search">;
+    search: Search;
+    pinned: boolean;
+    onCloseButtonClick: () => void;
+  };
 
-  let { view, search, pinned }: Props = $props();
+  let { view, search, pinned, onCloseButtonClick }: Props = $props();
 
   let scrollAreaRef: HTMLDivElement = $state()!;
   let queryElement: HTMLDivElement = $state()!;
@@ -29,12 +35,12 @@
   watch(
     () => [search.path, search.query],
     () => {
-      (async () => {
+      debounce(async () => {
         const path = await search.path;
         view.title = path
           ? "In:" + path.map((p) => p.text).join("/") + " " + search.query
           : search.query;
-      })();
+      }, 400)();
     },
   );
 
@@ -162,18 +168,18 @@
 </script>
 
 <Header>
-  {#snippet right({ buttonStyle, iconStyle })}
-    {#if !pinned}
-      <Button class={css(buttonStyle)}>
-        <X class={css(iconStyle)} />
-      </Button>
-    {/if}
-  {/snippet}
   {#snippet center({ buttonStyle, iconStyle, textStyle })}
     <Button class={css(buttonStyle)}>
       <SearchIcon class={css(iconStyle)} />
     </Button>
     <div class={css(textStyle)}>Search</div>
+  {/snippet}
+  {#snippet right({ buttonStyle, iconStyle })}
+    {#if !pinned}
+      <Button class={css(buttonStyle)} onclick={onCloseButtonClick}>
+        <X class={css(iconStyle)} />
+      </Button>
+    {/if}
   {/snippet}
 </Header>
 
@@ -317,6 +323,7 @@
     gradientFrom: "view.bg",
     gradientVia: "view.bg",
     gradientTo: "view.bg/0",
+    userSelect: "none",
   });
 
   const searchScopeStyle = css({
