@@ -27,8 +27,6 @@
             >
               {#if view.type === "timeline"}
                 <TimelineView {view} pinned={view.id in tab.pinnedViewIds} />
-              {:else if view.type === "search"}
-                <SearchView {view} pinned={view.id in tab.pinnedViewIds} />
               {/if}
             </div>
           {/each}
@@ -54,7 +52,13 @@
                     workspace.closeView(tab, tabIdx, view, viewIdx)}
                 />
               {:else if view.type === "search"}
-                <SearchView {view} pinned={false} />
+                <SearchView
+                  {view}
+                  pinned={false}
+                  onCloseButtonClick={() => {
+                    workspace.closeView(tab, tabIdx, view, viewIdx);
+                  }}
+                />
               {/if}
             </div>
           {/each}

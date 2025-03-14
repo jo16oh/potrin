@@ -5,7 +5,9 @@
 
   type Props = {
     left?: Snippet<[{ buttonStyle: Styles; iconStyle: Styles }]>;
-    center?: Snippet<[{ buttonStyle: Styles; iconStyle: Styles; textStyle: Styles; }]>;
+    center?: Snippet<
+      [{ buttonStyle: Styles; iconStyle: Styles; textStyle: Styles }]
+    >;
     right?: Snippet<[{ buttonStyle: Styles; iconStyle: Styles }]>;
   } & SvelteHTMLElements["div"];
 
@@ -45,6 +47,7 @@
     h: "8",
     p: "1",
     roundedTop: "md",
+    userSelect: "none",
   });
 
   const headerLeftContainer = css({

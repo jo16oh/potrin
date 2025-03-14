@@ -66,7 +66,11 @@
         onCloseButtonClick={() => (open = false)}
       />
     {:else if view.type === "search"}
-      <SearchView {view} pinned={false} />
+      <SearchView
+        {view}
+        pinned={false}
+        onCloseButtonClick={() => (open = false)}
+      />
     {/if}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div

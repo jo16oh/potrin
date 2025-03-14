@@ -4,16 +4,20 @@
   import { css } from "styled-system/css";
   import SearchViewInner from "./SearchViewInner.svelte";
 
-  type Props = { view: View<"search">; pinned: boolean };
+  type Props = {
+    view: View<"search">;
+    pinned: boolean;
+    onCloseButtonClick: () => void;
+  };
 
-  let { view, pinned }: Props = $props();
+  let { view, pinned, onCloseButtonClick }: Props = $props();
 
   let search = Search.init(view);
 </script>
 
 <div class={viewContainer}>
   {#await search then search}
-    <SearchViewInner {view} {search} {pinned} />
+    <SearchViewInner {view} {search} {pinned} {onCloseButtonClick} />
   {/await}
 </div>
 
