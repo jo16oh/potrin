@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, Search, X } from "lucide-svelte";
   import { css } from "styled-system/css";
-  import Button from "$lib/components/common/Button.svelte";
   import { Outline } from "$lib/models/Outline.svelte";
   import Asterisk from "$lib/components/icon/Asterisk.svelte";
   import ScrollArea from "$lib/components/common/ScrollArea.svelte";
@@ -9,27 +7,17 @@
   import { debounce } from "es-toolkit";
   import { watch } from "runed";
   import { onMount } from "svelte";
-  import CardStack from "$lib/components/icon/CardStack.svelte";
   import { View } from "$lib/models/Workspace.svelte";
   import VerticalLine from "$lib/components/icon/VerticalLine.svelte";
   import VerticalLineWithCircle from "$lib/components/icon/VerticalLineWithCircle.svelte";
-  import Header from "../common/Header.svelte";
 
   type Props = {
     outline: Outline;
     view: View<"cards">;
     isFocused: boolean;
-    pinned: boolean;
-    onCloseButtonClick: () => void;
   };
 
-  let {
-    outline,
-    view = $bindable(),
-    isFocused,
-    pinned,
-    onCloseButtonClick,
-  }: Props = $props();
+  let { outline, view = $bindable(), isFocused }: Props = $props();
 
   const REM = 16;
 
@@ -83,68 +71,6 @@
     view.scrollPosition = scrollAreaRef?.scrollTop ?? 0;
   }, 100);
 </script>
-
-<Header>
-  {#snippet left({ buttonStyle, iconStyle })}
-    <Button
-      class={css(buttonStyle)}
-      disabled={!View.hasPrev(view.id)}
-      onmousedown={(e: MouseEvent) => e.preventDefault()}
-      onclick={(e: MouseEvent) => {
-        e.preventDefault();
-        View.back(view);
-      }}
-    >
-      <ChevronLeft
-        class={css(iconStyle)}
-        data-disabled={!View.hasPrev(view.id)}
-      />
-    </Button>
-    <Button
-      class={css(buttonStyle)}
-      disabled={!View.hasNext(view.id)}
-      onmousedown={(e: MouseEvent) => e.preventDefault()}
-      onclick={(e: MouseEvent) => {
-        e.preventDefault();
-        View.forward(view);
-      }}
-    >
-      <ChevronRight
-        class={css(iconStyle)}
-        data-disabled={!View.hasNext(view.id)}
-      />
-    </Button>
-    <Button class={css(buttonStyle)}>
-      <Search
-        class={css(iconStyle)}
-        onmousedown={(e: MouseEvent) => e.preventDefault()}
-        onclick={(e: MouseEvent) => {
-          e.preventDefault();
-          View.open(view, { ...View.new("search"), scope: outline.id });
-        }}
-      />
-    </Button>
-  {/snippet}
-  {#snippet center({ buttonStyle, iconStyle, textStyle })}
-    <Button class={css(buttonStyle)}>
-      <CardStack class={css(iconStyle)} />
-    </Button>
-    <div class={css(textStyle)}>
-      {#if view.title.length === 0}
-        Untitled
-      {:else}
-        {view.title}
-      {/if}
-    </div>
-  {/snippet}
-  {#snippet right({ buttonStyle, iconStyle })}
-    {#if !pinned}
-      <Button class={css(buttonStyle)} onclick={onCloseButtonClick}>
-        <X class={css(iconStyle)} />
-      </Button>
-    {/if}
-  {/snippet}
-</Header>
 
 <ScrollArea
   bind:ref={scrollAreaRef}

@@ -3,10 +3,8 @@
   import { Editor } from "@tiptap/core";
   import { onMount, onDestroy, tick } from "svelte";
   import { createSearchQueryExtensions } from "$lib/components/editor/schema";
-  import Header from "../common/Header.svelte";
-  import { ChevronDown, ChevronRight, SearchIcon, X } from "lucide-svelte";
+  import { ChevronDown, ChevronRight, SearchIcon } from "lucide-svelte";
   import { css } from "styled-system/css";
-  import Button from "$lib/components/common/Button.svelte";
   import ScrollArea from "$lib/components/common/ScrollArea.svelte";
   import Popover from "$lib/components/common/Popover.svelte";
   import PopoverClose from "$lib/components/common/PopoverClose.svelte";
@@ -20,10 +18,9 @@
     view: View<"search">;
     search: Search;
     pinned: boolean;
-    onCloseButtonClick: () => void;
   };
 
-  let { view, search, pinned, onCloseButtonClick }: Props = $props();
+  let { view, search, pinned }: Props = $props();
 
   let scrollAreaRef: HTMLDivElement = $state()!;
   let queryElement: HTMLDivElement = $state()!;
@@ -173,22 +170,6 @@
     CSS.highlights.set(cssClass, new Highlight(...ranges));
   }
 </script>
-
-<Header>
-  {#snippet center({ buttonStyle, iconStyle, textStyle })}
-    <Button class={css(buttonStyle)}>
-      <SearchIcon class={css(iconStyle)} />
-    </Button>
-    <div class={css(textStyle)}>Search</div>
-  {/snippet}
-  {#snippet right({ buttonStyle, iconStyle })}
-    {#if !pinned}
-      <Button class={css(buttonStyle)} onclick={onCloseButtonClick}>
-        <X class={css(iconStyle)} />
-      </Button>
-    {/if}
-  {/snippet}
-</Header>
 
 <ScrollArea bind:ref={scrollAreaRef} type="always" {onscroll}>
   <div class={contentContainerStyle}>

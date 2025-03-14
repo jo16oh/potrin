@@ -6,6 +6,11 @@
   import { fetchTree } from "$lib/commands";
   import { watch } from "runed";
   import { View } from "$lib/models/Workspace.svelte";
+  import Header from "../common/Header.svelte";
+  import ViewHistoryNavigation from "../common/ViewHistoryNavigation.svelte";
+  import Button from "$lib/components/common/Button.svelte";
+  import { Search, X } from "lucide-svelte";
+  import CardStack from "$lib/components/icon/CardStack.svelte";
 
   type Props = {
     view: View<"cards">;
@@ -63,15 +68,43 @@
 </script>
 
 <div class={viewContainer}>
+  <Header>
+    {#snippet left({ buttonStyle, iconStyle })}
+      <ViewHistoryNavigation {view} {buttonStyle} {iconStyle} />
+      <Button class={css(buttonStyle)}>
+        <Search
+          class={css(iconStyle)}
+          onmousedown={(e: MouseEvent) => e.preventDefault()}
+          onclick={(e: MouseEvent) => {
+            e.preventDefault();
+            View.open(view, { ...View.new("search"), scope: view.outlineId });
+          }}
+        />
+      </Button>
+    {/snippet}
+    {#snippet center({ buttonStyle, iconStyle, textStyle })}
+      <Button class={css(buttonStyle)}>
+        <CardStack class={css(iconStyle)} />
+      </Button>
+      <div class={css(textStyle)}>
+        {#if view.title.length === 0}
+          Untitled
+        {:else}
+          {view.title}
+        {/if}
+      </div>
+    {/snippet}
+    {#snippet right({ buttonStyle, iconStyle })}
+      {#if !pinned}
+        <Button class={css(buttonStyle)} onclick={onCloseButtonClick}>
+          <X class={css(iconStyle)} />
+        </Button>
+      {/if}
+    {/snippet}
+  </Header>
   {#if promise}
     {#await promise then outline}
-      <CardsViewInner
-        {outline}
-        bind:view
-        {isFocused}
-        {pinned}
-        {onCloseButtonClick}
-      />
+      <CardsViewInner {outline} bind:view {isFocused} />
     {/await}
   {/if}
 </div>
