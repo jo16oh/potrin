@@ -65,22 +65,22 @@
         </div>
       {/if}
     {/each}
+
     {#if focusedTabId === null}
       <div class={viewStyle}></div>
     {/if}
-
-    <SearchViewButton />
-    <HoverViewButton />
   </div>
+  <SearchViewButton />
+  <HoverViewButton />
 </div>
 
 <script module>
   const workspaceContainerStyle = css({
     display: "flex",
-    gap: "2",
+    position: "relative",
     bg: "workspace.bg",
-    w: "full",
-    h: "[100vh]",
+    w: "screen",
+    h: "screen",
     pt: "[28px]",
     pb: "[8px]",
     px: "[8px]",

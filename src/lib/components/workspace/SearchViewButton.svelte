@@ -80,7 +80,7 @@
 <script module>
   const floatingButtonStyle = css({
     zIndex: "global.float",
-    position: "fixed",
+    position: "absolute",
     right: "[24px]",
     bottom: "[78px]",
     display: "flex",

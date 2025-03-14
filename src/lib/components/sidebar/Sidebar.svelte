@@ -277,6 +277,7 @@
     gap: "2",
     bg: "workspace.bg",
     userSelect: "none",
+    mr: "2",
     "&[data-float=true]": {
       zIndex: "global.sidebar",
       maxW: "[90vw]",
