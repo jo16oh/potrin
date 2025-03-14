@@ -67,7 +67,7 @@
       />
     {:else if view.type === "search"}
       <SearchView
-        {view}
+        bind:view
         pinned={false}
         onCloseButtonClick={() => (open = false)}
       />

@@ -14,7 +14,7 @@
     onCloseButtonClick: () => void;
   };
 
-  let { view, pinned, onCloseButtonClick }: Props = $props();
+  let { view = $bindable(), pinned, onCloseButtonClick }: Props = $props();
 
   let search = Search.init(view);
 </script>
@@ -40,7 +40,7 @@
   </Header>
 
   {#await search then search}
-    <SearchViewInner {view} {search} {pinned} />
+    <SearchViewInner bind:view {search} {pinned} />
   {/await}
 </div>
 

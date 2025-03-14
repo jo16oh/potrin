@@ -19,7 +19,7 @@
     pinned: boolean;
   };
 
-  let { view, search, pinned }: Props = $props();
+  let { view = $bindable(), search, pinned }: Props = $props();
 
   let scrollAreaRef: HTMLDivElement = $state()!;
   let queryElement: HTMLDivElement = $state()!;
