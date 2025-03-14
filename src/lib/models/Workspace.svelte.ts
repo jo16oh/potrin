@@ -465,6 +465,7 @@ class ViewMethods {
         const view: View<"search"> = {
           id: crypto.randomUUID(),
           type: "search",
+          title: "",
           query: "",
           scope: null,
           orderBy: "relevance",
@@ -482,5 +483,5 @@ class ViewMethods {
   }
 }
 
-export type View<T> = Extract<ViewState, { type: T }>;
+export type View<T = ViewState["type"]> = Extract<ViewState, { type: T }>;
 export const View = new ViewMethods();
