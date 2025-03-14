@@ -35,12 +35,18 @@
   watch(
     () => [search.path, search.query],
     () => {
-      debounce(async () => {
+      const syncTitle = async () => {
         const path = await search.path;
         view.title = path
           ? "In:" + path.map((p) => p.text).join("/") + " " + search.query
           : search.query;
-      }, 400)();
+      };
+
+      if (!view.title.length) {
+        syncTitle();
+      } else {
+        debounce(syncTitle, 400)();
+      }
     },
   );
 

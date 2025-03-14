@@ -37,7 +37,13 @@
 
   watch(
     () => outline.text,
-    debounce(() => (view.title = outline.text), 400),
+    () => {
+      if (!view.title.length) {
+        view.title = outline.text;
+      } else {
+        debounce(() => (view.title = outline.text), 400);
+      }
+    },
   );
 
   onMount(() => {
