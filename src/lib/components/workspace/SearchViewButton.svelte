@@ -9,6 +9,14 @@
   let open = $state(false);
   let workspaceState = Workspace.current.state;
 
+  let query = "";
+
+  $effect(() => {
+    if (view.query) {
+      query = view.query;
+    }
+  });
+
   async function handleClickMaximize(e: MouseEvent) {
     // prevents editor from being blurred
     e.preventDefault();
@@ -40,6 +48,7 @@
     onclick={(e) => {
       e.preventDefault();
       open = true;
+      view = { ...View.new("search"), query: query };
     }}
   >
     <Search class={floatingButtonIconStyle} />
