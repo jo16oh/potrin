@@ -89,5 +89,6 @@
     alignItems: "center",
     shadow: "md.around",
     overflow: "hidden",
+    userSelect: "none",
   });
 </script>

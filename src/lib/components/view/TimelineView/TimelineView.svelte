@@ -64,5 +64,6 @@
     flexDir: "column",
     shadow: "md.around",
     overflow: "hidden",
+    userSelect: "none",
   });
 </script>
