@@ -49,7 +49,7 @@
 
     await commands.updatePot(newPot).then(unwrap);
 
-    appState.pots[pot.id] = pot.name;
+    appState.pots[pot.id] = newPot.name;
     onSubmit?.();
   }
 </script>
