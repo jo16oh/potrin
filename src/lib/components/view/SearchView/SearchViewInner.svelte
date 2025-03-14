@@ -11,7 +11,6 @@
   import type { View } from "$lib/models/Workspace.svelte";
   import FlattenDocList from "../common/FlattenDocList.svelte";
   import { watch } from "runed";
-  import { debounce } from "es-toolkit";
   import HoverViewContext from "../common/HoverViewContext.svelte";
 
   type Props = {
@@ -33,18 +32,12 @@
   watch(
     () => [search.path, search.query],
     () => {
-      const syncTitle = async () => {
+      (async () => {
         const path = await search.path;
         view.title = path
           ? "In:" + path.map((p) => p.text).join("/") + " " + search.query
           : search.query;
-      };
-
-      if (!view.title.length) {
-        syncTitle();
-      } else {
-        debounce(syncTitle, 400)();
-      }
+      })();
     },
   );
 

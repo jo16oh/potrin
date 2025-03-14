@@ -26,7 +26,8 @@ export const App = {
     let fromEvent = false;
 
     $effect(() => {
-      const _ = state;
+      // to listen deeply on the state;
+      $state.snapshot(state);
 
       // Prevent sending diff to backend when a patch from other windows applied.
       if (fromEvent) {

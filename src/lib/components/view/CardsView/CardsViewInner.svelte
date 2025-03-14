@@ -26,11 +26,7 @@
   watch(
     () => outline.text,
     () => {
-      if (!view.title.length) {
-        view.title = outline.text;
-      } else {
-        debounce(() => (view.title = outline.text), 400);
-      }
+      view.title = outline.text;
     },
   );
 

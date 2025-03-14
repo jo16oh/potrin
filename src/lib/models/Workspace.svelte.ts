@@ -11,6 +11,7 @@ import { getCurrent } from "@tauri-apps/api/webviewWindow";
 import { SvelteMap } from "svelte/reactivity";
 import { Outline } from "./Outline.svelte";
 import { Paragraph } from "./Paragraph.svelte";
+import { debounce } from "es-toolkit";
 
 const KEY = Symbol();
 
@@ -34,29 +35,32 @@ export class Workspace {
     let fromEvent = false;
 
     $effect(() => {
-      const _ = instance.#state;
+      // to listen deeply on the state;
+      $state.snapshot(instance.state);
 
-      if (fromEvent) {
-        fromEvent = false;
-        prev = $state.snapshot(instance.#state);
-        return;
-      }
-
-      if (!prev) {
-        prev = $state.snapshot(instance.#state);
-      } else {
-        const diff = compare(prev, $state.snapshot(instance.#state));
-        if (diff.length > 0) {
-          commands
-            .updateWorkspaceState(JSON.stringify(diff))
-            .then(() => {
-              prev = $state.snapshot(instance.#state);
-            })
-            .catch(() => {
-              instance.#state = prev!;
-            });
+      debounce(() => {
+        if (fromEvent) {
+          fromEvent = false;
+          prev = $state.snapshot(instance.#state);
+          return;
         }
-      }
+
+        if (!prev) {
+          prev = $state.snapshot(instance.#state);
+        } else {
+          const diff = compare(prev, $state.snapshot(instance.#state));
+          if (diff.length > 0) {
+            commands
+              .updateWorkspaceState(JSON.stringify(diff))
+              .then(() => {
+                prev = $state.snapshot(instance.#state);
+              })
+              .catch(() => {
+                instance.#state = prev!;
+              });
+          }
+        }
+      }, 100)();
     });
 
     events.workspaceStateChange(getCurrent()).listen((e) => {
@@ -74,16 +78,16 @@ export class Workspace {
     return getContext<Workspace>(KEY);
   }
 
-  get state() {
-    return this.#state;
-  }
-
   #state = $state<WorkspaceState>()!;
   #focusHistory = new FocusHistory(100);
   #closeHistory = new CloseHistory(100);
 
   private constructor(value: WorkspaceState) {
     this.#state = value;
+  }
+
+  get state() {
+    return this.#state;
   }
 
   isTabLoaded(tabId: string) {
