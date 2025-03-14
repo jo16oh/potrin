@@ -131,13 +131,16 @@ pub async fn load_index<R: Runtime>(
     let index: Index = if TypeId::of::<R>() == TypeId::of::<MockRuntime>() {
         Ok(Index::create_in_ram(schema))
     } else {
-        let mut path = app_handle.path().app_data_dir()?;
+        let path = app_handle
+            .path()
+            .app_data_dir()?
+            .join("search_engine")
+            .join(pot_id.to_string());
 
-        path.push("search_engine");
-        path.push(pot_id.to_string());
         if !path.exists() {
             fs::create_dir_all(&path)?;
         }
+
         let dir = ManagedDirectory::wrap(Box::new(MmapDirectory::open(&path)?))?;
         Index::open_or_create(dir, schema)
     }?;
