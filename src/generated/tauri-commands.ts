@@ -149,9 +149,9 @@ async getAppState() : Promise<Result<AppState, PotrinError>> {
     else return { status: "error", error: e  as any };
 }
 },
-async updateAppState(patch: string) : Promise<Result<null, PotrinError>> {
+async updateAppState(state: AppState) : Promise<Result<null, PotrinError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("update_app_state", { patch }) };
+    return { status: "ok", data: await TAURI_INVOKE("update_app_state", { state }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -165,9 +165,9 @@ async getWorkspaceState() : Promise<Result<WorkspaceState, PotrinError>> {
     else return { status: "error", error: e  as any };
 }
 },
-async updateWorkspaceState(patch: string) : Promise<Result<null, PotrinError>> {
+async updateWorkspaceState(state: WorkspaceState) : Promise<Result<null, PotrinError>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("update_workspace_state", { patch }) };
+    return { status: "ok", data: await TAURI_INVOKE("update_workspace_state", { state }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -249,7 +249,7 @@ workspaceStateChange: "workspace-state-change"
 
 export type AppSetting = { search: SearchSetting }
 export type AppState = { clientId: UUIDv7Base64URL; user: UserState | null; pots: Partial<{ [key in string]: string }>; setting: AppSetting }
-export type AppStateChange = { patch: string }
+export type AppStateChange = { state: AppState }
 export type BytesBase64URL = string
 export type Direction = "back" | "forward"
 export type EditorFocusPosition = number | boolean | PositionString | null
@@ -290,7 +290,7 @@ export type UUIDv7Base64URL = string
 export type UserState = { id: UUIDv7Base64URL; name: string }
 export type ViewState = { type: "cards"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "outline"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "document"; id: string; outlineId: UUIDv7Base64URL | null; title: string; viewWidthRatio: number; scrollPosition: number; focusPosition: FocusPosition } | { type: "timeline"; id: string; viewWidthRatio: number; position: TimelinePosition | null } | { type: "relation"; id: string; outlineId: UUIDv7Base64URL; title: string; direction: RelationDirection; viewWidthRatio: number; scrollPosition: number } | { type: "search"; id: string; query: string; scope: UUIDv7Base64URL | null; title: string; orderBy: OrderBy; viewWidthRatio: number; scrollPosition: number }
 export type WorkspaceState = { pot: Pot; pinnedTabs: PinnedTabState[]; tabs: TabState[]; focusedTabId: string | null; sidebar: SidebarState }
-export type WorkspaceStateChange = { patch: string }
+export type WorkspaceStateChange = { state: WorkspaceState }
 
 /** tauri-specta globals **/
 

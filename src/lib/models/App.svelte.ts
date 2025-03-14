@@ -4,8 +4,10 @@ import {
   events,
   type AppState,
 } from "generated/tauri-commands";
-import { applyPatch, compare } from "fast-json-patch";
 import { getCurrent } from "@tauri-apps/api/webviewWindow";
+import { unwrap } from "$lib/utils";
+import { watch } from "runed";
+import { debounce } from "es-toolkit";
 
 const KEY = Symbol();
 
@@ -21,44 +23,29 @@ export const App = {
   },
   init(value: AppState) {
     let state = $state(value);
-    let prev: AppState | undefined;
 
     let fromEvent = false;
 
-    $effect(() => {
-      // to listen deeply on the state;
-      $state.snapshot(state);
-
-      // Prevent sending diff to backend when a patch from other windows applied.
-      if (fromEvent) {
-        fromEvent = false;
-        prev = $state.snapshot(state);
-        return;
-      }
-
-      // Prevent sending diff when app loaded.
-      if (!prev) {
-        prev = $state.snapshot(state);
-      } else {
-        const diff = compare(prev, $state.snapshot(state));
-
-        if (diff.length > 0) {
-          commands
-            .updateAppState(JSON.stringify(diff))
-            .then(() => {
-              prev = $state.snapshot(state);
-            })
-            .catch(() => {
-              state = prev!;
-            });
+    watch(
+      () => $state.snapshot(state),
+      () => {
+        if (fromEvent) {
+          fromEvent = false;
+          return;
         }
-      }
-    });
+
+        debounce(
+          () => commands.updateAppState($state.snapshot(state)).then(unwrap),
+          100,
+        )();
+      },
+      { lazy: true },
+    );
 
     // Pass reference to this window to filter out events from this window.
     events.appStateChange(getCurrent()).listen((e) => {
       fromEvent = true;
-      applyPatch(state, JSON.parse(e.payload.patch));
+      state = e.payload.state;
     });
 
     setContext(KEY, state);

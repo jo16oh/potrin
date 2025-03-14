@@ -2,7 +2,6 @@ use std::fs::File;
 use std::io::BufReader;
 
 use crate::database::query::update;
-use crate::events::WorkspaceStateChange;
 use crate::state::{update_workspace_state, Workspaces};
 use crate::types::model::Pot;
 use crate::types::state::WorkspaceState;
@@ -12,18 +11,13 @@ use chrono::Utc;
 use eyre::OptionExt;
 use garde::Unvalidated;
 use sqlx::SqlitePool;
-use tauri::{AppHandle, EventTarget, Manager, Runtime, Window};
-use tauri_specta::Event;
+use tauri::{AppHandle, Manager, Runtime};
 
 #[tauri::command]
 #[specta::specta]
 #[macros::eyre_to_any]
 #[macros::log_err]
-pub async fn update_pot<R: Runtime>(
-    app_handle: AppHandle<R>,
-    window: Window<R>,
-    pot: Pot,
-) -> eyre::Result<()> {
+pub async fn update_pot<R: Runtime>(app_handle: AppHandle<R>, pot: Pot) -> eyre::Result<()> {
     let pool = get_state::<R, SqlitePool>(&app_handle)?;
 
     let unvalidated = Unvalidated::new(pot);
@@ -36,35 +30,18 @@ pub async fn update_pot<R: Runtime>(
     if let Some(win) = app_handle.get_webview_window(&pot.id.to_string()) {
         win.set_title(&pot.name)?;
 
-        let workspaces_lock = get_rw_state::<_, Workspaces>(&window)?;
-        let workspaces = workspaces_lock.write().await;
-        let workspace_lock = workspaces
-            .get(&pot.id)
-            .ok_or_eyre("workspace state is not set")?;
-
-        let prev = workspace_lock.read().await.clone();
-        let current = {
-            let mut c = prev.clone();
-            c.pot = pot.into_inner();
-            c
+        let workspace = {
+            let workspaces_lock = get_rw_state::<_, Workspaces>(&win)?;
+            let workspaces = workspaces_lock.write().await;
+            let workspace_lock = workspaces
+                .get(&pot.id)
+                .ok_or_eyre("workspace state is not set")?;
+            let mut workspace = workspace_lock.read().await.clone();
+            workspace.pot = pot.into_inner();
+            workspace
         };
 
-        let diff = {
-            let prev = serde_json::to_value(prev)?;
-            let current = serde_json::to_value(current)?;
-            json_patch::diff(&prev, &current).to_string()
-        };
-
-        drop(workspaces);
-
-        update_workspace_state(&app_handle, &win, diff.clone()).await?;
-
-        WorkspaceStateChange::new(diff).emit_filter(&app_handle, |target| match target {
-            EventTarget::WebviewWindow { label } => label == window.label(),
-            EventTarget::Webview { label } => label == window.label(),
-            EventTarget::Window { label } => label == window.label(),
-            _ => false,
-        })?;
+        update_workspace_state(&app_handle, &win, workspace, true).await?;
     } else {
         let path = app_handle
             .path()

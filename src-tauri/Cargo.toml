@@ -33,7 +33,6 @@ tauri-plugin-single-instance = "2.2.0"
 tantivy = "0.22"
 sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-native-tls"] }
 yrs = "0.21.2"
-json-patch = "3.0.1"
 garde = { version = "0.22.0", features = ["derive"] }
 
 eyre = "0.6"

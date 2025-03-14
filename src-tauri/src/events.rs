@@ -4,6 +4,7 @@ use tauri_specta::Event;
 
 use crate::types::{
     model::{OutlineForIndex, ParagraphForIndex},
+    state::{AppState, WorkspaceState},
     util::{BytesBase64URL, UUIDv7Base64URL},
 };
 
@@ -25,24 +26,24 @@ impl Origin {
 
 #[derive(Serialize, Deserialize, Clone, Type, Event)]
 pub struct AppStateChange {
-    pub patch: String,
+    state: AppState,
 }
 
 impl AppStateChange {
-    pub fn new(patch: String) -> Self {
-        AppStateChange { patch }
+    pub fn new(state: AppState) -> Self {
+        AppStateChange { state }
     }
 }
 
 #[derive(Serialize, Deserialize, Clone, Type, Event)]
 pub struct WorkspaceStateChange {
-    pub patch: String,
+    state: WorkspaceState,
 }
 
 #[allow(dead_code)]
 impl WorkspaceStateChange {
-    pub fn new(patch: String) -> Self {
-        WorkspaceStateChange { patch }
+    pub fn new(state: WorkspaceState) -> Self {
+        WorkspaceStateChange { state }
     }
 }
 

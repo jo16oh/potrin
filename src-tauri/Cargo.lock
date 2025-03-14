@@ -3348,7 +3348,6 @@ dependencies = [
  "garde",
  "hex",
  "itertools 0.13.0",
- "json-patch",
  "macros",
  "serde",
  "serde_json",

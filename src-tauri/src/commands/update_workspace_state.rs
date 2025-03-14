@@ -1,4 +1,4 @@
-use crate::state;
+use crate::{state, types::state::WorkspaceState};
 use tauri::{AppHandle, Runtime, WebviewWindow};
 
 #[tauri::command]
@@ -8,7 +8,7 @@ use tauri::{AppHandle, Runtime, WebviewWindow};
 pub async fn update_workspace_state<R: Runtime>(
     app_handle: AppHandle<R>,
     window: WebviewWindow<R>,
-    patch: String,
+    state: WorkspaceState,
 ) -> eyre::Result<()> {
-    state::update_workspace_state(&app_handle, &window, patch).await
+    state::update_workspace_state(&app_handle, &window, state, false).await
 }

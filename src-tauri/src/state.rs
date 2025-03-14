@@ -1,4 +1,4 @@
-use crate::events::AppStateChange;
+use crate::events::{AppStateChange, WorkspaceStateChange};
 use crate::search_engine::{load_index, SearchIndex};
 use crate::types::model::Pot;
 use crate::types::setting::SearchFuzziness;
@@ -7,7 +7,6 @@ use crate::utils::{get_rw_state, write};
 use crate::{types::state::*, utils::set_rw_state};
 use derive_more::derive::{Deref, DerefMut};
 use eyre::OptionExt;
-use json_patch::Patch;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
@@ -121,7 +120,7 @@ async fn init_search_engine<R: Runtime>(app_handle: &AppHandle<R>, pot: &Pot) ->
 
 pub async fn update_app_state<R: Runtime>(
     app_handle: &AppHandle<R>,
-    patch: String,
+    current_app_state: AppState,
     origin_window_label: &str,
 ) -> eyre::Result<()> {
     let lock = get_rw_state::<R, AppState>(app_handle)?;
@@ -133,20 +132,13 @@ pub async fn update_app_state<R: Runtime>(
         .join("app.json");
 
     let mut app_state = lock.write().await;
-    let patch_deserealized = &serde_json::from_str::<Patch>(&patch)?;
-
-    let current_app_state = {
-        let mut value = serde_json::to_value(&*app_state)?;
-        json_patch::patch(&mut value, patch_deserealized)?;
-        serde_json::from_value::<AppState>(value)?
-    };
 
     *app_state = current_app_state;
 
     let json = serde_json::to_string_pretty(&*app_state)?;
     write(&path, json)?;
 
-    AppStateChange::new(patch).emit_filter(app_handle, |target| match target {
+    AppStateChange::new(app_state.clone()).emit_filter(app_handle, |target| match target {
         EventTarget::WebviewWindow { label } => label != origin_window_label,
         EventTarget::Webview { label } => label != origin_window_label,
         EventTarget::Window { label } => label != origin_window_label,
@@ -159,7 +151,8 @@ pub async fn update_app_state<R: Runtime>(
 pub async fn update_workspace_state<R: Runtime>(
     app_handle: &AppHandle<R>,
     window: &WebviewWindow<R>,
-    patch: String,
+    current_workspace_state: WorkspaceState,
+    emit_event: bool,
 ) -> eyre::Result<()> {
     let pot_id: UUIDv7Base64URL = window.label().try_into()?;
 
@@ -178,18 +171,22 @@ pub async fn update_workspace_state<R: Runtime>(
         .ok_or_eyre("workspace state is not set")?;
     let mut workspace = workspace_lock.write().await;
 
-    let patch_serealized = &serde_json::from_str::<Patch>(&patch)?;
-
-    let current_workspace_state = {
-        let mut value = serde_json::to_value(&*workspace)?;
-        json_patch::patch(&mut value, patch_serealized)?;
-        serde_json::from_value::<WorkspaceState>(value)?
-    };
-
     *workspace = current_workspace_state;
 
     let json = serde_json::to_string_pretty(&*workspace)?;
     write(&path, json)?;
+
+    if emit_event {
+        WorkspaceStateChange::new(workspace.clone()).emit_filter(
+            app_handle,
+            |target| match target {
+                EventTarget::WebviewWindow { label } => label == window.label(),
+                EventTarget::Webview { label } => label == window.label(),
+                EventTarget::Window { label } => label == window.label(),
+                _ => false,
+            },
+        )?;
+    }
 
     Ok(())
 }
@@ -207,11 +204,7 @@ pub async fn close_pot<R: Runtime>(
     let lock = get_rw_state::<R, AppState>(app_handle)?;
 
     let mut app_state = lock.write().await;
-    let prev_app_state = serde_json::to_value(app_state.clone())?;
     app_state.pots.remove(pot_id);
-    let current_app_state = serde_json::to_value(app_state.clone())?;
-
-    let patch = json_patch::diff(&prev_app_state, &current_app_state).to_string();
 
     let json = serde_json::to_string_pretty(&*app_state)?;
     write(&path, json)?;
@@ -224,6 +217,6 @@ pub async fn close_pot<R: Runtime>(
     let mut search_indices = search_indices_lock.write().await;
     search_indices.remove(pot_id);
 
-    AppStateChange::new(patch).emit(app_handle)?;
+    AppStateChange::new(app_state.clone()).emit(app_handle)?;
     Ok(())
 }

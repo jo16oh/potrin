@@ -6,11 +6,12 @@ import {
   type ViewState,
   type WorkspaceState,
 } from "generated/tauri-commands";
-import { applyPatch, compare } from "fast-json-patch";
 import { getCurrent } from "@tauri-apps/api/webviewWindow";
 import { SvelteMap } from "svelte/reactivity";
 import { Outline } from "./Outline.svelte";
 import { Paragraph } from "./Paragraph.svelte";
+import { watch } from "runed";
+import { unwrap } from "$lib/utils";
 import { debounce } from "es-toolkit";
 
 const KEY = Symbol();
@@ -30,42 +31,27 @@ export class Workspace {
     const instance = new Workspace(value);
     setContext(KEY, instance);
 
-    let prev: WorkspaceState | undefined;
-
     let fromEvent = false;
 
-    $effect(() => {
-      // to listen deeply on the state;
-      $state.snapshot(instance.state);
-
-      debounce(() => {
+    watch(
+      () => $state.snapshot(instance.state),
+      () => {
         if (fromEvent) {
           fromEvent = false;
-          prev = $state.snapshot(instance.#state);
           return;
         }
 
-        if (!prev) {
-          prev = $state.snapshot(instance.#state);
-        } else {
-          const diff = compare(prev, $state.snapshot(instance.#state));
-          if (diff.length > 0) {
-            commands
-              .updateWorkspaceState(JSON.stringify(diff))
-              .then(() => {
-                prev = $state.snapshot(instance.#state);
-              })
-              .catch(() => {
-                instance.#state = prev!;
-              });
-          }
-        }
-      }, 100)();
-    });
+        debounce(
+          () => commands.updateWorkspaceState(instance.state).then(unwrap),
+          100,
+        )();
+      },
+      { lazy: true },
+    );
 
     events.workspaceStateChange(getCurrent()).listen((e) => {
       fromEvent = true;
-      applyPatch(instance.#state, JSON.parse(e.payload.patch));
+      instance.state = e.payload.state;
     });
 
     $effect(() => {
@@ -83,6 +69,10 @@ export class Workspace {
   #closeHistory = new CloseHistory(100);
 
   private constructor(value: WorkspaceState) {
+    this.#state = value;
+  }
+
+  set state(value: WorkspaceState) {
     this.#state = value;
   }
 
