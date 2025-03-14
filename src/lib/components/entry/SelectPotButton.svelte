@@ -168,7 +168,7 @@
     shadow: "sm",
     rounded: "lg",
     _hover: {
-      bg: "darken",
+      bg: "button.bg-selected",
     },
     _disabled: {
       color: "button.text-muted",
@@ -276,7 +276,7 @@
     alignItems: "center",
     gap: "2",
     _hover: {
-      bg: "darken",
+      bg: "button.bg-selected",
     },
     transition: "colors",
     justifyContent: "start",
@@ -296,7 +296,7 @@
     gap: "2",
     h: "fit",
     _hover: {
-      bg: "darken",
+      bg: "button.bg-selected",
     },
     transition: "colors",
     color: "[red]",
@@ -329,7 +329,7 @@
     width: "fit",
     height: "fit",
     _hover: {
-      bg: "darken",
+      bg: "button.bg-selected",
     },
     transition: "colors",
     bg: "[red]",

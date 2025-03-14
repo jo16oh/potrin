@@ -354,7 +354,7 @@
 
   const collapseButtonStyle = css({
     _hover: {
-      bg: "darken",
+      bg: "workspace.bg-selected",
     },
     transition: "colors",
     bg: "transparent",
@@ -406,7 +406,7 @@
     alignItems: "center",
     gap: "2",
     _hover: {
-      bg: "darken",
+      bg: "button.bg-selected",
     },
     transition: "colors",
     justifyContent: "start",

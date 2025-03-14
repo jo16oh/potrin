@@ -108,7 +108,7 @@
     shadow: "sm",
     rounded: "lg",
     _hover: {
-      bg: "darken",
+      bg: "button.bg-selected",
     },
     transition: "colors",
     w: "full",
@@ -157,7 +157,7 @@
     width: "fit",
     height: "fit",
     _hover: {
-      bg: "darken",
+      bg: "button.bg-selected",
     },
     _disabled: {
       color: "button.text-muted",

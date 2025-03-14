@@ -30,8 +30,6 @@ export default defineConfig({
     tokens: {
       ...preset.theme.tokens,
       colors: {
-        darken: { value: "rgb(0 0 0 / 0.05)" },
-        lighten: { value: "rgb(255 255 255/ 0.05)" },
         transparent: { value: "transparent" },
         overlay: { value: "rgb(0 0 0 / 0.70)" },
       },
@@ -43,8 +41,8 @@ export default defineConfig({
       colors: {
         selected: {
           value: {
-            base: "{colors.darken}",
-            _dark: "{colors.lighten}",
+            base: "rgb(0 0 0 / 0.05)",
+            _dark: "rgb(255 255 255/ 0.05)",
           },
         },
         workspace: {
@@ -56,8 +54,8 @@ export default defineConfig({
           },
           "bg-selected": {
             value: {
-              base: "color-mix(in srgb, #C8C3B9, {colors.darken})",
-              _dark: "color-mix(in srgb, #525252, {colors.lighten})",
+              base: "color-mix(in srgb, #C8C3B9, black 5%)",
+              _dark: "color-mix(in srgb, #525252, white 5%)",
             },
           },
           text: {
@@ -82,8 +80,8 @@ export default defineConfig({
           },
           "bg-selected": {
             value: {
-              base: "color-mix(in srgb, #F7F7F7, {colors.darken})",
-              _dark: "color-mix(in srgb, #242424, {colors.lighten})",
+              base: "color-mix(in srgb, #F7F7F7, black 5%)",
+              _dark: "color-mix(in srgb, #242424, white 5%)",
             },
           },
           text: {
@@ -108,8 +106,8 @@ export default defineConfig({
           },
           "bg-selected": {
             value: {
-              base: "color-mix(in srgb, #FFFFFF, {colors.darken})",
-              _dark: "color-mix(in srgb, #333333, {colors.lighten})",
+              base: "color-mix(in srgb, #FFFFFF, black 5%)",
+              _dark: "color-mix(in srgb, #333333, white 5%)",
             },
           },
           text: {
@@ -134,8 +132,8 @@ export default defineConfig({
           },
           "bg-selected": {
             value: {
-              base: "color-mix(in srgb, #FFFFFF, {colors.darken})",
-              _dark: "color-mix(in srgb, #333333, {colors.lighten})",
+              base: "color-mix(in srgb, #FFFFFF, black 5%)",
+              _dark: "color-mix(in srgb, #333333, white 5%)",
             },
           },
           text: {
