@@ -204,6 +204,7 @@
   const dateStyle = css({
     fontSize: "3xl",
     fontWeight: "semibold",
+    cursor: "default",
   });
 
   const dayContentsStyle = css({
