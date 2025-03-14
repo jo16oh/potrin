@@ -87,9 +87,7 @@
         <CardStack class={css(iconStyle)} />
       </Button>
       <div class={css(textStyle)}>
-        {#if view.title.length === 0}
-          Untitled
-        {:else}
+        {#if view.title.length}
           {view.title}
         {/if}
       </div>
