@@ -14,6 +14,7 @@
   import FlattenDocList from "../common/FlattenDocList.svelte";
   import { watch } from "runed";
   import { debounce } from "es-toolkit";
+  import HoverViewContext from "../common/HoverViewContext.svelte";
 
   type Props = {
     view: View<"search">;
@@ -294,11 +295,23 @@
     </div>
 
     <div bind:this={contentElement}>
-      <FlattenDocList
-        class={searchResultsContainer}
-        items={search.result}
-        paragraphPositionIndex={search.paragraphPositionIndex}
-      />
+      {#if pinned}
+        <HoverViewContext>
+          <FlattenDocList
+            {view}
+            class={searchResultsContainer}
+            items={search.result}
+            paragraphPositionIndex={search.paragraphPositionIndex}
+          />
+        </HoverViewContext>
+      {:else}
+        <FlattenDocList
+          {view}
+          class={searchResultsContainer}
+          items={search.result}
+          paragraphPositionIndex={search.paragraphPositionIndex}
+        />
+      {/if}
     </div>
   </div>
 </ScrollArea>

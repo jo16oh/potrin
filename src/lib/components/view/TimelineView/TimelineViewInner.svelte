@@ -10,6 +10,7 @@
   import { debounce } from "es-toolkit";
   import Header from "../common/Header.svelte";
   import FlattenDocList from "../common/FlattenDocList.svelte";
+  import HoverViewContext from "../common/HoverViewContext.svelte";
 
   type Props = {
     timeline: Timeline;
@@ -163,11 +164,23 @@
           <div class={dateStyle}>
             {format(day.dayStart, "yyyy-MM-dd")}
           </div>
-          <FlattenDocList
-            class={dayContentsStyle}
-            items={day.items}
-            paragraphPositionIndex={day.paragraphPositionIndex}
-          />
+          {#if pinned}
+            <HoverViewContext>
+              <FlattenDocList
+                {view}
+                class={dayContentsStyle}
+                items={day.items}
+                paragraphPositionIndex={day.paragraphPositionIndex}
+              />
+            </HoverViewContext>
+          {:else}
+            <FlattenDocList
+              {view}
+              class={dayContentsStyle}
+              items={day.items}
+              paragraphPositionIndex={day.paragraphPositionIndex}
+            />
+          {/if}
         </div>
       {/if}
     {/each}

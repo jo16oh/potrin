@@ -18,7 +18,7 @@
   let workspaceState = Workspace.current.state;
 
   HoverViewContext.init();
-  let context = HoverViewContext.state;
+  let context = HoverViewContext.state!;
 
   async function handleClickMaximize(e: MouseEvent) {
     // prevents editor from being blurred
@@ -91,7 +91,7 @@
     }
 
     static get state() {
-      return getContext<HoverViewContext>(this.KEY);
+      return getContext<HoverViewContext | undefined>(this.KEY);
     }
   }
 

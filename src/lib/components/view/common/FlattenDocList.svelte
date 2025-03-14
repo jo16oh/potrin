@@ -7,11 +7,13 @@
   import VerticalLine from "$lib/components/icon/VerticalLine.svelte";
   import VerticalLineDash from "$lib/components/icon/VerticalLineDash.svelte";
   import Tilda from "$lib/components/icon/Tilda.svelte";
-  import HoverViewTriggerParagraph from "../common/HoverViewTriggerParagraph.svelte";
   import VerticalLineWithCircle from "$lib/components/icon/VerticalLineWithCircle.svelte";
   import type { ParagraphPositionIndex } from "generated/tauri-commands";
-  import HoverViewContext from "./HoverViewContext.svelte";
   import type { SvelteHTMLElements } from "svelte/elements";
+  import Button from "$lib/components/common/Button.svelte";
+  import { HoverViewContext } from "./HoverViewContext.svelte";
+  import MockParagraphEditor from "$lib/components/editor/MockParagraphEditor.svelte";
+  import { View } from "$lib/models/Workspace.svelte";
 
   type FlattenDocListItem = {
     outline: Outline;
@@ -19,71 +21,98 @@
   };
 
   type Props = {
+    view: View<"timeline" | "search">;
     items: FlattenDocListItem[];
     paragraphPositionIndex: ParagraphPositionIndex;
   } & SvelteHTMLElements["div"];
 
-  let { items, paragraphPositionIndex, ...restProps }: Props = $props();
+  let { view, items, paragraphPositionIndex, ...restProps }: Props = $props();
+
+  const hoverViewContext = HoverViewContext.state;
+
+  function open(outlineId: string, focusedId: string) {
+    if (hoverViewContext) {
+      hoverViewContext.view = {
+        ...View.new("cards"),
+        outlineId: outlineId,
+        focusPosition: { id: focusedId, position: "end" },
+      };
+      hoverViewContext.open = true;
+    } else {
+      View.open(view, {
+        ...View.new("cards"),
+        outlineId,
+        focusPosition: { id: focusedId, position: "end" },
+      });
+    }
+  }
 </script>
 
 <div {...restProps}>
-  <HoverViewContext>
-    {#each items as { outline, paragraphs }}
-      <div class={outlineContainerStyle}>
-        <div class={outlineStyle}>
-          <div class={asteriskContainerStyle}>
-            <Asterisk class={asteriskStyle} />
-          </div>
-          <div class={pathStyle}>
-            {#await outline.path then path}
-              {#each path as pathItem, idx}
-                {#if idx !== 0}
-                  <ChevronRight class={chevronStyle} />
-                {/if}
-                <div class={pathTextStyle} data-last={path.length - 1 === idx}>
-                  {pathItem.text}
-                </div>
-              {/each}
-            {/await}
-          </div>
+  {#each items as { outline, paragraphs }}
+    <div class={outlineContainerStyle}>
+      <div class={outlineStyle}>
+        <div class={asteriskContainerStyle}>
+          <Asterisk class={asteriskStyle} />
         </div>
-
-        {#if paragraphs.length}
-          <div class={paragraphContainerStyle}>
-            {#each paragraphs as paragraph, idx (paragraph.id)}
-              <div class={paragraphStyle}>
-                {#if paragraph.id in paragraphPositionIndex}
-                  {@const index = paragraphPositionIndex[paragraph.id]}
-                  {#if index && (index.prevId === paragraphs[idx - 1]?.id || index.prevId === null)}
-                    <VerticalLine class={paragraphContainerLineTop} />
-                  {:else}
-                    <VerticalLineDash class={paragraphContainerLineTop} />
-                    <div class={tildaTopContainer}>
-                      <Tilda class={tildaTop} />
-                    </div>
-                  {/if}
-                {/if}
-                <HoverViewTriggerParagraph {paragraph} />
-                {#if idx === paragraphs.length - 1}
-                  {@const index = paragraphPositionIndex[paragraph.id]}
-                  {#if index?.isLast}
-                    <VerticalLineWithCircle
-                      class={paragraphContainerLineBottom}
-                    />
-                  {:else}
-                    <VerticalLineDash class={paragraphContainerLineBottom} />
-                    <div class={tildaBottomContainer}>
-                      <Tilda class={tildaBottom} />
-                    </div>
-                  {/if}
-                {/if}
-              </div>
+        <div class={pathStyle}>
+          {#await outline.path then path}
+            {#each path as pathItem, idx}
+              {#if idx !== 0}
+                <ChevronRight class={chevronStyle} />
+              {/if}
+              <Button
+                class={pathTextStyle}
+                data-last={path.length - 1 === idx}
+                onclick={() => open(pathItem.id, pathItem.id)}
+              >
+                {pathItem.text}
+              </Button>
             {/each}
-          </div>
-        {/if}
+          {/await}
+        </div>
       </div>
-    {/each}
-  </HoverViewContext>
+
+      {#if paragraphs.length}
+        <div class={paragraphContainerStyle}>
+          {#each paragraphs as paragraph, idx (paragraph.id)}
+            <div class={paragraphStyle}>
+              {#if paragraph.id in paragraphPositionIndex}
+                {@const index = paragraphPositionIndex[paragraph.id]}
+                {#if index && (index.prevId === paragraphs[idx - 1]?.id || index.prevId === null)}
+                  <VerticalLine class={paragraphContainerLineTop} />
+                {:else}
+                  <VerticalLineDash class={paragraphContainerLineTop} />
+                  <div class={tildaTopContainer}>
+                    <Tilda class={tildaTop} />
+                  </div>
+                {/if}
+              {/if}
+              <Button
+                class={triggerStyle}
+                onclick={() => open(paragraph.outlineId, paragraph.id)}
+              >
+                <MockParagraphEditor {paragraph} variant={{ style: "card" }} />
+              </Button>
+              {#if idx === paragraphs.length - 1}
+                {@const index = paragraphPositionIndex[paragraph.id]}
+                {#if index?.isLast}
+                  <VerticalLineWithCircle
+                    class={paragraphContainerLineBottom}
+                  />
+                {:else}
+                  <VerticalLineDash class={paragraphContainerLineBottom} />
+                  <div class={tildaBottomContainer}>
+                    <Tilda class={tildaBottom} />
+                  </div>
+                {/if}
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/each}
 </div>
 
 <script module>
@@ -136,6 +165,11 @@
     "&[data-last=true]": {
       color: "view.text",
       fontWeight: "bold",
+    },
+    _hover: {
+      cursor: "pointer",
+      textDecoration: "underline",
+      textDecorationColor: "view.text",
     },
   });
 
@@ -212,5 +246,14 @@
     h: "2.5",
     w: "2.5",
     color: "view.text-muted",
+  });
+
+  const triggerStyle = css({
+    w: "full",
+    h: "fit",
+    textAlign: "start",
+    _hover: {
+      cursor: "pointer",
+    },
   });
 </script>
