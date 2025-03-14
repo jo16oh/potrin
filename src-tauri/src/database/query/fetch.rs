@@ -6,7 +6,6 @@ use crate::{
             ParagraphForIndex, ParagraphPositionIndex, Path, PendingYUpdate, Pot, RawParagraph,
             RawParagraphForIndex, RawParagraphPositionIndexItem, YUpdate,
         },
-        state::{AppState, WorkspaceState},
         util::{BytesBase64URL, UUIDv7Base64URL},
     },
 };
@@ -1362,36 +1361,4 @@ pub async fn paragraphs_doc_and_path_by_id(
         .await
         .map(|r| (r.doc, r.path))
         .context("database error")
-}
-
-pub async fn app_state(pool: &SqlitePool) -> Result<Option<AppState>> {
-    sqlx::query_scalar!(
-        r#"
-            SELECT value
-            FROM kvs
-            WHERE id = "app_state";
-        "#
-    )
-    .fetch_optional(pool)
-    .await?
-    .map(|b| serde_sqlite_jsonb::from_slice::<AppState>(&b).context("database error"))
-    .transpose()
-}
-
-pub async fn workspace_state(
-    pool: &SqlitePool,
-    pot_id: UUIDv7Base64URL,
-) -> Result<Option<WorkspaceState>> {
-    sqlx::query_scalar!(
-        r#"
-            SELECT value
-            FROM workspaces
-            WHERE pot_id = ?;
-        "#,
-        pot_id
-    )
-    .fetch_optional(pool)
-    .await?
-    .map(|b| serde_sqlite_jsonb::from_slice::<WorkspaceState>(&b).context("database error"))
-    .transpose()
 }

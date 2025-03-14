@@ -1,5 +1,7 @@
 use eyre::eyre;
 use std::any::type_name;
+use std::fs;
+use std::path::PathBuf;
 use tauri::async_runtime::RwLock;
 use tauri::{Manager, Runtime, State};
 
@@ -65,6 +67,17 @@ pub fn extract_text_from_doc(doc: &str) -> eyre::Result<String> {
     extract_text(&document, &mut result);
 
     Ok(result)
+}
+
+pub fn write(path: &PathBuf, content: String) -> eyre::Result<()> {
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+
+    fs::write(path, content)?;
+    Ok(())
 }
 
 #[cfg(test)]

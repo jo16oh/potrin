@@ -9,21 +9,6 @@ PRAGMA cache_size = -64000; -- Set the cache size to 64,000 KiB (negative value 
 
 
 
--- # Application State
-
-CREATE TABLE kvs (
-  id TEXT PRIMARY KEY,
-  value BLOB NOT NULL
-) STRICT;
-
-CREATE TABLE workspaces (
-  pot_id BLOB PRIMARY KEY,
-  value BLOB NOT NULL
-) STRICT;
-
-
-
-
 -- # Operation Log
 
 /*

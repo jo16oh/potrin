@@ -1,36 +1,19 @@
-use crate::database::query::{fetch, upsert};
 use crate::events::AppStateChange;
 use crate::search_engine::{load_index, SearchIndex};
 use crate::types::model::Pot;
 use crate::types::setting::SearchFuzziness;
 use crate::types::util::UUIDv7Base64URL;
-use crate::utils::{get_rw_state, get_state};
+use crate::utils::{get_rw_state, write};
 use crate::{types::state::*, utils::set_rw_state};
 use derive_more::derive::{Deref, DerefMut};
 use eyre::OptionExt;
 use json_patch::Patch;
-use sqlx::SqlitePool;
 use std::collections::HashMap;
-use tauri::{AppHandle, EventTarget, Runtime, WebviewWindow};
+use std::fs::File;
+use std::io::BufReader;
+use tauri::{AppHandle, EventTarget, Manager, Runtime, WebviewWindow};
 use tauri_specta::Event;
 use tokio::sync::RwLock;
-
-pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
-    let pool = get_state::<R, SqlitePool>(app_handle)?;
-
-    let app_state = match fetch::app_state(pool).await? {
-        Some(state) => state,
-        None => {
-            let app_state = AppState::default();
-            upsert::app_state(pool, &app_state).await?;
-            app_state
-        }
-    };
-
-    set_rw_state::<R, AppState>(app_handle, app_state).await?;
-
-    Ok(())
-}
 
 #[derive(Deref, DerefMut)]
 pub struct Workspaces(HashMap<UUIDv7Base64URL, RwLock<WorkspaceState>>);
@@ -50,19 +33,59 @@ impl SearchIndices {
     }
 }
 
+pub async fn init_app_state<R: Runtime>(app_handle: &AppHandle<R>) -> eyre::Result<()> {
+    let path = app_handle
+        .path()
+        .app_data_dir()?
+        .join("state")
+        .join("app.json");
+
+    let app_state: AppState = if let Ok(file) = File::open(&path) {
+        let reader = BufReader::new(file);
+        serde_json::from_reader(reader)?
+    } else {
+        let app_state = AppState::default();
+        let json = serde_json::to_string_pretty(&app_state)?;
+
+        write(&path, json)?;
+        app_state
+    };
+
+    set_rw_state::<R, AppState>(app_handle, app_state).await?;
+
+    Ok(())
+}
+
 pub async fn init_window_state<R: Runtime>(
     app_handle: &AppHandle<R>,
     pot: &Pot,
 ) -> eyre::Result<()> {
-    let pool = get_state::<R, SqlitePool>(app_handle)?;
+    init_workspace_state(app_handle, pot).await?;
+    init_search_engine(app_handle, pot).await?;
 
-    let workspace_state = match fetch::workspace_state(pool, pot.id).await? {
-        Some(state) => state,
-        None => {
-            let workspace_state = WorkspaceState::new(pot);
-            upsert::workspace_state(pool, &workspace_state).await?;
-            workspace_state
-        }
+    Ok(())
+}
+
+async fn init_workspace_state<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    pot: &Pot,
+) -> eyre::Result<()> {
+    let path = app_handle
+        .path()
+        .app_data_dir()?
+        .join("state")
+        .join(pot.id.to_string())
+        .join("workspace.json");
+
+    let workspace_state: WorkspaceState = if let Ok(file) = File::open(&path) {
+        let reader = BufReader::new(file);
+        serde_json::from_reader(reader)?
+    } else {
+        let workspace_state = WorkspaceState::new(pot);
+        let json = serde_json::to_string_pretty(&workspace_state)?;
+
+        write(&path, json)?;
+        workspace_state
     };
 
     if let Ok(lock) = get_rw_state::<_, Workspaces>(app_handle) {
@@ -76,6 +99,10 @@ pub async fn init_window_state<R: Runtime>(
         workspaces.insert(pot.id, RwLock::new(workspace_state));
     };
 
+    Ok(())
+}
+
+async fn init_search_engine<R: Runtime>(app_handle: &AppHandle<R>, pot: &Pot) -> eyre::Result<()> {
     let search_index = load_index(app_handle, pot.id, SearchFuzziness::Fuzzy).await?;
 
     if let Ok(lock) = get_rw_state::<_, SearchIndices>(app_handle) {
@@ -97,8 +124,13 @@ pub async fn update_app_state<R: Runtime>(
     patch: String,
     origin_window_label: &str,
 ) -> eyre::Result<()> {
-    let pool = get_state::<R, SqlitePool>(app_handle)?;
     let lock = get_rw_state::<R, AppState>(app_handle)?;
+
+    let path = app_handle
+        .path()
+        .app_data_dir()?
+        .join("state")
+        .join("app.json");
 
     let mut app_state = lock.write().await;
     let patch_deserealized = &serde_json::from_str::<Patch>(&patch)?;
@@ -109,9 +141,10 @@ pub async fn update_app_state<R: Runtime>(
         serde_json::from_value::<AppState>(value)?
     };
 
-    upsert::app_state(pool, &current_app_state).await?;
-
     *app_state = current_app_state;
+
+    let json = serde_json::to_string_pretty(&*app_state)?;
+    write(&path, json)?;
 
     AppStateChange::new(patch).emit_filter(app_handle, |target| match target {
         EventTarget::WebviewWindow { label } => label != origin_window_label,
@@ -128,8 +161,14 @@ pub async fn update_workspace_state<R: Runtime>(
     window: &WebviewWindow<R>,
     patch: String,
 ) -> eyre::Result<()> {
-    let pot_id = window.label().try_into()?;
-    let pool = get_state::<R, SqlitePool>(app_handle)?;
+    let pot_id: UUIDv7Base64URL = window.label().try_into()?;
+
+    let path = app_handle
+        .path()
+        .app_data_dir()?
+        .join("state")
+        .join(pot_id.to_string())
+        .join("workspace.json");
 
     let workspaces_lock = get_rw_state::<R, Workspaces>(window)?;
     let mut workspaces = workspaces_lock.write().await;
@@ -147,9 +186,10 @@ pub async fn update_workspace_state<R: Runtime>(
         serde_json::from_value::<WorkspaceState>(value)?
     };
 
-    upsert::workspace_state(pool, &current_workspace_state).await?;
-
     *workspace = current_workspace_state;
+
+    let json = serde_json::to_string_pretty(&*workspace)?;
+    write(&path, json)?;
 
     Ok(())
 }
@@ -158,7 +198,12 @@ pub async fn close_pot<R: Runtime>(
     app_handle: &AppHandle<R>,
     pot_id: &UUIDv7Base64URL,
 ) -> eyre::Result<()> {
-    let pool = get_state::<R, SqlitePool>(app_handle)?;
+    let path = app_handle
+        .path()
+        .app_data_dir()?
+        .join("state")
+        .join("app.json");
+
     let lock = get_rw_state::<R, AppState>(app_handle)?;
 
     let mut app_state = lock.write().await;
@@ -168,7 +213,8 @@ pub async fn close_pot<R: Runtime>(
 
     let patch = json_patch::diff(&prev_app_state, &current_app_state).to_string();
 
-    upsert::app_state(pool, &app_state).await?;
+    let json = serde_json::to_string_pretty(&*app_state)?;
+    write(&path, json)?;
 
     let workspaces_lock = get_rw_state::<R, Workspaces>(app_handle)?;
     let mut workspaces = workspaces_lock.write().await;

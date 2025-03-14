@@ -1,9 +1,13 @@
-use crate::database::query::{fetch, upsert};
+use std::fs::File;
+use std::io::BufReader;
+
+use crate::database::query::update;
 use crate::events::WorkspaceStateChange;
 use crate::state::{update_workspace_state, Workspaces};
 use crate::types::model::Pot;
-use crate::utils::get_rw_state;
-use crate::{database::query, utils::get_state};
+use crate::types::state::WorkspaceState;
+use crate::utils::get_state;
+use crate::utils::{get_rw_state, write};
 use chrono::Utc;
 use eyre::OptionExt;
 use garde::Unvalidated;
@@ -27,7 +31,7 @@ pub async fn update_pot<R: Runtime>(
 
     let now = Utc::now().timestamp_millis();
 
-    query::update::pot(pool, &pot, now).await?;
+    update::pot(pool, &pot, now).await?;
 
     if let Some(win) = app_handle.get_webview_window(&pot.id.to_string()) {
         win.set_title(&pot.name)?;
@@ -62,12 +66,22 @@ pub async fn update_pot<R: Runtime>(
             _ => false,
         })?;
     } else {
-        let mut workspace_state = fetch::workspace_state(pool, pot.id)
-            .await?
-            .ok_or_eyre("workspace state not found")?;
-        workspace_state.pot = pot.into_inner();
+        let path = app_handle
+            .path()
+            .app_data_dir()?
+            .join("state")
+            .join(pot.id.to_string())
+            .join("workspace.json");
 
-        upsert::workspace_state(pool, &workspace_state).await?;
+        if let Ok(file) = File::open(&path) {
+            let reader = BufReader::new(file);
+            let mut workspace: WorkspaceState = serde_json::from_reader(reader)?;
+            workspace.pot = pot.into_inner();
+
+            let json = serde_json::to_string_pretty(&workspace)?;
+
+            write(&path, json)?;
+        }
     }
 
     eyre::Ok(())
