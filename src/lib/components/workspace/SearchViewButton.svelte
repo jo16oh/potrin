@@ -1,89 +1,38 @@
 <script lang="ts">
-  import { Columns2, Link, Maximize2, Search } from "lucide-svelte";
+  import { Search } from "lucide-svelte";
   import { css } from "styled-system/css";
-  import { HoverView } from "$lib/components/common//HoverView";
-  import Button from "$lib/components/common/Button.svelte";
-  import { View, Workspace } from "$lib/models/Workspace.svelte";
+  import HoverView from "$lib/components/common/HoverView";
+  import { View } from "$lib/models/Workspace.svelte";
+  import { watch } from "runed";
 
-  let view: View<"search"> = $state(View.new("search"));
-  let open = $state(false);
-  let workspaceState = Workspace.current.state;
+  HoverView.State.init("search");
+  const state = HoverView.State.current!;
 
   let query = "";
 
-  $effect(() => {
-    if (view.query) {
-      query = view.query;
-    }
-  });
-
-  async function handleClickMaximize(e: MouseEvent) {
-    // prevents editor from being blurred
-    e.preventDefault();
-    open = false;
-
-    await View.save(view);
-
-    setTimeout(() => {
-      const newTabId = crypto.randomUUID();
-      const newViewId = crypto.randomUUID();
-      workspaceState.focusedTabId = newTabId;
-      workspaceState.tabs.unshift({
-        id: newTabId,
-        views: [{ ...$state.snapshot(view), id: newViewId }],
-        focusedViewId: newViewId,
-      });
-
-      View.open(view, View.new(view.type));
-    });
-  }
+  watch(
+    // @ts-expect-error property if it's SearchView
+    () => state.view.query,
+    () => {
+      if (state.view.type === "search") {
+        query = state.view.query;
+      }
+    },
+  );
 </script>
 
-<HoverView.Context bind:view bind:open>
+<HoverView.Context>
   <HoverView.Trigger
     class={floatingButtonStyle}
     onmousedown={(e) => {
       e.preventDefault();
     }}
-    onclick={(e) => {
-      e.preventDefault();
-      open = true;
-      view = { ...View.new("search"), query: query };
+    onclick={() => {
+      state.view = { ...View.new("search"), query: query };
     }}
   >
     <Search class={floatingButtonIconStyle} />
   </HoverView.Trigger>
-
-  {#snippet rightsideTopButtons()}
-    <Button
-      class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onclick={handleClickMaximize}
-    >
-      <Maximize2 class={iconInsideRightSideButton} />
-    </Button>
-    <Button
-      class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-    >
-      <Columns2 class={iconInsideRightSideButton} />
-    </Button>
-    <Button
-      class={rightSideButtonStyle}
-      onmousedown={(e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-    >
-      <Link class={iconInsideRightSideButton} />
-    </Button>
-  {/snippet}
 </HoverView.Context>
 
 <script module>
@@ -110,29 +59,5 @@
     w: "6",
     h: "6",
     color: "[white]",
-  });
-
-  const rightSideButtonStyle = css({
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: "2",
-    shadow: "sm",
-    transition: "colors",
-    p: "0",
-    w: "8",
-    h: "8",
-    bg: "view.bg",
-    _hover: {
-      bg: "view.bg-selected",
-    },
-    rounded: "circle",
-  });
-
-  const iconInsideRightSideButton = css({
-    w: "4",
-    h: "4",
-    color: "view.text-muted",
   });
 </script>

@@ -11,7 +11,7 @@
   import type { View } from "$lib/models/Workspace.svelte";
   import FlattenDocList from "../common/FlattenDocList.svelte";
   import { watch } from "runed";
-  import HoverViewContext from "../common/HoverViewContext.svelte";
+  import HoverView from "$lib/components/common/HoverView";
 
   type Props = {
     view: View<"search">;
@@ -20,6 +20,8 @@
   };
 
   let { view = $bindable(), search, pinned }: Props = $props();
+
+  if (pinned) HoverView.State.init("search");
 
   let scrollAreaRef: HTMLDivElement = $state()!;
   let queryElement: HTMLDivElement = $state()!;
@@ -270,20 +272,22 @@
 
     <div bind:this={contentElement}>
       {#if pinned}
-        <HoverViewContext>
+        <HoverView.Context>
           <FlattenDocList
             {view}
             class={searchResultsContainer}
             items={search.result}
             paragraphPositionIndex={search.paragraphPositionIndex}
+            openLinkOnHover={true}
           />
-        </HoverViewContext>
+        </HoverView.Context>
       {:else}
         <FlattenDocList
           {view}
           class={searchResultsContainer}
           items={search.result}
           paragraphPositionIndex={search.paragraphPositionIndex}
+          openLinkOnHover={false}
         />
       {/if}
     </div>

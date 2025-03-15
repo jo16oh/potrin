@@ -1,1 +1,1 @@
-export * as HoverView from './exports'
+export * as default from "./exports";

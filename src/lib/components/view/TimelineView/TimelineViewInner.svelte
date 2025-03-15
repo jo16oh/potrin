@@ -10,7 +10,7 @@
   import { debounce } from "es-toolkit";
   import Header from "../common/Header.svelte";
   import FlattenDocList from "../common/FlattenDocList.svelte";
-  import HoverViewContext from "../common/HoverViewContext.svelte";
+  import HoverView from "$lib/components/common/HoverView";
 
   type Props = {
     timeline: Timeline;
@@ -19,6 +19,8 @@
   };
 
   let { timeline, view, pinned }: Props = $props();
+
+  if (pinned) HoverView.State.init();
 
   let loading = $state(true);
   let virtualScrollRef = $state<ReturnType<typeof VirtualScroll>>()!;
@@ -165,20 +167,22 @@
             {format(day.dayStart, "yyyy-MM-dd")}
           </div>
           {#if pinned}
-            <HoverViewContext>
+            <HoverView.Context>
               <FlattenDocList
                 {view}
                 class={dayContentsStyle}
                 items={day.items}
                 paragraphPositionIndex={day.paragraphPositionIndex}
+                openLinkOnHover={true}
               />
-            </HoverViewContext>
+            </HoverView.Context>
           {:else}
             <FlattenDocList
               {view}
               class={dayContentsStyle}
               items={day.items}
               paragraphPositionIndex={day.paragraphPositionIndex}
+              openLinkOnHover={false}
             />
           {/if}
         </div>

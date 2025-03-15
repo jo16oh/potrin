@@ -11,7 +11,7 @@
   import type { ParagraphPositionIndex } from "generated/tauri-commands";
   import type { SvelteHTMLElements } from "svelte/elements";
   import Button from "$lib/components/common/Button.svelte";
-  import { HoverViewContext } from "./HoverViewContext.svelte";
+  import HoverView from "$lib/components/common/HoverView";
   import MockParagraphEditor from "$lib/components/editor/MockParagraphEditor.svelte";
   import { View } from "$lib/models/Workspace.svelte";
 
@@ -24,14 +24,21 @@
     view: View<"timeline" | "search">;
     items: FlattenDocListItem[];
     paragraphPositionIndex: ParagraphPositionIndex;
+    openLinkOnHover: boolean;
   } & SvelteHTMLElements["div"];
 
-  let { view, items, paragraphPositionIndex, ...restProps }: Props = $props();
+  let {
+    view,
+    items,
+    paragraphPositionIndex,
+    openLinkOnHover,
+    ...restProps
+  }: Props = $props();
 
-  const hoverViewContext = HoverViewContext.state;
+  const hoverViewContext = HoverView.State.current;
 
   function open(outlineId: string, focusedId: string) {
-    if (hoverViewContext) {
+    if (hoverViewContext && openLinkOnHover) {
       hoverViewContext.view = {
         ...View.new("cards"),
         outlineId: outlineId,
