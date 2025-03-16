@@ -2,9 +2,9 @@
   import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
   import { Workspace } from "$lib/models/Workspace.svelte";
   import { css } from "styled-system/css";
-  import { CardsView, TimelineView, SearchView } from "$lib/components/view";
   import HoverViewButton from "./HoverViewButton.svelte";
   import SearchViewButton from "./SearchViewButton.svelte";
+  import Tab from "./Tab.svelte";
 
   const workspace = Workspace.current;
   const pinnedTabs = $derived(workspace.state.pinnedTabs);
@@ -16,60 +16,19 @@
   <Sidebar />
 
   <div class={tabsContainerStyle}>
-    {#each pinnedTabs as tab}
-      {#if workspace.isTabLoaded(tab.id)}
-        <div class={tabStyle} data-disabled={focusedTabId !== tab.id}>
-          {#each tab.views as view (view.id)}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class={viewStyle}
-              onmousedown={() => (tab.focusedViewId = view.id)}
-            >
-              {#if view.type === "timeline"}
-                <TimelineView {view} pinned={view.id in tab.pinnedViewIds} />
-              {/if}
-            </div>
-          {/each}
-        </div>
-      {/if}
+    {#each pinnedTabs as tab, tabIdx}
+      <Tab {tab} {tabIdx} />
     {/each}
 
     {#each tabs as tab, tabIdx}
-      {#if workspace.isTabLoaded(tab.id)}
-        <div class={tabStyle} data-disabled={focusedTabId !== tab.id}>
-          {#each tab.views as view, viewIdx (view.id)}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class={viewStyle}
-              onmousedown={() => (tab.focusedViewId = view.id)}
-            >
-              {#if view.type === "cards"}
-                <CardsView
-                  isFocused={tab.id === focusedTabId &&
-                    view.id === tab.focusedViewId}
-                  {view}
-                  onCloseButtonClick={() =>
-                    workspace.closeView(tab, tabIdx, view, viewIdx)}
-                />
-              {:else if view.type === "search"}
-                <SearchView
-                  {view}
-                  pinned={false}
-                  onCloseButtonClick={() => {
-                    workspace.closeView(tab, tabIdx, view, viewIdx);
-                  }}
-                />
-              {/if}
-            </div>
-          {/each}
-        </div>
-      {/if}
+      <Tab {tab} {tabIdx} />
     {/each}
 
     {#if focusedTabId === null}
       <div class={viewStyle}></div>
     {/if}
   </div>
+
   <SearchViewButton />
   <HoverViewButton />
 </div>
@@ -92,23 +51,11 @@
     h: "full",
   });
 
-  const tabStyle = css({
-    flex: "auto",
-    h: "full",
-    display: "flex",
-    flexDir: "row",
-    gap: "2",
-    "&[data-disabled=true]": {
-      display: "none",
-    },
-  });
-
   const viewStyle = css({
     flex: "1",
     bg: "view.bg",
     h: "full",
     rounded: "md",
     shadow: "md.around",
-    overflow: "hidden",
   });
 </script>
