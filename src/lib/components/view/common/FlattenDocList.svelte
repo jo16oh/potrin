@@ -72,6 +72,7 @@
               <div
                 class={pathTextStyle}
                 data-last={path.length - 1 === idx}
+                data-open-link-on-hover={openLinkOnHover ? true : false}
                 onclick={() => open(pathItem.id, pathItem.id)}
               >
                 {pathItem.text}
@@ -95,9 +96,12 @@
                     <Tilda class={tildaTop} />
                   </div>
                 {/if}
+              {:else}
+                <VerticalLine class={paragraphContainerLineTop} />
               {/if}
               <Button
-                class={triggerStyle}
+                class={paragraphTriggerStyle}
+                data-open-link-on-hover={openLinkOnHover ? true : false}
                 onclick={() => open(paragraph.outlineId, paragraph.id)}
               >
                 <MockParagraphEditor {paragraph} variant={{ style: "card" }} />
@@ -176,9 +180,18 @@
       fontWeight: "bold",
     },
     _hover: {
-      cursor: "pointer",
       textDecoration: "underline",
       textDecorationColor: "view.text",
+    },
+    "&[data-open-link-on-hover=true]": {
+      _hover: {
+        cursor: "alias",
+      },
+    },
+    "&[data-open-link-on-hover=false]": {
+      _hover: {
+        cursor: "pointer",
+      },
     },
   });
 
@@ -257,12 +270,26 @@
     color: "view.text-muted",
   });
 
-  const triggerStyle = css({
+  const paragraphTriggerStyle = css({
     w: "full",
     h: "fit",
     textAlign: "start",
+    rounded: "lg",
     _hover: {
-      cursor: "pointer",
+      outlineColor: "[blue]",
+      outlineOffset: "1",
+      outlineStyle: "solid",
+      outlineWidth: "thin",
+    },
+    "&[data-open-link-on-hover=true]": {
+      _hover: {
+        cursor: "alias",
+      },
+    },
+    "&[data-open-link-on-hover=false]": {
+      _hover: {
+        cursor: "pointer",
+      },
     },
   });
 </script>

@@ -34,6 +34,7 @@
     transition: "colors",
     _hover: {
       bg: "workspace.bg-selected",
+      cursor: "alias",
     },
   });
 
