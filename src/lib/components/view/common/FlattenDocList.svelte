@@ -165,6 +165,7 @@
   });
 
   const pathTextStyle = css({
+    textAlign: "start",
     color: "view.text-muted",
     fontSize: "md",
     textWrap: "wrap",
