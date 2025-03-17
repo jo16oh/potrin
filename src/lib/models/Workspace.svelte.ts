@@ -87,6 +87,9 @@ export class Workspace {
   currentTab() {
     return this.#state.focusedTabId
       ? (this.#state.tabs.find((t) => t.id === this.#state.focusedTabId) ??
+          this.#state.pinnedTabs.find(
+            (t) => t.id === this.#state.focusedTabId,
+          ) ??
           null)
       : null;
   }
