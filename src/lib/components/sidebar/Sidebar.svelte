@@ -278,6 +278,8 @@
     bg: "workspace.bg",
     userSelect: "none",
     mr: "2",
+    py: "[4px]",
+    pl: "[4px]",
     "&[data-float=true]": {
       zIndex: "global.sidebar",
       maxW: "[90vw]",

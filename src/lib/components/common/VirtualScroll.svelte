@@ -120,7 +120,10 @@
 </ScrollArea>
 
 <script module>
-  const scrollAreaStyle = css.raw({ position: "relative" });
+  const scrollAreaStyle = css.raw({
+    overscrollBehaviorY: "none",
+    position: "relative",
+  });
 
   const loadingTopStyle = css({
     position: "sticky",

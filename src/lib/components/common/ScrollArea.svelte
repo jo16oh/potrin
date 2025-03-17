@@ -5,7 +5,7 @@
 
   type Props = SvelteHTMLElements["div"] & {
     ref?: HTMLDivElement | undefined;
-    orientation?: "vertical" | "horizontal" | "both";
+    orientation?: "vertical" | "horizontal";
     type?: "auto" | "always";
     scrollAreaStyle?: Styles;
     children?: Snippet;
@@ -55,33 +55,21 @@
         overflowY: "scroll",
       },
     },
-    "&[data-orientation=both]": {
-      "&[data-scroll-type=auto]": {
-        overflowX: "auto",
-        overflowY: "auto",
-      },
-      "&[data-scroll-type=always]": {
-        overflowX: "scroll",
-        overflowY: "scroll",
-      },
-    },
-    overscrollBehavior: "none",
     _scrollbar: {
       bg: "selected",
       w: "[10px]",
+      h: "[10px]",
       p: "[1px]",
       rounded: "md",
     },
     _scrollbarThumb: {
       bg: "view.text-muted",
-      rounded: "[4px]",
-      borderRight: "[2px solid transparent]",
-      borderLeft: "[2px solid transparent]",
+      rounded: "[16px]",
+      border: "[2px solid transparent]",
       backgroundClip: "padding-box",
     },
     _scrollbarTrack: {
-      marginTop: "[4px]",
-      marginBottom: "[4px]",
+      margin: "[4px]",
     },
   });
 </script>

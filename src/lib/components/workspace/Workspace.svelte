@@ -5,6 +5,7 @@
   import HoverViewButton from "./HoverViewButton.svelte";
   import SearchViewButton from "./SearchViewButton.svelte";
   import Tab from "./Tab.svelte";
+  import ScrollArea from "../common/ScrollArea.svelte";
 
   const workspace = Workspace.current;
   const pinnedTabs = $derived(workspace.state.pinnedTabs);
@@ -15,7 +16,7 @@
 <div class={workspaceContainerStyle}>
   <Sidebar />
 
-  <div class={tabsContainerStyle}>
+  <ScrollArea {scrollAreaStyle}>
     {#each pinnedTabs as tab, tabIdx}
       <Tab {tab} {tabIdx} />
     {/each}
@@ -27,7 +28,7 @@
     {#if focusedTabId === null}
       <div class={viewStyle}></div>
     {/if}
-  </div>
+  </ScrollArea>
 
   <SearchViewButton />
   <HoverViewButton />
@@ -40,15 +41,14 @@
     bg: "workspace.bg",
     w: "screen",
     h: "screen",
-    pt: "[28px]",
-    pb: "[8px]",
-    px: "[8px]",
     overflow: "hidden",
+    pt: "[24px]",
+    pb: "[4px]",
+    px: "[4px]",
   });
 
-  const tabsContainerStyle = css({
-    w: "full",
-    h: "full",
+  const scrollAreaStyle = css.raw({
+    p: "[4px]",
   });
 
   const viewStyle = css({
