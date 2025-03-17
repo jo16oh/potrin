@@ -302,7 +302,7 @@
   const resizeHandlerStyle = css({
     position: "absolute",
     top: "[0.25rem]",
-    right: "-1.5",
+    right: "-2",
     h: "[calc(100% - 0.5rem)]",
     w: "1",
     transition: "all",
