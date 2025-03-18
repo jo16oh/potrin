@@ -1,6 +1,6 @@
 use crate::{
     database::query::fetch,
-    state::init_window_state,
+    state::{init_window_state, update_app_state},
     types::{state::AppState, util::UUIDv7Base64URL},
     utils::{get_rw_state, get_state},
 };
@@ -8,13 +8,16 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 
 pub async fn init_windows(app_handle: &AppHandle) -> eyre::Result<()> {
-    let app_state_lock = get_rw_state::<_, AppState>(app_handle)?;
-    let app_state = app_state_lock.read().await;
+    let pots = {
+        let app_state_lock = get_rw_state::<_, AppState>(app_handle)?;
+        let app_state = app_state_lock.read().await;
+        app_state.pots.clone()
+    };
 
-    if app_state.pots.is_empty() {
+    if pots.is_empty() {
         open_pot_selector(app_handle)?;
     } else {
-        for (id, _) in app_state.pots.iter() {
+        for (id, _) in pots.iter() {
             open_pot(app_handle, *id).await?;
         }
     }
@@ -68,7 +71,16 @@ pub async fn open_pot(app_handle: &AppHandle, pot_id: UUIDv7Base64URL) -> eyre::
 
     win_builder.build()?;
 
-    init_window_state(app_handle, &pot).await.unwrap();
+    init_window_state(app_handle, &pot).await?;
+
+    let app_state = {
+        let app_state_lock = get_rw_state::<_, AppState>(app_handle)?;
+        let mut app_state = app_state_lock.read().await.clone();
+        app_state.pots.insert(pot.id, pot.name);
+        app_state
+    };
+
+    update_app_state(app_handle, app_state, "").await?;
 
     Ok(())
 }
