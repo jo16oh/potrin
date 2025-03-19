@@ -11,9 +11,10 @@
     right?: Snippet<[{ buttonStyle: Styles; iconStyle: Styles }]>;
   } & SvelteHTMLElements["div"];
 
-  let { left, center, right }: Props = $props();
+  let { left, center, right, ...restProps }: Props = $props();
 </script>
-<div class={headerStyle}>
+
+<div class={headerStyle} {...restProps}>
   <div class={headerLeftContainer}>
     {@render left?.({
       buttonStyle: headerButtonStyle,
